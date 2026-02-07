@@ -8,6 +8,11 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "prebuild": {
+        "android": {
+          "command": "npx patch-package"
+        }
       }
     },
     "preview": {
@@ -19,6 +24,11 @@
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "prebuild": {
+        "android": {
+          "command": "npx patch-package"
+        }
       }
     }
   },
