@@ -25,6 +25,9 @@ interface PlayerContextType {
     toggleRepeat: () => void;
     isShuffleOn: boolean;
     repeatMode: 'off' | 'one' | 'all';
+    playPause: () => void;
+    nextTrack: () => void;
+    prevTrack: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -98,6 +101,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             const modes: ('off' | 'one' | 'all')[] = ['off', 'one', 'all'];
             const currentIndex = modes.indexOf(repeatMode);
             setRepeatMode(modes[(currentIndex + 1) % modes.length]);
+        },
+        playPause: () => {
+            console.log('Player: playPause requested');
+            setIsPlaying(!isPlaying);
+        },
+        nextTrack: () => {
+            console.log('Player: nextTrack requested');
+        },
+        prevTrack: () => {
+            console.log('Player: prevTrack requested');
         },
     };
 
