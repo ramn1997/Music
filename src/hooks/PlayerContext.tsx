@@ -6,6 +6,7 @@ import { Song } from './useLocalMusic';
 
 interface PlayerContextType {
     currentTrack: Song | null;
+    currentSong: Song | null;
     isPlaying: boolean;
     position: number;
     duration: number;
@@ -17,6 +18,13 @@ interface PlayerContextType {
     playNext: () => Promise<void>;
     playPrevious: () => Promise<void>;
     setQueue: (songs: Song[], index?: number) => Promise<void>;
+    playSongInPlaylist: (songs: Song[], index: number, playlistName?: string) => void;
+    addToQueue: (song: Song) => void;
+    addNext: (song: Song) => void;
+    toggleShuffle: () => void;
+    toggleRepeat: () => void;
+    isShuffleOn: boolean;
+    repeatMode: 'off' | 'one' | 'all';
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -24,12 +32,17 @@ const PlayerContext = createContext<PlayerContextType | null>(null);
 export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const [currentTrack, setCurrentTrack] = useState<Song | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isShuffleOn, setIsShuffleOn] = useState(false);
+    const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
 
     const player: PlayerContextType = {
         currentTrack,
+        currentSong: currentTrack,
         isPlaying,
         position: 0,
         duration: 0,
+        isShuffleOn,
+        repeatMode,
         play: async (song: Song) => {
             console.log('Player: play requested for', song.title);
             setCurrentTrack(song);
@@ -62,6 +75,29 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             if (songs.length > 0) {
                 setCurrentTrack(songs[index || 0]);
             }
+        },
+        playSongInPlaylist: (songs: Song[], index: number, playlistName?: string) => {
+            console.log('Player: playSongInPlaylist requested for', playlistName || 'playlist', 'at index', index);
+            if (songs.length > index) {
+                setCurrentTrack(songs[index]);
+                setIsPlaying(true);
+            }
+        },
+        addToQueue: (song: Song) => {
+            console.log('Player: addToQueue requested for', song.title);
+        },
+        addNext: (song: Song) => {
+            console.log('Player: addNext requested for', song.title);
+        },
+        toggleShuffle: () => {
+            console.log('Player: toggleShuffle requested');
+            setIsShuffleOn(!isShuffleOn);
+        },
+        toggleRepeat: () => {
+            console.log('Player: toggleRepeat requested');
+            const modes: ('off' | 'one' | 'all')[] = ['off', 'one', 'all'];
+            const currentIndex = modes.indexOf(repeatMode);
+            setRepeatMode(modes[(currentIndex + 1) % modes.length]);
         },
     };
 
