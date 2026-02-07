@@ -6,14 +6,16 @@ import { colors } from '../theme/colors';
 interface GlassCardProps {
     children: React.ReactNode;
     style?: StyleProp<ViewStyle>;
+    contentStyle?: StyleProp<ViewStyle>;
     intensity?: number;
+    disableBlur?: boolean;
 }
 
-export const GlassCard: React.FC<GlassCardProps> = ({ children, style, intensity = 20 }) => {
+export const GlassCard: React.FC<GlassCardProps> = ({ children, style, contentStyle, intensity = 20, disableBlur = false }) => {
     return (
-        <View style={[styles.container, style]}>
-            <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />
-            <View style={styles.content}>{children}</View>
+        <View style={[styles.container, style, disableBlur && styles.noBlurContainer]}>
+            {!disableBlur && <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />}
+            <View style={[styles.content, contentStyle]}>{children}</View>
         </View>
     );
 };
@@ -31,4 +33,7 @@ const styles = StyleSheet.create({
         padding: 16,
         zIndex: 1,
     },
+    noBlurContainer: {
+        backgroundColor: '#1e1e1e', // Fallback for no blur
+    }
 });

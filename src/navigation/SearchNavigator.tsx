@@ -15,7 +15,7 @@ export const SearchNavigator = () => {
                 animation: 'slide_from_right'
             }}
         >
-            <Stack.Screen name="Search" component={SearchScreen} />
+            <Stack.Screen name="SearchMain" component={SearchScreen} />
             <Stack.Screen name="Playlist" component={PlaylistScreen} />
         </Stack.Navigator>
     );

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { MusicImage } from '../components/MusicImage';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
@@ -8,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { usePlayerContext } from '../hooks/PlayerContext';
+import { MarqueeText } from '../components/MarqueeText';
 
 export const RecentlyAddedScreen = () => {
     const { theme } = useTheme();
@@ -30,14 +32,16 @@ export const RecentlyAddedScreen = () => {
             style={styles.songItem}
             onPress={() => handlePlaySong(index)}
         >
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                <Ionicons name="musical-note" size={20} color={theme.text} />
-            </View>
+            <MusicImage
+                uri={item.coverImage}
+                id={item.id}
+                style={{ width: 40, height: 40, borderRadius: 8, marginRight: 12 }}
+                iconSize={20}
+                containerStyle={{ width: 40, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: 'rgba(255,255,255,0.05)' }}
+            />
             <View style={styles.songInfo}>
-                <Text style={[styles.songTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
-                <Text style={[styles.songDetail, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {item.artist}
-                </Text>
+                <MarqueeText text={item.title} style={[styles.songTitle, { color: theme.text }]} />
+                <MarqueeText text={item.artist} style={[styles.songDetail, { color: theme.textSecondary }]} />
             </View>
             <Text style={[styles.dateText, { color: theme.textSecondary }]}>
                 {item.dateAdded ? new Date(item.dateAdded).toLocaleDateString() : 'Unknown'}

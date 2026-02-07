@@ -15,7 +15,7 @@ export const PlaylistsNavigator = () => {
                 animation: 'slide_from_right'
             }}
         >
-            <Stack.Screen name="Playlists" component={PlaylistsScreen} />
+            <Stack.Screen name="PlaylistsMain" component={PlaylistsScreen} />
             <Stack.Screen name="Playlist" component={PlaylistScreen} />
         </Stack.Navigator>
     );

@@ -19,17 +19,18 @@ export const TabNavigator = () => {
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#000', // simplified for stability
+                    backgroundColor: '#000',
                     borderTopColor: 'rgba(255,255,255,0.1)',
-                    height: 50 + Math.max(insets.bottom, 10),
-                    paddingBottom: Math.max(insets.bottom, 10),
-                    paddingTop: 5,
+                    height: 70 + insets.bottom,
+                    paddingBottom: insets.bottom + 10,
+                    paddingTop: 12,
                 },
-                tabBarActiveTintColor: colors.primary,
+                tabBarActiveTintColor: 'white',
                 tabBarInactiveTintColor: colors.textSecondary,
                 tabBarLabelStyle: {
-                    fontSize: 10,
-                    fontWeight: '500'
+                    fontSize: 11,
+                    fontWeight: '600',
+                    marginTop: 2,
                 }
             }}
         >
@@ -45,7 +46,7 @@ export const TabNavigator = () => {
                 options={{
                     tabBarLabel: 'Home',
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name="home" size={focused ? 24 : 20} color={color} />
+                        <Ionicons name="home" size={focused ? 26 : 24} color={color} />
                     )
                 }}
             />
@@ -55,7 +56,7 @@ export const TabNavigator = () => {
                 options={{
                     tabBarLabel: 'Search',
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name="search" size={focused ? 24 : 20} color={color} />
+                        <Ionicons name="search" size={focused ? 26 : 24} color={color} />
                     )
                 }}
             />
@@ -65,13 +66,13 @@ export const TabNavigator = () => {
                 listeners={({ navigation }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
-                        navigation.navigate('Playlists', { screen: 'Playlists' });
+                        navigation.navigate('Playlists', { screen: 'PlaylistsMain' });
                     },
                 })}
                 options={{
                     tabBarLabel: 'Playlists',
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name="list" size={focused ? 24 : 20} color={color} />
+                        <Ionicons name="list" size={focused ? 26 : 24} color={color} />
                     )
                 }}
             />

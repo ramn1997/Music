@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { MusicImage } from '../components/MusicImage';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
@@ -35,6 +36,13 @@ export const MostPlayedScreen = () => {
                     {index + 1}
                 </Text>
             </View>
+            <MusicImage
+                uri={item.coverImage}
+                id={item.id}
+                style={{ width: 40, height: 40, borderRadius: 8, marginRight: 12 }}
+                iconSize={20}
+                containerStyle={{ width: 40, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: theme.card }}
+            />
             <View style={styles.songInfo}>
                 <Text style={[styles.songTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
                 <Text style={[styles.songDetail, { color: theme.textSecondary }]} numberOfLines={1}>

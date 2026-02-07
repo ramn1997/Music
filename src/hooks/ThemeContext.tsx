@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'dark' | 'purple' | 'blue' | 'glass' | 'system';
+export type ThemeType = 'dark' | 'purple' | 'blue' | 'glass' | 'black' | 'system';
 
 interface Theme {
     background: string;
@@ -13,6 +13,7 @@ interface Theme {
     card: string;
     cardBorder: string;
     gradient: string[];
+    menuBackground: string;
 }
 
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
@@ -24,7 +25,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#a1a1aa',
         card: 'rgba(255, 255, 255, 0.05)',
         cardBorder: 'rgba(255, 255, 255, 0.1)',
-        gradient: ['#050505', '#1a0b2e']
+        gradient: ['#050505', '#1a0b2e'],
+        menuBackground: '#1F1F1F'
     },
     purple: {
         background: '#1a0b2e',
@@ -34,7 +36,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#c084fc',
         card: 'rgba(139, 92, 246, 0.1)',
         cardBorder: 'rgba(139, 92, 246, 0.2)',
-        gradient: ['#2e1065', '#1a0b2e']
+        gradient: ['#2e1065', '#1a0b2e'],
+        menuBackground: '#2E1065'
     },
     blue: {
         background: '#020617',
@@ -44,7 +47,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#94a3b8',
         card: 'rgba(30, 41, 59, 0.5)',
         cardBorder: 'rgba(56, 189, 248, 0.2)',
-        gradient: ['#0f172a', '#020617']
+        gradient: ['#0f172a', '#020617'],
+        menuBackground: '#1E293B'
     },
     glass: {
         background: '#000000',
@@ -54,14 +58,30 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#d1d5db',
         card: 'rgba(255, 255, 255, 0.1)',
         cardBorder: 'rgba(255, 255, 255, 0.2)',
-        gradient: ['#000000', '#111827']
+        gradient: ['#000000', '#111827'],
+        menuBackground: '#1F2937'
+    },
+    black: {
+        background: '#000000',
+        primary: '#ffffff',
+        secondary: '#525252',
+        text: '#ffffff',
+        textSecondary: '#a3a3a3',
+        card: '#121212', // Solid dark grey card for OLED contrast
+        cardBorder: '#262626',
+        gradient: ['#000000', '#000000'],
+        menuBackground: '#000000'
     },
 };
+
+export type PlayerStyle = 'square' | 'circle' | 'rounded' | 'squircle';
 
 interface ThemeContextType {
     theme: Theme;
     themeType: ThemeType;
     setThemeType: (type: ThemeType) => void;
+    playerStyle: PlayerStyle;
+    setPlayerStyle: (style: PlayerStyle) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -69,14 +89,20 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const systemScheme = useColorScheme();
     const [themeType, setThemeTypeState] = useState<ThemeType>('dark');
+    const [playerStyle, setPlayerStyleState] = useState<PlayerStyle>('rounded');
 
     useEffect(() => {
         const loadTheme = async () => {
             const savedTheme = await AsyncStorage.getItem('appTheme');
-            if (savedTheme && savedTheme !== 'light') { // Ensure we don't load 'light' logic if saved previously
+            if (savedTheme && savedTheme !== 'light') {
                 setThemeTypeState(savedTheme as ThemeType);
             } else if (savedTheme === 'light') {
                 setThemeTypeState('dark');
+            }
+
+            const savedStyle = await AsyncStorage.getItem('playerStyle');
+            if (savedStyle) {
+                setPlayerStyleState(savedStyle as PlayerStyle);
             }
         };
         loadTheme();
@@ -87,6 +113,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await AsyncStorage.setItem('appTheme', type);
     };
 
+    const setPlayerStyle = async (style: PlayerStyle) => {
+        setPlayerStyleState(style);
+        await AsyncStorage.setItem('playerStyle', style);
+    };
+
     const getActiveTheme = (): Theme => {
         if (themeType === 'system') {
             return Themes.dark;
@@ -95,7 +126,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     return (
-        <ThemeContext.Provider value={{ theme: getActiveTheme(), themeType, setThemeType }}>
+        <ThemeContext.Provider value={{ theme: getActiveTheme(), themeType, setThemeType, playerStyle, setPlayerStyle }}>
             {children}
         </ThemeContext.Provider>
     );
