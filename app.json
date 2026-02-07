@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.Music",
-      "newArchEnabled": false,
+      "newArchEnabled": true,
       "infoPlist": {
         "NSAppleMusicUsageDescription": "Allow Music to access your music library to play local songs.",
         "UIBackgroundModes": [
@@ -40,7 +40,7 @@
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ],
       "package": "com.ram.musicapp",
-      "newArchEnabled": false
+      "newArchEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
