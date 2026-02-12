@@ -59,9 +59,12 @@
       [
         "expo-build-properties",
         {
-          "android": {}
+          "android": {
+            "foregroundServiceType": "mediaPlayback"
+          }
         }
-      ]
+      ],
+      "react-native-track-player"
     ],
     "owner": "ram1997",
     "extra": {
