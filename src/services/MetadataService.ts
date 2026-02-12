@@ -51,13 +51,34 @@ class MetadataService {
 
         try {
             // Read ID3 tags
-            const metadata = await getMusicInfoAsync(lookupUri, {
-                title: true,
-                artist: true,
-                album: true,
-                genre: true,
-                picture: false
-            });
+            let metadata;
+            try {
+                metadata = await getMusicInfoAsync(lookupUri, {
+                    title: true,
+                    artist: true,
+                    album: true,
+                    genre: true,
+                    picture: false
+                });
+            } catch (innerError) {
+                // Fallback for Android Content URIs
+                if (lookupUri.startsWith('content://')) {
+                    const tempFile = `${FileSystem.cacheDirectory}meta_resolve_${assetId || Date.now()}.mp3`;
+                    try {
+                        await FileSystem.copyAsync({ from: lookupUri, to: tempFile });
+                        metadata = await getMusicInfoAsync(tempFile, {
+                            title: true,
+                            artist: true,
+                            album: true,
+                            genre: true,
+                            picture: false
+                        });
+                        await FileSystem.deleteAsync(tempFile, { idempotent: true });
+                    } catch (copyError) {
+                        console.warn('[MetadataService] Fallback copy failed', copyError);
+                    }
+                }
+            }
 
             const result: ScannedMetadata = {
                 title: metadata?.title || undefined,
@@ -71,7 +92,6 @@ class MetadataService {
             return result;
         } catch (error) {
             console.warn(`[MetadataService] Failed to fetch tags for ${lookupUri}:`, error);
-            // Cache failure? No, retry might be useful.
             return {};
         }
     }

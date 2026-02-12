@@ -146,6 +146,33 @@ class ImportService {
     }
 
     /**
+     * Robust metadata fetcher with fallback for Android Content URIs
+     */
+    private async safeGetMusicInfo(uri: string, options: any, songId?: string): Promise<any> {
+        try {
+            // First attempt: Direct read
+            const meta = await getMusicInfoAsync(uri, options);
+            if (meta) return meta;
+            throw new Error('No metadata returned');
+        } catch (e) {
+            // Fallback: Copy to internal cache for extraction (Scoped Storage bypass)
+            if (uri.startsWith('content://')) {
+                const tempFile = `${FileSystem.cacheDirectory}meta_temp_${songId || Date.now()}.mp3`;
+                try {
+                    await FileSystem.copyAsync({ from: uri, to: tempFile });
+                    const meta = await getMusicInfoAsync(tempFile, options);
+                    await FileSystem.deleteAsync(tempFile, { idempotent: true });
+                    return meta;
+                } catch (copyError) {
+                    console.warn(`[ImportService] Meta-copy fallback failed for ${songId}`);
+                    return null;
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
      * Extract root folder from URI
      */
 
@@ -272,13 +299,16 @@ class ImportService {
 
 
         const pending = songs.filter(s => {
-            const missingMeta = s.scanStatus === 'pending' ||
-                s.artist === 'Unknown Artist' ||
-                !s.album || s.album === 'Unknown Album';
+            const isUnknownArtist = !s.artist ||
+                ['Unknown Artist', '<unknown>', 'Unknown', 'unknown'].includes(s.artist);
+            const isUnknownAlbum = !s.album ||
+                ['Unknown Album', '<unknown>', 'Unknown', 'unknown'].includes(s.album);
+            const titleMatchFilename = s.title === s.filename ||
+                s.title === s.filename.replace(/\.[^/.]+$/, '');
+
+            const missingMeta = s.scanStatus === 'pending' || isUnknownArtist || isUnknownAlbum || titleMatchFilename;
 
             // Also check if we are missing art (no coverImage path set)
-            // But we need to distinguish between "checked and no art" vs "not checked"
-            // For now, if no coverImage, we assume we might need to fetch it
             const missingArt = !s.coverImage && (!s.scanStatus || s.scanStatus !== 'enhanced');
 
             return missingMeta || missingArt;
@@ -391,14 +421,14 @@ class ImportService {
                     if (needsFileExtraction) {
                         try {
                             // Request picture only if we actually miss art
-                            const meta = await getMusicInfoAsync(targetUri, {
+                            const meta = await this.safeGetMusicInfo(targetUri, {
                                 title: true,
                                 artist: true,
                                 album: true,
                                 genre: true,
                                 year: true,
                                 picture: shouldExtractArt // Extract picture if we don't have it or forcing
-                            });
+                            }, song.id);
 
                             if (meta) {
                                 if (meta.title) libTitle = meta.title;
@@ -535,14 +565,11 @@ class ImportService {
             // Only proceed if we have a valid path to save to
             if (embeddedPath) {
                 try {
-                    console.log(`[ImportService] Starting extraction for ${songId} from ${localUri}`);
-                    console.log(`[ImportService] Saving to: ${embeddedPath}`);
-
                     // Explicitly request ONLY the picture to save memory
-                    const metadata = await getMusicInfoAsync(localUri, {
+                    const metadata = await this.safeGetMusicInfo(localUri, {
                         title: false,
                         picture: true
-                    });
+                    }, songId);
 
                     if (metadata?.picture?.pictureData) {
                         let base64Data = metadata.picture.pictureData;
