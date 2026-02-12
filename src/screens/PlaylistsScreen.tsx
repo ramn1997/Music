@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenContainer } from '../components/ScreenContainer';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -190,7 +189,7 @@ export const PlaylistsScreen = () => {
 
     return (
         <ScreenContainer variant="default">
-            <Animated.View style={{ flex: 1 }} entering={FadeInDown.duration(400)}>
+            <View style={{ flex: 1 }}>
                 <View style={styles.header}>
                     <View style={styles.headerLeft}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -221,6 +220,12 @@ export const PlaylistsScreen = () => {
                     numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
                     columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
                     contentContainerStyle={styles.listContent}
+                    style={{ flex: 1 }}
+                    ListEmptyComponent={
+                        <View style={{ padding: 50, alignItems: 'center' }}>
+                            <Text style={{ color: theme.textSecondary }}>No playlists found</Text>
+                        </View>
+                    }
                 />
 
                 {/* Create Playlist Modal */}
@@ -293,7 +298,7 @@ export const PlaylistsScreen = () => {
                         </View>
                     </View>
                 </Modal>
-            </Animated.View>
+            </View>
         </ScreenContainer>
     );
 };

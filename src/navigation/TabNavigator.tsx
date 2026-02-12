@@ -5,6 +5,7 @@ import { SearchNavigator } from './SearchNavigator';
 import { PlaylistsNavigator } from './PlaylistsNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
+import { useTheme } from '../hooks/ThemeContext';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -17,112 +18,145 @@ import Animated, {
 
 const Tab = createBottomTabNavigator();
 
-const TabItem = ({ route, isFocused, onPress, label }: any) => {
-    const scale = useSharedValue(isFocused ? 1.15 : 0.9);
+const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
+    const scale = useSharedValue(isFocused ? 1 : 0.95);
+    const opacity = useSharedValue(isFocused ? 1 : 0);
 
     useEffect(() => {
-        scale.value = withSpring(isFocused ? 1.15 : 0.9, {
-            damping: 15,
-            stiffness: 150
-        });
+        scale.value = withSpring(isFocused ? 1 : 0.95, { damping: 12 });
+        opacity.value = withSpring(isFocused ? 1 : 0, { duration: 200 });
     }, [isFocused]);
 
-    const animatedIconStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }]
+    const animatedPillStyle = useAnimatedStyle(() => ({
+        backgroundColor: isFocused ? theme.primary : 'rgba(255,255,255,0.05)',
+        borderRadius: 25,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: isFocused ? 20 : 14,
+        height: 50,
+        justifyContent: 'center',
+        transform: [{ scale: scale.value }],
+    }));
+
+    const animatedTextStyle = useAnimatedStyle(() => ({
+        opacity: opacity.value,
+        width: isFocused ? 'auto' : 0,
+        marginLeft: isFocused ? 8 : 0,
+        overflow: 'hidden',
     }));
 
     const iconName = () => {
-        if (route.name === 'HomeTab') return 'home';
-        if (route.name === 'Search') return 'search';
-        if (route.name === 'Playlists') return 'list';
+        if (isFocused) {
+            if (route.name === 'HomeTab') return 'home';
+            if (route.name === 'Search') return 'search';
+            if (route.name === 'Playlists') return 'list';
+        } else {
+            if (route.name === 'HomeTab') return 'home-outline';
+            if (route.name === 'Search') return 'search-outline';
+            if (route.name === 'Playlists') return 'list-outline';
+        }
         return 'musical-notes';
     };
 
     return (
         <TouchableOpacity
             onPress={onPress}
-            style={styles.tabItem}
-            activeOpacity={0.7}
+            activeOpacity={0.9}
+            style={{ paddingHorizontal: 4 }}
         >
-            <Animated.View style={animatedIconStyle}>
+            <Animated.View style={animatedPillStyle}>
                 <Ionicons
                     name={iconName() as any}
-                    size={24}
-                    color="white"
+                    size={22}
+                    color={isFocused ? (theme.primary === '#E6FF6E' ? '#000' : '#fff') : 'rgba(255,255,255,0.6)'}
                 />
+                {isFocused && (
+                    <Animated.View style={animatedTextStyle}>
+                        <Text
+                            numberOfLines={1}
+                            style={[
+                                styles.tabLabel,
+                                { color: theme.primary === '#E6FF6E' ? '#000' : '#fff' }
+                            ]}
+                        >
+                            {label}
+                        </Text>
+                    </Animated.View>
+                )}
             </Animated.View>
-            <Text style={[
-                styles.tabLabel,
-                { color: 'white', opacity: isFocused ? 1 : 0.6 }
-            ]}>
-                {label}
-            </Text>
         </TouchableOpacity>
     );
 };
 
-const CustomTabBar = ({ state, descriptors, navigation, insets }: any) => {
+const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) => {
     return (
-        <View style={[styles.tabBarContainer, { height: 65 + insets.bottom, paddingBottom: insets.bottom }]}>
-            {state.routes.map((route: any, index: number) => {
-                const { options } = descriptors[route.key];
-                const label = options.tabBarLabel !== undefined
-                    ? options.tabBarLabel
-                    : options.title !== undefined
-                        ? options.title
-                        : route.name;
-                const isFocused = state.index === index;
+        <View style={[
+            styles.tabBarContainer,
+            { height: 65 + insets.bottom, paddingBottom: insets.bottom }
+        ]}>
+            <View style={styles.tabBarInner}>
+                {state.routes.map((route: any, index: number) => {
+                    const { options } = descriptors[route.key];
+                    const label = options.tabBarLabel !== undefined
+                        ? options.tabBarLabel
+                        : options.title !== undefined
+                            ? options.title
+                            : route.name;
+                    const isFocused = state.index === index;
 
-                const onPress = () => {
-                    const event = navigation.emit({
-                        type: 'tabPress',
-                        target: route.key,
-                        canPreventDefault: true,
-                    });
+                    const onPress = () => {
+                        const event = navigation.emit({
+                            type: 'tabPress',
+                            target: route.key,
+                            canPreventDefault: true,
+                        });
 
-                    if (!isFocused && !event.defaultPrevented) {
-                        navigation.navigate(route.name);
-                    }
-                };
+                        if (!isFocused && !event.defaultPrevented) {
+                            navigation.navigate(route.name);
+                        }
+                    };
 
-                return (
-                    <TabItem
-                        key={route.key}
-                        route={route}
-                        isFocused={isFocused}
-                        onPress={onPress}
-                        label={label}
-                    />
-                );
-            })}
+                    return (
+                        <TabItem
+                            key={route.key}
+                            route={route}
+                            isFocused={isFocused}
+                            onPress={onPress}
+                            label={label}
+                            theme={theme}
+                        />
+                    );
+                })}
+            </View>
         </View>
     );
 };
 
 const HomeTabScreen = () => (
-    <Animated.View style={{ flex: 1 }} entering={SlideInRight.duration(400)}>
+    <View style={{ flex: 1 }}>
         <HomeNavigator />
-    </Animated.View>
+    </View>
 );
 
 const SearchTabScreen = () => (
-    <Animated.View style={{ flex: 1 }} entering={SlideInRight.duration(400)}>
+    <View style={{ flex: 1 }}>
         <SearchNavigator />
-    </Animated.View>
+    </View>
 );
 
 const PlaylistsTabScreen = () => (
-    <Animated.View style={{ flex: 1 }} entering={SlideInRight.duration(400)}>
+    <View style={{ flex: 1 }}>
         <PlaylistsNavigator />
-    </Animated.View>
+    </View>
 );
 
 export const TabNavigator = () => {
     const insets = useSafeAreaInsets();
+    const { theme } = useTheme();
 
     return (
         <Tab.Navigator
-            tabBar={(props) => <CustomTabBar {...props} insets={insets} />}
+            tabBar={(props) => <CustomTabBar {...props} insets={insets} theme={theme} />}
             screenOptions={{
                 headerShown: false,
             }}
@@ -151,19 +185,22 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: '#000',
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: 'rgba(255,255,255,0.05)',
         position: 'relative',
         zIndex: 100,
-    },
-    tabItem: {
-        flex: 1,
+        height: 65,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 12,
+        paddingHorizontal: 15,
+    },
+    tabBarInner: {
+        flexDirection: 'row',
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'space-around',
     },
     tabLabel: {
-        fontSize: 11,
-        fontWeight: '600',
-        marginTop: 4,
+        fontSize: 14,
+        fontWeight: '700',
     }
 });

@@ -25,7 +25,7 @@ export const MiniPlayer = () => {
     const noTabBarScreens = ['Player', 'Settings', 'Equalizer', 'EditSong', 'Lyrics'];
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
-    // The TabBar height is 65 + insets.bottom
+    // Standard docked tab bar height is 65 + insets.bottom
     const bottomOffset = hasTabBar ? (65 + insets.bottom) : insets.bottom;
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;

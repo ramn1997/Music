@@ -122,7 +122,7 @@ const BigHistoryCard = ({ item, songs, theme, navigation }: { item: any, songs: 
     const cardBgColor = getGradientColors(item.id)[0];
 
     return (
-        <Animated.View entering={FadeInLeft.delay(100).duration(500)}>
+        <View style={styles.cardContainer}>
             <TouchableOpacity
                 style={[styles.bigHistoryCard, { backgroundColor: cardBgColor, borderColor: 'rgba(255,255,255,0.1)' }]}
                 activeOpacity={0.9}
@@ -182,15 +182,13 @@ const BigHistoryCard = ({ item, songs, theme, navigation }: { item: any, songs: 
                             </View>
                         </View>
                     )) : (
-                        <View style={{ height: 120, justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ height: 100, justifyContent: 'center', alignItems: 'center' }}>
                             <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>No songs found</Text>
                         </View>
                     )}
                 </View>
-
-                {/* Bottom buttons removed as requested */}
             </TouchableOpacity>
-        </Animated.View>
+        </View>
     );
 };
 
@@ -383,7 +381,7 @@ export const HomeScreen = () => {
         });
     }, []);
 
-    const MemoizedHeader = useMemo(() => (
+    const renderHeader = () => (
         <View style={{ paddingBottom: 100 }}>
             {/* Greeting & Header */}
             <View style={styles.header}>
@@ -469,29 +467,33 @@ export const HomeScreen = () => {
 
             {/* Listening History Section */}
             <View style={styles.sectionHeaderContainer}>
-                <Ionicons name="time-outline" size={20} color={theme.textSecondary} style={{ marginRight: 8 }} />
+                <Ionicons name="time-outline" size={22} color={theme.text} style={{ marginRight: 10 }} />
                 <Text style={[styles.sectionTitle, { color: theme.text, marginLeft: 0 }]}>Listening History</Text>
             </View>
 
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 10 }}
-                snapToInterval={Dimensions.get('window').width * 0.85}
-                decelerationRate="fast"
-            >
-                {dynamicHistory.map((item) => (
-                    <BigHistoryCard
-                        key={item.id}
-                        item={item}
-                        songs={songs}
-                        theme={theme}
-                        navigation={navigation}
-                    />
-                ))}
-            </ScrollView>
+            <View style={{ minHeight: 250 }}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+                    snapToInterval={Dimensions.get('window').width * 0.8 + 16}
+                    decelerationRate="fast"
+                >
+                    {dynamicHistory.map((item) => (
+                        <BigHistoryCard
+                            key={item.id}
+                            item={item}
+                            songs={songs}
+                            theme={theme}
+                            navigation={navigation}
+                        />
+                    ))}
+                    {/* Add extra space at the end */}
+                    <View style={{ width: 20 }} />
+                </ScrollView>
+            </View>
         </View>
-    ), [theme, allFavorites, navigation, songs, dynamicHistory]);
+    );
 
     return (
         <ScreenContainer variant="default">
@@ -500,7 +502,9 @@ export const HomeScreen = () => {
                 data={[]}
                 renderItem={null}
                 showsVerticalScrollIndicator={false}
-                ListHeaderComponent={MemoizedHeader}
+                ListHeaderComponent={renderHeader()}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ flexGrow: 1 }}
             />
         </ScreenContainer>
     );
@@ -582,12 +586,16 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     // Big History Card Styles
+    cardContainer: {
+        marginBottom: 20,
+    },
     bigHistoryCard: {
         width: Dimensions.get('window').width * 0.8,
         borderRadius: 24,
         padding: 16,
         marginRight: 16,
         borderWidth: 1,
+        minHeight: 220,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -595,9 +603,9 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     gridContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40, // Circular to match PlaylistScreen design
+        width: 70,
+        height: 70,
+        borderRadius: 35, // Circular to match PlaylistScreen design
         overflow: 'hidden',
         marginRight: 16,
         position: 'relative',

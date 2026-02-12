@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ViewStyle } from 'react-native';
+import { StyleSheet, ViewStyle, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
@@ -55,9 +55,9 @@ export const ScreenContainer = ({ children, variant = 'default', style }: Screen
             style={[styles.container, style]}
         >
             <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-                <Animated.View style={animatedStyle}>
+                <View style={{ flex: 1 }}>
                     {children}
-                </Animated.View>
+                </View>
             </SafeAreaView>
         </LinearGradient>
     );
