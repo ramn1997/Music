@@ -38,17 +38,17 @@ export default function App() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
                 <ThemeProvider>
-                    <PlayerProvider>
-                        <MusicLibraryProvider>
+                    <MusicLibraryProvider>
+                        <PlayerProvider>
                             <NavigationContainer>
                                 <View style={styles.container}>
                                     <StatusBar style="light" />
                                     <AppNavigator />
                                 </View>
                             </NavigationContainer>
-                            <ImportProgressOverlay />
-                        </MusicLibraryProvider>
-                    </PlayerProvider>
+                            {/* <ImportProgressOverlay /> Removed for mini-player in Settings */}
+                        </PlayerProvider>
+                    </MusicLibraryProvider>
                 </ThemeProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>

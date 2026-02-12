@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Song } from '../hooks/useLocalMusic';
@@ -40,46 +40,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
 
     if (!song) return null;
 
-    const pickImage = async () => {
-        try {
-            // Lazy load ImagePicker to prevent startup crash if native module is missing
-            let ImagePicker;
-            try {
-                // ImagePicker = require('expo-image-picker');
-                ImagePicker = null;
-            } catch (e) {
-                Alert.alert('Not Supported', 'Image picking is not supported on this device/environment (Missing Native Module).');
-                return;
-            }
 
-            if (!ImagePicker || !ImagePicker.requestMediaLibraryPermissionsAsync) {
-                Alert.alert('Not Supported', 'Image picking is not supported on this device/environment.');
-                return;
-            }
-
-            // Request permission
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Please grant permission to access your photos.');
-                return;
-            }
-
-            // Launch image picker
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.8,
-            });
-
-            if (!result.canceled && result.assets[0]) {
-                setCoverImage(result.assets[0].uri);
-            }
-        } catch (error) {
-            console.error('Error picking image:', error);
-            Alert.alert('Error', 'Failed to pick image. Please try again.');
-        }
-    };
 
     const handleSave = () => {
         onSave(song.id, {
@@ -91,6 +52,36 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             coverImage: coverImage || song.coverImage,
         });
         onClose();
+    };
+
+    const handleScanTags = async () => {
+        try {
+            const { metadataService } = require('../services/MetadataService');
+            console.log('[EditSongModal] Scanning tags for:', song.title);
+
+            // Force fetch to bypass cache
+            const meta = await metadataService.fetchMetadata(song.uri, song.id, true);
+            console.log('[EditSongModal] Scan result:', meta);
+
+            // Also try to fetch artwork
+            const art = await metadataService.fetchArtwork(song.uri);
+            if (art) {
+                setCoverImage(art);
+                console.log('[EditSongModal] Found artwork:', art);
+            }
+
+            let hasUpdates = false;
+            if (meta.title) { setTitle(meta.title); hasUpdates = true; }
+            if (meta.artist) { setArtist(meta.artist); hasUpdates = true; }
+            if (meta.album) { setAlbum(meta.album); hasUpdates = true; }
+            if (meta.genre) { setGenre(meta.genre); hasUpdates = true; }
+
+            if (!hasUpdates) {
+                console.log('[EditSongModal] No better metadata found in tags');
+            }
+        } catch (e) {
+            console.warn('Scan failed', e);
+        }
     };
 
     const inputFields = [
@@ -124,58 +115,59 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    {/* Song Preview with editable cover */}
-                    <View style={styles.songPreview}>
-                        <TouchableOpacity onPress={pickImage} style={styles.artWrapper}>
-                            {coverImage ? (
-                                <Image
-                                    source={{ uri: coverImage }}
-                                    style={styles.art}
-                                />
-                            ) : (
-                                <MusicImage
-                                    uri={song.coverImage}
-                                    id={song.id}
-                                    style={styles.art}
-                                    iconSize={40}
-                                    containerStyle={[styles.artContainer, { backgroundColor: theme.card }]}
-                                />
-                            )}
-                            <View style={[styles.editOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                                <Ionicons name="camera" size={24} color="white" />
-                                <Text style={styles.editText}>Change</Text>
+                    <View style={styles.contentRow}>
+                        {/* Left: Cover Art */}
+                        <View style={styles.coverSide}>
+                            <View style={styles.artWrapper}>
+                                {coverImage ? (
+                                    <Image
+                                        source={{ uri: coverImage }}
+                                        style={styles.art}
+                                    />
+                                ) : (
+                                    <MusicImage
+                                        uri={song.coverImage}
+                                        id={song.id}
+                                        style={styles.art}
+                                        iconSize={40}
+                                        containerStyle={[styles.artContainer, { backgroundColor: theme.card }]}
+                                    />
+                                )}
                             </View>
-                        </TouchableOpacity>
-                    </View>
+                            <TouchableOpacity onPress={handleScanTags} style={{ marginTop: 12, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.cardBorder, alignItems: 'center' }}>
+                                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.primary }}>Scan Tags</Text>
+                            </TouchableOpacity>
+                        </View>
 
-                    {/* Form Fields */}
-                    <ScrollView
-                        style={styles.formContainer}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {inputFields.map((field, index) => (
-                            <View key={index} style={styles.fieldContainer}>
-                                <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
-                                <TextInput
-                                    style={[
-                                        styles.input,
-                                        {
-                                            color: theme.text,
-                                            backgroundColor: theme.card,
-                                            borderColor: theme.cardBorder
-                                        }
-                                    ]}
-                                    value={field.value}
-                                    onChangeText={field.setValue}
-                                    placeholder={field.placeholder}
-                                    placeholderTextColor={theme.textSecondary}
-                                    keyboardType={field.keyboardType || 'default'}
-                                />
-                            </View>
-                        ))}
-                        <View style={{ height: 40 }} />
-                    </ScrollView>
+                        {/* Right: Form Fields */}
+                        <ScrollView
+                            style={styles.formContainer}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            {inputFields.map((field, index) => (
+                                <View key={index} style={styles.fieldContainer}>
+                                    <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
+                                    <TextInput
+                                        style={[
+                                            styles.input,
+                                            {
+                                                color: theme.text,
+                                                backgroundColor: theme.card,
+                                                borderColor: theme.cardBorder
+                                            }
+                                        ]}
+                                        value={field.value}
+                                        onChangeText={field.setValue}
+                                        placeholder={field.placeholder}
+                                        placeholderTextColor={theme.textSecondary}
+                                        keyboardType={field.keyboardType || 'default'}
+                                    />
+                                </View>
+                            ))}
+                            <View style={{ height: 40 }} />
+                        </ScrollView>
+                    </View>
                 </View>
             </KeyboardAvoidingView>
         </Modal>
@@ -215,22 +207,26 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
-    songPreview: {
-        alignItems: 'center',
-        paddingVertical: 20,
+    contentRow: {
+        flexDirection: 'row',
+        flex: 1,
+        paddingTop: 20,
+    },
+    coverSide: {
+        paddingHorizontal: 20,
     },
     artWrapper: {
         position: 'relative',
     },
     art: {
-        width: 120,
-        height: 120,
-        borderRadius: 12,
+        width: 80,
+        height: 80,
+        borderRadius: 8,
     },
     artContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 12,
+        width: 80,
+        height: 80,
+        borderRadius: 8,
         overflow: 'hidden',
     },
     editOverlay: {
@@ -253,23 +249,23 @@ const styles = StyleSheet.create({
     },
     formContainer: {
         flex: 1,
-        paddingHorizontal: 20,
+        paddingRight: 20,
     },
     fieldContainer: {
-        marginBottom: 16,
+        marginBottom: 12,
     },
     label: {
         fontSize: 13,
         fontWeight: '500',
-        marginBottom: 8,
+        marginBottom: 6,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     input: {
-        fontSize: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderRadius: 12,
+        fontSize: 15,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 10,
         borderWidth: 1,
     },
 });

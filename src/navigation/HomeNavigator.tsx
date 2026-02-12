@@ -9,7 +9,7 @@ import { MostPlayedScreen } from '../screens/MostPlayedScreen';
 import { RecentlyAddedScreen } from '../screens/RecentlyAddedScreen';
 import { PlaylistScreen } from '../screens/PlaylistScreen';
 import { FavoritesScreen } from '../screens/FavoritesScreen';
-import { YearsScreen } from '../screens/YearsScreen';
+
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -28,7 +28,7 @@ export const HomeNavigator = () => {
             <Stack.Screen name="Albums" component={AlbumsScreen} />
             <Stack.Screen name="Artists" component={ArtistsScreen} />
             <Stack.Screen name="Genres" component={GenresScreen} />
-            <Stack.Screen name="Years" component={YearsScreen} />
+
             <Stack.Screen name="MostPlayed" component={MostPlayedScreen} />
             <Stack.Screen name="RecentlyAdded" component={RecentlyAddedScreen} />
             <Stack.Screen name="Playlist" component={PlaylistScreen} />

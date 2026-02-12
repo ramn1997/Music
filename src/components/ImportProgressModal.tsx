@@ -99,7 +99,7 @@ export const ImportProgressModal: React.FC<ImportProgressModalProps> = ({
         switch (progress.phase) {
             case 'scanning':
                 return 'search';
-            case 'loading-cache':
+            case 'loading':
                 return 'flash';
             case 'complete':
                 return 'checkmark-circle';
@@ -114,7 +114,7 @@ export const ImportProgressModal: React.FC<ImportProgressModalProps> = ({
         switch (progress.phase) {
             case 'scanning':
                 return '#6366F1';
-            case 'loading-cache':
+            case 'loading':
                 return '#22C55E';
             case 'complete':
                 return '#10B981';
@@ -129,7 +129,7 @@ export const ImportProgressModal: React.FC<ImportProgressModalProps> = ({
         switch (progress.phase) {
             case 'scanning':
                 return 'Scanning Library';
-            case 'loading-cache':
+            case 'loading':
                 return 'Loading Songs';
             case 'complete':
                 return 'Import Complete!';
@@ -149,7 +149,7 @@ export const ImportProgressModal: React.FC<ImportProgressModalProps> = ({
             animationType="fade"
             statusBarTranslucent
         >
-            <View style={styles.overlay}>
+            <View style={[styles.overlay, { backgroundColor: theme.background }]}>
                 <View style={[styles.container, { backgroundColor: theme.card }]}>
                     {/* Header with icon */}
                     <View style={[styles.iconContainer, { backgroundColor: getPhaseColor() + '20' }]}>
@@ -210,19 +210,26 @@ export const ImportProgressModal: React.FC<ImportProgressModalProps> = ({
                         </Animated.View>
                     )}
 
-                    {/* Phase indicators - Just 2 phases for instant loading */}
+                    {/* Phase indicators */}
                     {!isComplete && (
                         <View style={styles.phaseIndicators}>
                             <PhaseIndicator
                                 label="Scan"
                                 active={progress.phase === 'scanning'}
-                                complete={['loading-cache', 'complete'].includes(progress.phase)}
+                                complete={['loading', 'enhancing', 'complete'].includes(progress.phase)}
                                 theme={theme}
                             />
                             <View style={[styles.phaseConnector, { backgroundColor: theme.textSecondary + '30' }]} />
                             <PhaseIndicator
                                 label="Load"
-                                active={progress.phase === 'loading-cache'}
+                                active={progress.phase === 'loading'}
+                                complete={['enhancing', 'complete'].includes(progress.phase)}
+                                theme={theme}
+                            />
+                            <View style={[styles.phaseConnector, { backgroundColor: theme.textSecondary + '30' }]} />
+                            <PhaseIndicator
+                                label="Enhance"
+                                active={progress.phase === 'enhancing'}
                                 complete={progress.phase === 'complete'}
                                 theme={theme}
                             />

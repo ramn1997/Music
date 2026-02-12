@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, PanResponder, FlatList, Animated, Modal, Platform } from 'react-native';
-import ReAnimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,7 +17,7 @@ import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { EditSongModal } from '../components/EditSongModal';
 import { LyricsModal } from '../components/LyricsModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
-import { MarqueeText } from '../components/MarqueeText';
+
 import { Song } from '../hooks/useLocalMusic';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
@@ -73,48 +73,46 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
     const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
     const likeScale = useRef(new Animated.Value(1)).current;
 
-    const shouldAnimateTransition = useRef(false);
     const shuffleScale = useSharedValue(1);
     const repeatScale = useSharedValue(1);
     const playPauseScale = useSharedValue(1);
     const prevScale = useSharedValue(1);
     const nextScale = useSharedValue(1);
+    const likeShine = useSharedValue(0);
     const songTransition = useSharedValue(1);
+    const slideDirection = useSharedValue(0); // 1 for right-to-left (next), -1 for left-to-right (prev)
 
     useEffect(() => {
-        if (shouldAnimateTransition.current) {
-            songTransition.value = 0;
-            songTransition.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.quad) });
-            shouldAnimateTransition.current = false;
-        } else {
-            songTransition.value = 1;
-        }
-    }, [currentSong?.id]);
-
-    const { incrementPlayCount } = useMusicLibrary();
-    const lastTrackedSongId = useRef<string | null>(null);
-
-    useEffect(() => {
-        if (currentSong && currentSong.id !== lastTrackedSongId.current) {
-            lastTrackedSongId.current = currentSong.id;
-            incrementPlayCount(currentSong.id);
-        }
+        // Trigger animation whenever currentSong changes
+        songTransition.value = 0;
+        songTransition.value = withTiming(1, {
+            duration: 250,
+            easing: Easing.out(Easing.back(0.5))
+        });
     }, [currentSong?.id]);
 
     const contentTransitionStyle = useAnimatedStyle(() => ({
         opacity: songTransition.value,
         transform: [
-            { translateX: 200 * (1 - songTransition.value) }
+            { translateX: 100 * (1 - songTransition.value) * (slideDirection.value || 1) }
+        ] as any
+    }));
+
+    const likeShineStyle = useAnimatedStyle(() => ({
+        opacity: likeShine.value,
+        transform: [
+            { scale: withTiming(likeShine.value * 2.5, { duration: 400 }) },
+            { rotate: `${likeShine.value * 45}deg` }
         ] as any
     }));
 
     const handleNext = () => {
-        shouldAnimateTransition.current = true;
+        slideDirection.value = 1;
         nextTrack();
     };
 
     const handlePrev = () => {
-        shouldAnimateTransition.current = true;
+        slideDirection.value = -1;
         prevTrack();
     };
 
@@ -131,8 +129,16 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
 
     const handleLike = () => {
         if (!currentSong) return;
+
+        // Trigger shine effect
+        likeShine.value = 0;
+        likeShine.value = withSequence(
+            withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }),
+            withTiming(0, { duration: 400, easing: Easing.in(Easing.quad) })
+        );
+
         Animated.sequence([
-            Animated.spring(likeScale, { toValue: 1.2, friction: 3, useNativeDriver: true }),
+            Animated.spring(likeScale, { toValue: 1.4, friction: 3, useNativeDriver: true }),
             Animated.spring(likeScale, { toValue: 1, friction: 3, useNativeDriver: true })
         ]).start();
         toggleLike(currentSong);
@@ -243,6 +249,16 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         return `${minutes}:${Number(seconds) < 10 ? '0' : ''}${seconds}`;
     };
 
+    const incrementPlayCount = useMusicLibrary()?.incrementPlayCount;
+    const lastTrackedSongId = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (currentSong && currentSong.id !== lastTrackedSongId.current) {
+            lastTrackedSongId.current = currentSong.id;
+            if (incrementPlayCount) incrementPlayCount(currentSong.id);
+        }
+    }, [currentSong?.id]);
+
     const SHEET_MAX_HEIGHT = screenHeight * 0.85;
     const SHEET_MIN_HEIGHT = 60;
     const [sheetOpen, setSheetOpen] = useState(false);
@@ -338,7 +354,6 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
 
     return (
         <ScreenContainer variant="player">
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]} />
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -348,15 +363,11 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Now Playing</Text>
                         {playlistName ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{playlistName}</Text> : null}
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <TouchableOpacity onPress={() => navigation.navigate('Equalizer')} style={{ marginRight: 15 }}>
-                            <Ionicons name="options-outline" size={20} color={theme.text} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={toggleOptions}>
-                            <Ionicons name="ellipsis-horizontal" size={28} color={theme.text} />
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity onPress={toggleOptions}>
+                        <Ionicons name="ellipsis-horizontal" size={28} color={theme.text} />
+                    </TouchableOpacity>
                 </View>
+
 
                 <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 160 }}>
                     <ReAnimated.View style={[styles.artContainer, contentTransitionStyle]}>
@@ -364,6 +375,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                             <MusicImage
                                 uri={currentSong?.coverImage}
                                 id={currentSong?.id}
+                                assetUri={currentSong?.uri}
                                 style={{ width: '100%', height: '100%' }}
                                 iconSize={width * 0.4}
                                 containerStyle={styles.placeholderArt}
@@ -375,20 +387,40 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                     <View style={styles.bottomControlsBlock}>
                         <ReAnimated.View style={[styles.infoContainer, contentTransitionStyle]}>
                             <View style={{ flex: 1 }}>
-                                <MarqueeText
-                                    text={currentSong?.title || "Not Playing"}
+                                <Text
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
                                     style={[styles.songTitle, { color: theme.text }]}
-                                />
-                                <MarqueeText
-                                    text={currentSong?.artist || "Select a song"}
-                                    style={[styles.artistName, { color: theme.primary }]}
-                                />
-                                <MarqueeText
-                                    text={`${currentSong?.album || "Unknown Album"}${currentSong?.year && currentSong.year !== 'Unknown Year' ? ` • ${currentSong.year}` : ''}`}
+                                >
+                                    {currentSong?.title || "Not Playing"}
+                                </Text>
+                                <Text
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
                                     style={[styles.albumName, { color: theme.textSecondary }]}
-                                />
+                                >
+                                    {`${currentSong?.album || "Unknown Album"}${currentSong?.year && currentSong.year !== 'Unknown Year' ? ` • ${currentSong.year}` : ''}`}
+                                </Text>
+                                <Text
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                    style={[styles.artistName, { color: theme.primary }]}
+                                >
+                                    {currentSong?.artist || "Select a song"}
+                                </Text>
                             </View>
-                            <TouchableOpacity onPress={handleLike}>
+                            <TouchableOpacity onPress={handleLike} style={{ justifyContent: 'center', alignItems: 'center', width: 44, height: 44 }}>
+                                <ReAnimated.View style={[
+                                    {
+                                        position: 'absolute',
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: 20,
+                                        backgroundColor: liked ? '#ef4444' : theme.primary,
+                                        zIndex: -1
+                                    },
+                                    likeShineStyle
+                                ]} />
                                 <Animated.View style={{ transform: [{ scale: likeScale }] }}>
                                     <Ionicons
                                         name={liked ? "heart" : "heart-outline"}
@@ -474,6 +506,8 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                     styles.bottomSheet,
                     {
                         backgroundColor: theme.background,
+                        borderTopWidth: 1,
+                        borderTopColor: theme.cardBorder,
                         height: SHEET_MAX_HEIGHT,
                         transform: [{ translateY: translateY }],
                         bottom: -SHEET_MAX_HEIGHT + SHEET_MIN_HEIGHT + 60
@@ -522,7 +556,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                                         <Text style={[styles.queueArtist, { color: theme.textSecondary }]} numberOfLines={1}>{item.artist}</Text>
                                     </View>
                                 </TouchableOpacity>
-                                {index === currentIndex && <PlayingIndicator color={theme.primary} size={18} />}
+                                {index === currentIndex && <PlayingIndicator color={theme.primary} size={18} isPlaying={isPlaying} />}
                                 <TouchableOpacity style={{ padding: 10 }} onPress={() => { setSelectedQueueItem({ song: item, index }); setQueueOptionsVisible(true); }}>
                                     <Ionicons name="ellipsis-vertical" size={20} color={theme.textSecondary} />
                                 </TouchableOpacity>
@@ -574,7 +608,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                     </View>
                 </View>
             </Modal>
-        </ScreenContainer>
+        </ScreenContainer >
     );
 };
 
@@ -587,8 +621,8 @@ const styles = StyleSheet.create({
     placeholderArt: { width: '100%', height: '100%', backgroundColor: 'rgba(139, 92, 246, 0.2)', justifyContent: 'center', alignItems: 'center' },
     infoContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 30, marginBottom: 30 },
     songTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 4 },
-    artistName: { fontSize: 15, fontWeight: '600', marginBottom: 2 },
-    albumName: { fontSize: 12, opacity: 0.8 },
+    artistName: { fontSize: 12, opacity: 0.8, marginBottom: 2 },
+    albumName: { fontSize: 15, fontWeight: '600' },
     progressContainer: { paddingHorizontal: 30, marginBottom: 10 },
     progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, marginBottom: 10, position: 'relative' },
     progressBarFill: { height: '100%', borderRadius: 3 },

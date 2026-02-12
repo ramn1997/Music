@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,6 +23,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 import { MarqueeText } from '../components/MarqueeText';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { MusicImage } from '../components/MusicImage';
+import { useArtistImage } from '../hooks/useArtistImage';
 const FlashListAny = FlashList as any;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Playlist'>;
@@ -51,6 +53,35 @@ const AnimatedLikedBackground = () => {
             <Animated.View style={[style1, { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'white' }]} />
             <Animated.View style={[style2, { position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }]} />
         </>
+    );
+};
+
+const ArtistProfileImage = ({ uri, name, primaryColor, cardColor }: { uri?: string, name: string, primaryColor: string, cardColor: string }) => {
+    return (
+        <View style={{ width: 140, height: 140, justifyContent: 'center', alignItems: 'center' }}>
+
+            <View style={{
+                width: 140,
+                height: 140,
+                borderRadius: 70,
+                borderWidth: 3,
+                borderColor: 'white',
+                overflow: 'hidden',
+                elevation: 10,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 5 },
+                shadowOpacity: 0.4,
+                shadowRadius: 10,
+            }}>
+                <MusicImage
+                    uri={uri}
+                    id={name}
+                    style={StyleSheet.absoluteFill}
+                    resizeMode="cover"
+                    iconSize={80}
+                />
+            </View>
+        </View>
     );
 };
 
@@ -84,6 +115,8 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         listeners: string | null;
     } | null>(null);
     const [loadingArtistInfo, setLoadingArtistInfo] = useState(false);
+    const deezerArtistImage = useArtistImage(type === 'artist' ? name : '');
+
 
     // Fetch artist info when type is 'artist'
     useEffect(() => {
@@ -128,6 +161,12 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
     const [sortOrder, setSortOrder] = useState<'recent' | 'asc' | 'desc'>('recent');
+    const [viewMode, setViewMode] = useState<'songs' | 'albums' | 'artists'>('songs');
+
+    // Reset view mode to songs when navigating to a new playlist/artist/album
+    useEffect(() => {
+        setViewMode('songs');
+    }, [id, type]);
 
     const currentPlaylist = playlists.find(p => p.id === id);
     const isPlaylistFavorite = currentPlaylist?.isFavorite || false;
@@ -170,11 +209,11 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         if (id === 'liked') {
             filtered = [...likedSongs];
         } else if (type === 'artist') {
-            filtered = filtered.filter(s => s.artist === name);
+            filtered = filtered.filter(s => (s.artist || 'Unknown Artist') === name);
         } else if (type === 'album') {
-            filtered = filtered.filter(s => s.album === name);
+            filtered = filtered.filter(s => (s.album || 'Unknown Album') === name);
         } else if (type === 'genre') {
-            filtered = filtered.filter(s => s.genre === name);
+            filtered = filtered.filter(s => (s.genre || 'Unknown Genre') === name);
         } else if (type === 'year') {
             filtered = filtered.filter(s => (s.year || 'Unknown Year') === name);
         } else if (type === 'most_played') {
@@ -225,13 +264,16 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
         setDisplaySongs(filtered);
         if (type === 'playlist' && id !== 'liked') {
-            setViewMode('songs');
+            // viewMode handled by dedicated effect now
         }
     }, [songs, type, name, id, likedSongs, playlists, sortOrder]);
 
-    const handlePlaySong = React.useCallback((index: number) => {
-        playSongInPlaylist(displaySongs, index, name);
-        navigation.navigate('Player', { trackIndex: index });
+    const handlePlaySong = React.useCallback((song: Song) => {
+        const index = displaySongs.findIndex(s => s.id === song.id);
+        if (index !== -1) {
+            playSongInPlaylist(displaySongs, index, name);
+            navigation.navigate('Player', { trackIndex: index });
+        }
     }, [displaySongs, name, playSongInPlaylist, navigation]);
 
 
@@ -251,7 +293,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         />
     ), [theme, handlePlaySong, onOpenOptions]);
 
-    const [viewMode, setViewMode] = useState<'songs' | 'albums' | 'artists'>('songs');
+
 
     const groupedContent = React.useMemo(() => {
         if (viewMode === 'albums') {
@@ -310,7 +352,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
     return (
         <ScreenContainer variant="default">
-            <Animated.View style={{ flex: 1 }} entering={FadeInDown.duration(400)}>
+            <View style={{ flex: 1 }}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
@@ -347,7 +389,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                     <View style={[
                                         styles.playlistArtCard,
                                         { backgroundColor: theme.card, overflow: 'hidden', borderWidth: 1, borderColor: theme.cardBorder },
-                                        (type === 'recently_played' || type === 'recently_added' || type === 'never_played') && { borderRadius: 90 }
+                                        (type === 'recently_played' || type === 'recently_added' || type === 'never_played' || type === 'artist') && { borderRadius: 90 }
                                     ]}>
                                         <LinearGradient
                                             colors={gradientColors as [string, string]}
@@ -364,11 +406,26 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
                                         {id === 'liked' && <AnimatedLikedBackground />}
 
+                                        {type === 'artist' && (
+                                            <View style={StyleSheet.absoluteFill}>
+                                                <Image
+                                                    source={{ uri: deezerArtistImage || artistInfo?.image || undefined }}
+                                                    style={StyleSheet.absoluteFill}
+                                                    resizeMode="cover"
+                                                />
+                                                <BlurView intensity={30} style={StyleSheet.absoluteFill} tint="dark" />
+                                                <LinearGradient
+                                                    colors={['transparent', 'rgba(0,0,0,0.5)']}
+                                                    style={StyleSheet.absoluteFill}
+                                                />
+                                            </View>
+                                        )}
+
                                         <View style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
                                             {/* Priority 1: Listening History ALWAYS use icons to match HomeScreen */}
                                             {(type === 'recently_played' || type === 'recently_added' || type === 'never_played') ? (
                                                 <View style={{
-                                                    backgroundColor: 'rgba(255,255,255,0.15)',
+                                                    backgroundColor: 'transparent',
                                                     width: 120,
                                                     height: 120,
                                                     borderRadius: 60,
@@ -391,17 +448,21 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                         color="white"
                                                     />
                                                 </View>
-                                            ) : type === 'artist' && artistInfo?.image ? (
-                                                <Image
-                                                    source={{ uri: artistInfo.image }}
-                                                    style={{ width: '100%', height: '100%', borderRadius: 12 }}
-                                                    resizeMode="cover"
+                                            ) : type === 'artist' ? (
+                                                <ArtistProfileImage
+                                                    uri={deezerArtistImage || artistInfo?.image || undefined}
+                                                    name={name}
+                                                    primaryColor={theme.primary}
+                                                    cardColor={theme.card}
                                                 />
-                                            ) : type === 'album' && displaySongs[0]?.coverImage ? (
-                                                <Image
-                                                    source={{ uri: displaySongs[0].coverImage }}
+                                            ) : type === 'album' && displaySongs[0] ? (
+                                                <MusicImage
+                                                    uri={displaySongs[0].coverImage}
+                                                    id={displaySongs[0].id}
+                                                    assetUri={displaySongs[0].uri}
                                                     style={{ width: '100%', height: '100%', borderRadius: 12 }}
                                                     resizeMode="cover"
+                                                    iconSize={80}
                                                 />
                                             ) : (
                                                 <Ionicons
@@ -421,7 +482,14 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                             )}
                                         </View>
                                     </View>
-                                    <Text style={[styles.playlistName, { color: theme.text }]}>{name}</Text>
+                                    <Text style={[
+                                        styles.playlistName,
+                                        {
+                                            color: theme.text,
+                                            fontSize: type === 'artist' ? 32 : 28,
+                                            letterSpacing: type === 'artist' ? 0.5 : 0
+                                        }
+                                    ]}>{name}</Text>
 
                                     {/* Artist Info Section */}
                                     {type === 'artist' && artistInfo?.listeners && (
@@ -453,7 +521,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                             style={[styles.playAllButton, { backgroundColor: theme.primary }]}
                                             onPress={() => {
                                                 if (displaySongs.length > 0) {
-                                                    handlePlaySong(0);
+                                                    handlePlaySong(displaySongs[0]);
                                                 }
                                             }}
                                         >
@@ -551,6 +619,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                     )}
                                 </View>
                             }
+                            showsVerticalScrollIndicator={false}
                         />
 
                         {/* Options Modal - Dropdown Style Replaced */}
@@ -614,8 +683,8 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                         navigation.goBack();
                     }}
                 />
-            </Animated.View>
-        </ScreenContainer>
+            </View>
+        </ScreenContainer >
     );
 };
 
@@ -659,7 +728,7 @@ const styles = StyleSheet.create({
         fontSize: 16
     },
     listContent: {
-        paddingBottom: 40,
+        paddingBottom: 150,
     },
     playlistHeader: {
         alignItems: 'center',

@@ -69,8 +69,7 @@ export const GenresScreen = () => {
         const isGrid3 = layoutMode === 'grid3';
 
         return (
-            <Animated.View
-                entering={FadeInDown.delay(index * 40).springify()}
+            <View
                 style={{ flex: layoutMode === 'list' ? 1 : (isGrid3 ? 1 / 3 : 1 / 2) }}
             >
                 {layoutMode === 'list' ? (
@@ -151,7 +150,7 @@ export const GenresScreen = () => {
                         </View>
                     </TouchableOpacity>
                 )}
-            </Animated.View>
+            </View>
         );
     }, [theme, navigation, layoutMode]);
 
@@ -222,7 +221,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingHorizontal: 15,
-        paddingBottom: 40,
+        paddingBottom: 150,
     },
     columnWrapper: {
         justifyContent: 'flex-start',

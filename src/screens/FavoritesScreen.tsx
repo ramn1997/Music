@@ -107,8 +107,7 @@ export const FavoritesScreen = () => {
         const cardHeight = isList ? 60 : (isGrid3 ? 95 : 140);
 
         return (
-            <Animated.View
-                entering={FadeInDown.delay(index * 50).springify()}
+            <View
                 style={{
                     width: isList ? '100%' : cardWidth,
                     marginBottom: 15,
@@ -182,7 +181,7 @@ export const FavoritesScreen = () => {
                     )}
                     {isList && <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />}
                 </TouchableOpacity>
-            </Animated.View>
+            </View>
         );
     };
 
@@ -246,7 +245,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingHorizontal: 20,
-        paddingBottom: 20
+        paddingBottom: 150
     },
     cardContainer: {
         elevation: 5,

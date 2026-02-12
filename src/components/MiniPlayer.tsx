@@ -18,20 +18,23 @@ export const MiniPlayer = () => {
         state ? state.routes[state.index].name : null
     );
 
-    // Only show if there is a song playing/paused AND we are not on the Player/Settings/Equalizer screen
-    if (!currentSong || currentRouteName === 'Player' || currentRouteName === 'Settings' || currentRouteName === 'Equalizer') return null;
+    // Only hide mini player when on the full Player screen, Settings screen, or if no song exists
+    if (!currentSong || currentRouteName === 'Player' || currentRouteName === 'Settings') return null;
+
+    // List of screens that DO NOT have a bottom tab bar
+    const noTabBarScreens = ['Player', 'Settings', 'Equalizer', 'EditSong', 'Lyrics'];
+    const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
+
+    // The TabBar height is 65 + insets.bottom
+    const bottomOffset = hasTabBar ? (65 + insets.bottom) : insets.bottom;
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
-    const formatTime = (millis: number) => {
-        if (!millis && millis !== 0) return "0:00";
-        const minutes = Math.floor(millis / 60000);
-        const seconds = Math.floor((millis % 60000) / 1000);
-        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-    };
+
 
     return (
         <View
-            style={[styles.container, { bottom: 70 + insets.bottom }]}
+            style={[styles.container, { bottom: bottomOffset }]}
+            key={currentSong?.id || 'no-song'}
         >
             <TouchableOpacity
                 activeOpacity={0.9}
@@ -39,17 +42,19 @@ export const MiniPlayer = () => {
                 style={[styles.pillContainer, { overflow: 'hidden', borderColor: 'rgba(255,255,255,0.1)', backgroundColor: theme.background }]}
             >
                 {/* Adaptive Background based on Album Art (Pure JS Fallback) */}
-                {currentSong?.coverImage && (
-                    <View style={StyleSheet.absoluteFill}>
-                        <Image
-                            source={{ uri: currentSong.coverImage }}
-                            style={StyleSheet.absoluteFill}
-                            blurRadius={50}
-                        />
-                        {/* Overlay to ensure it feels solid and text is readable */}
-                        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
-                    </View>
-                )}
+                {/* Adaptive Background based on Album Art */}
+                <View style={StyleSheet.absoluteFill}>
+                    <MusicImage
+                        uri={currentSong?.coverImage}
+                        id={currentSong?.id || ''}
+                        style={StyleSheet.absoluteFill}
+                        resizeMode="cover"
+                        blurRadius={50}
+                        iconSize={0} // Hide icon for background
+                    />
+                    {/* Overlay to ensure it feels solid and text is readable */}
+                    <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+                </View>
                 <View style={[styles.blurContainer]}>
                     {/* Progress Bar Line */}
                     <View style={styles.progressTrack}>
@@ -59,8 +64,8 @@ export const MiniPlayer = () => {
                         {/* Album Art */}
                         <View style={styles.artContainer}>
                             <MusicImage
-                                uri={currentSong.coverImage}
-                                id={currentSong.id}
+                                uri={currentSong?.coverImage}
+                                id={currentSong?.id || ''}
                                 style={styles.albumArt}
                                 iconSize={20}
                                 containerStyle={[styles.albumArt, { backgroundColor: theme.card }]}
@@ -70,14 +75,11 @@ export const MiniPlayer = () => {
                         {/* Song Info */}
                         <View style={styles.textContainer}>
                             <Text style={[styles.title, { color: 'white' }]} numberOfLines={1}>
-                                {currentSong.title}
+                                {currentSong?.title || 'No Song Playing'}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Text style={[styles.artist, { color: 'rgba(255,255,255,0.7)', flex: 1 }]} numberOfLines={1}>
-                                    {currentSong.artist}
-                                </Text>
-                                <Text style={styles.timeDisplay}>
-                                    {formatTime(position)} / {formatTime(duration)}
+                                    {currentSong?.artist || 'Unknown Artist'}
                                 </Text>
                             </View>
                         </View>
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
-        zIndex: 100,
+        zIndex: 1000, // Significantly higher to be above everything
         alignItems: 'center',
     },
     pillContainer: {
@@ -149,34 +151,30 @@ const styles = StyleSheet.create({
     contentRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         height: '100%',
     },
     albumArt: {
-        width: 44,
-        height: 44,
-        borderRadius: 8, // Square rounded
-        marginRight: 10,
+        width: 38,
+        height: 38,
+        borderRadius: 6,
+        marginRight: 8,
         backgroundColor: 'transparent'
     },
     textContainer: {
         flex: 1,
         justifyContent: 'center',
-        marginRight: 10,
+        marginRight: 6,
     },
     title: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 'bold',
     },
     artist: {
-        fontSize: 12,
+        fontSize: 11,
         opacity: 0.7,
     },
-    timeDisplay: {
-        fontSize: 10,
-        color: 'rgba(255,255,255,0.5)',
-        marginLeft: 8,
-    },
+
     controls: {
         flexDirection: 'row',
         alignItems: 'center',

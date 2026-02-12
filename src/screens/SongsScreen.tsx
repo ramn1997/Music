@@ -49,9 +49,12 @@ export const SongsScreen = () => {
         });
     }, [songs, searchQuery, sortOrder]);
 
-    const handlePlaySong = React.useCallback((index: number) => {
-        playSongInPlaylist(filteredSongs, index, "All Songs");
-        navigation.navigate('Player', { trackIndex: index });
+    const handlePlaySong = React.useCallback((song: Song) => {
+        const index = filteredSongs.findIndex(s => s.id === song.id);
+        if (index !== -1) {
+            playSongInPlaylist(filteredSongs, index, "All Songs");
+            navigation.navigate('Player', { trackIndex: index });
+        }
     }, [filteredSongs, playSongInPlaylist, navigation]);
 
 
@@ -128,6 +131,7 @@ export const SongsScreen = () => {
                         data={filteredSongs}
                         keyExtractor={(item) => item.id}
                         renderItem={renderSong}
+                        extraData={handlePlaySong}
                         estimatedItemSize={70}
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}
@@ -138,6 +142,7 @@ export const SongsScreen = () => {
                                 <Text style={{ color: theme.textSecondary }}>No songs found.</Text>
                             </View>
                         }
+                        showsVerticalScrollIndicator={false}
                     />
 
                     {/* Alphabet Filter */}
@@ -194,8 +199,9 @@ export const SongsScreen = () => {
                         song={selectedSong}
                     />
                 </View>
-            )}
-        </ScreenContainer>
+            )
+            }
+        </ScreenContainer >
     );
 };
 
@@ -239,7 +245,7 @@ const styles = StyleSheet.create({
         fontSize: 16
     },
     listContent: {
-        paddingBottom: 40,
+        paddingBottom: 150,
     },
     searchContainer: {
         flexDirection: 'row',
@@ -394,8 +400,8 @@ const styles = StyleSheet.create({
     alphabetContainer: {
         position: 'absolute',
         right: 2,
-        top: 20,
-        bottom: 20,
+        top: 60,
+        bottom: 120,
         justifyContent: 'center',
         alignItems: 'center',
         width: 20,

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, FlatList, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import { usePlayerContext } from '../hooks/PlayerContext';
+import { CompactImportProgress } from '../components/CompactImportProgress';
 
 export const SettingsScreen = () => {
     const { theme, themeType, setThemeType, playerStyle, setPlayerStyle } = useTheme();
@@ -13,6 +15,7 @@ export const SettingsScreen = () => {
     const [styleExpanded, setStyleExpanded] = useState(false);
     const navigation = useNavigation<any>();
     const { fetchMusic, loading, scanForFolders, loadSongsFromFolders, refreshMetadata, savedFolders } = useMusicLibrary();
+    const { gaplessEnabled, toggleGapless } = usePlayerContext();
 
     // Folder Picker State
     const [folderModalVisible, setFolderModalVisible] = useState(false);
@@ -171,6 +174,25 @@ export const SettingsScreen = () => {
                 </View>
 
                 <View style={styles.section}>
+                    <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Playback</Text>
+                    <View style={[styles.row, { backgroundColor: theme.card }]}>
+                        <View style={[styles.rowIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                            <Ionicons name="flash-outline" size={20} color={theme.text} />
+                        </View>
+                        <View style={styles.rowContent}>
+                            <Text style={[styles.rowTitle, { color: theme.text }]}>Gapless Playback</Text>
+                            <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Preload next song for seamless transitions</Text>
+                        </View>
+                        <Switch
+                            value={gaplessEnabled}
+                            onValueChange={toggleGapless}
+                            trackColor={{ false: theme.cardBorder, true: theme.primary }}
+                            thumbColor={'#fff'}
+                        />
+                    </View>
+                </View>
+
+                <View style={styles.section}>
                     <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Media Library</Text>
                     <TouchableOpacity
                         style={[styles.row, { backgroundColor: theme.card, borderColor: theme.cardBorder, borderWidth: 1 }]}
@@ -189,16 +211,7 @@ export const SettingsScreen = () => {
 
                     <TouchableOpacity
                         style={[styles.row, { backgroundColor: theme.card, borderColor: theme.cardBorder, borderWidth: 1, marginTop: 10 }]}
-                        onPress={() => {
-                            Alert.alert(
-                                "Refresh Metadata",
-                                "This will re-scan all files to fix issues with titles, artists, and album art. It may take a moment. Continue?",
-                                [
-                                    { text: "Cancel", style: "cancel" },
-                                    { text: "Refresh", onPress: () => refreshMetadata() }
-                                ]
-                            );
-                        }}
+                        onPress={() => refreshMetadata()}
                         disabled={loading}
                     >
                         <View style={[styles.rowIcon, { backgroundColor: theme.primary + '20' }]}>
@@ -210,6 +223,9 @@ export const SettingsScreen = () => {
                         </View>
                         <Ionicons name="sparkles" size={20} color={theme.primary} />
                     </TouchableOpacity>
+
+                    {/* Inline Import Progress */}
+                    <CompactImportProgress />
                 </View>
 
                 <View style={styles.section}>
@@ -360,7 +376,7 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingHorizontal: 20,
-        paddingBottom: 50,
+        paddingBottom: 80, // Added padding for progress bar
         paddingTop: 20,
     },
     section: {

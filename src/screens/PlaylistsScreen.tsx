@@ -105,7 +105,7 @@ export const PlaylistsScreen = () => {
                     onLongPress={() => confirmDelete(item)}
                 >
                     <View style={styles.row}>
-                        <View style={[styles.listIconPlaceholder, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                        <View style={[styles.listIconPlaceholder, { backgroundColor: 'transparent' }]}>
                             <LinearGradient
                                 colors={getGradientColors(item.id)}
                                 style={StyleSheet.absoluteFill}
@@ -167,7 +167,7 @@ export const PlaylistsScreen = () => {
                                 iconSize={isGrid3 ? 24 : 36}
                             />
                         ) : (
-                            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' }]}>
+                            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }]}>
                                 <Ionicons
                                     name={item.id === 'liked' ? "heart" : "musical-notes"}
                                     size={isGrid3 ? 32 : 48}
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     },
     iconPlaceholder: {
         borderRadius: 30,
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'transparent',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 10,

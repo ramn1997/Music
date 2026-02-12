@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MusicImage } from './MusicImage';
-import { MarqueeText } from './MarqueeText';
+
 import { Song } from '../hooks/useLocalMusic';
 
 interface SongItemProps {
@@ -10,7 +10,7 @@ interface SongItemProps {
     index: number;
     isCurrent: boolean;
     theme: any;
-    onPress: (index: number) => void;
+    onPress: (item: Song) => void;
     onOpenOptions: (item: Song) => void;
 }
 
@@ -24,7 +24,7 @@ export const SongItem = React.memo(({ item, index, isCurrent, theme, onPress, on
     return (
         <TouchableOpacity
             style={styles.songItem}
-            onPress={() => onPress(index)}
+            onPress={() => onPress(item)}
         >
             <View style={styles.iconContainer}>
                 <MusicImage
@@ -39,11 +39,16 @@ export const SongItem = React.memo(({ item, index, isCurrent, theme, onPress, on
             <View style={styles.songInfo}>
                 {isCurrent ? (
                     <>
-                        <MarqueeText text={item.title} style={[styles.songTitle, { color: theme.text }]} />
-                        <MarqueeText
-                            text={`${item.artist}${item.album && item.album !== 'Unknown Album' ? ` • ${item.album}` : ''}`}
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.songTitle, { color: theme.text }]}>
+                            {item.title}
+                        </Text>
+                        <Text
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
                             style={[styles.songArtist, { color: theme.textSecondary }]}
-                        />
+                        >
+                            {`${item.artist}${item.album && item.album !== 'Unknown Album' ? ` • ${item.album}` : ''}`}
+                        </Text>
                     </>
                 ) : (
                     <>

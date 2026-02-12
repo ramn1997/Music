@@ -6,6 +6,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useLocalMusic } from '../hooks/useLocalMusic';
 import { MusicImage } from '../components/MusicImage';
 import { GlassCard } from '../components/GlassCard';
+import { ArtistListItem } from '../components/ArtistListItem';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -26,12 +27,7 @@ const getGradientColors = (id: string): [string, string] => {
     return userColors[hash % userColors.length];
 };
 
-const CardDesign = () => (
-    <>
-        <View style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-        <View style={{ position: 'absolute', bottom: -10, left: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-    </>
-);
+// Removed local CardDesign as it's now handled by ArtistListItem
 
 export const ArtistsScreen = () => {
     const { theme } = useTheme();
@@ -66,94 +62,14 @@ export const ArtistsScreen = () => {
     };
 
     const renderItem = React.useCallback(({ item, index }: { item: any, index: number }) => {
-        const isGrid3 = layoutMode === 'grid3';
-
         return (
-            <Animated.View
-                entering={FadeInDown.delay(index * 40).springify()}
-                style={{ flex: layoutMode === 'list' ? 1 : (isGrid3 ? 1 / 3 : 1 / 2) }}
-            >
-                {layoutMode === 'list' ? (
-                    <TouchableOpacity
-                        style={styles.listItem}
-                        onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'artist' })}
-                    >
-                        <View style={styles.row}>
-                            <View style={[styles.listIconPlaceholder, { backgroundColor: 'transparent' }]}>
-                                <MusicImage
-                                    uri={item.coverImage}
-                                    id={item.id}
-                                    style={{ width: 45, height: 45, borderRadius: 22.5 }}
-                                    iconSize={20}
-                                />
-                            </View>
-                            <View style={styles.info}>
-                                <MarqueeText text={item.name} style={[styles.title, { color: theme.text, textAlign: 'left', fontSize: 16, marginBottom: 2 }]} />
-                                <Text style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]} numberOfLines={1}>{item.count} Songs</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                        </View>
-                    </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity
-                        style={[isGrid3 ? styles.gridItem3 : styles.gridItem2, { width: '100%', maxWidth: '100%' }]}
-                        onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'artist' })}
-                    >
-                        <View
-                            style={[
-                                styles.card,
-                                { backgroundColor: theme.card, borderColor: theme.cardBorder, overflow: 'hidden' },
-                                { height: isGrid3 ? 160 : 200 }
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={getGradientColors(item.id)}
-                                style={StyleSheet.absoluteFill}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            />
-                            <CardDesign />
-                            <View style={[
-                                styles.iconPlaceholder,
-                                {
-                                    backgroundColor: 'transparent',
-                                    width: isGrid3 ? 90 : 120,
-                                    height: isGrid3 ? 90 : 120,
-                                    borderRadius: isGrid3 ? 45 : 60,
-                                    overflow: 'hidden',
-                                    borderWidth: 2,
-                                    borderColor: 'rgba(255,255,255,0.3)',
-                                    marginBottom: 10
-                                }
-                            ]}>
-                                <MusicImage
-                                    uri={item.coverImage}
-                                    id={item.id}
-                                    style={{ width: '100%', height: '100%' }}
-                                    iconSize={isGrid3 ? 32 : 48}
-                                />
-                            </View>
-                            <MarqueeText
-                                text={item.name}
-                                style={[
-                                    styles.title,
-                                    { color: 'white', marginTop: 0, fontSize: isGrid3 ? 12 : 16, paddingHorizontal: 5 }
-                                ]}
-                            />
-                            <Text
-                                style={[
-                                    styles.count,
-                                    { color: 'rgba(255,255,255,0.8)', fontSize: isGrid3 ? 10 : 13 }
-                                ]}
-                            >
-                                {item.count} Songs
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                )}
-            </Animated.View>
+            <ArtistListItem
+                item={item}
+                layoutMode={layoutMode}
+                onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'artist' })}
+            />
         );
-    }, [theme, navigation, layoutMode]);
+    }, [navigation, layoutMode]);
 
     return (
         <ScreenContainer variant="default">
@@ -187,6 +103,7 @@ export const ArtistsScreen = () => {
                         <Text style={{ color: theme.textSecondary }}>No artists found.</Text>
                     </View>
                 }
+                showsVerticalScrollIndicator={false}
             />
         </ScreenContainer>
     );
@@ -222,7 +139,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingHorizontal: 15,
-        paddingBottom: 40,
+        paddingBottom: 150,
     },
     columnWrapper: {
         justifyContent: 'flex-start',

@@ -9,7 +9,6 @@ import { RootStackParamList } from '../types/navigation';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 import { MiniPlayer } from '../components/MiniPlayer';
-import { usePlayer } from '../hooks/usePlayer';
 
 export const AppNavigator = () => {
     return (

@@ -40,9 +40,12 @@ export const SearchScreen = () => {
         (s.album && s.album.toLowerCase().includes(query.toLowerCase()))
     );
 
-    const handlePlaySong = React.useCallback((index: number) => {
-        playSongInPlaylist(filteredSongs, index, "Search Results");
-        navigation.navigate('Player', { trackIndex: index });
+    const handlePlaySong = React.useCallback((song: Song) => {
+        const index = filteredSongs.findIndex(s => s.id === song.id);
+        if (index !== -1) {
+            playSongInPlaylist(filteredSongs, index, "Search Results");
+            navigation.navigate('Player', { trackIndex: index });
+        }
     }, [filteredSongs, playSongInPlaylist, navigation]);
 
 
