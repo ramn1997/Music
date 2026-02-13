@@ -250,7 +250,7 @@ const FavoriteItemCard = ({ item, theme, navigation }: { item: any, theme: any, 
                     )
                 )}
                 <View style={{ alignItems: 'center', zIndex: 1, justifyContent: 'center', flex: 1, paddingHorizontal: isArtist ? 10 : 0 }}>
-                    {displayImage ? (
+                    {(displayImage && isArtist) ? (
                         <View style={[
                             styles.iconCircle,
                             {
