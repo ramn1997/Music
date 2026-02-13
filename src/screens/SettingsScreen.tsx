@@ -99,7 +99,7 @@ export const SettingsScreen = () => {
 
                     {themeExpanded && (
                         <View style={[styles.dropdownContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                            {(['dark', 'light', 'white', 'purple', 'blue', 'glass', 'black'] as const).map((t) => (
+                            {(['dark', 'green', 'purple', 'blue', 'glass', 'black'] as const).map((t) => (
                                 <TouchableOpacity
                                     key={t}
                                     style={[
