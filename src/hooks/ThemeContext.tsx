@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'dark' | 'purple' | 'blue' | 'glass' | 'black' | 'system';
+export type ThemeType = 'dark' | 'light' | 'white' | 'purple' | 'blue' | 'glass' | 'black' | 'system';
 
 interface Theme {
     background: string;
@@ -78,6 +78,30 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         menuBackground: '#000000',
         textOnPrimary: '#000000'
     },
+    light: {
+        background: '#f3f4f6', // Light gray background
+        primary: '#8b5cf6', // Indigo/Purple
+        secondary: '#ec4899', // Pink
+        text: '#111827', // Dark gray text
+        textSecondary: '#6b7280', // Lighter gray text
+        card: '#ffffff', // White card
+        cardBorder: '#e5e7eb', // Light border
+        gradient: ['#f3f4f6', '#e5e7eb'],
+        menuBackground: '#ffffff',
+        textOnPrimary: '#ffffff'
+    },
+    white: {
+        background: '#ffffff', // Pure white
+        primary: '#000000', // Black primary
+        secondary: '#525252',
+        text: '#000000', // Black text
+        textSecondary: '#525252',
+        card: '#f5f5f5', // Light gray card
+        cardBorder: '#e5e5e5',
+        gradient: ['#ffffff', '#ffffff'],
+        menuBackground: '#ffffff',
+        textOnPrimary: '#ffffff'
+    },
 };
 
 export type PlayerStyle = 'square' | 'circle' | 'rounded' | 'squircle';
@@ -100,10 +124,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     useEffect(() => {
         const loadTheme = async () => {
             const savedTheme = await AsyncStorage.getItem('appTheme');
-            if (savedTheme && savedTheme !== 'light') {
+            if (savedTheme) {
                 setThemeTypeState(savedTheme as ThemeType);
-            } else if (savedTheme === 'light') {
-                setThemeTypeState('dark');
             }
 
             const savedStyle = await AsyncStorage.getItem('playerStyle');
