@@ -506,8 +506,6 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                     styles.bottomSheet,
                     {
                         backgroundColor: theme.background,
-                        borderTopWidth: 1,
-                        borderTopColor: theme.cardBorder,
                         height: SHEET_MAX_HEIGHT,
                         transform: [{ translateY: translateY }],
                         bottom: -SHEET_MAX_HEIGHT + SHEET_MIN_HEIGHT + 60
