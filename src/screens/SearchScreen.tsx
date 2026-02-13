@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalMusic, Song } from '../hooks/useLocalMusic';
@@ -29,6 +30,51 @@ export const SearchScreen = () => {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
     const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+    const [recentSearches, setRecentSearches] = useState<Song[]>([]);
+
+    useEffect(() => {
+        loadRecentSearches();
+    }, []);
+
+    const loadRecentSearches = async () => {
+        try {
+            const saved = await AsyncStorage.getItem('recentSearches');
+            if (saved) {
+                setRecentSearches(JSON.parse(saved));
+            }
+        } catch (e) {
+            console.error('Failed to load recent searches');
+        }
+    };
+
+    const saveSearch = async (song: Song) => {
+        try {
+            const updated = [song, ...recentSearches.filter(s => s.id !== song.id)].slice(0, 10);
+            setRecentSearches(updated);
+            await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+        } catch (e) {
+            console.error('Failed to save search');
+        }
+    };
+
+    const clearRecentSearches = async () => {
+        try {
+            setRecentSearches([]);
+            await AsyncStorage.removeItem('recentSearches');
+        } catch (e) {
+            console.error('Failed to clear searches');
+        }
+    };
+
+    const removeRecentSearch = async (songId: string) => {
+        try {
+            const updated = recentSearches.filter(s => s.id !== songId);
+            setRecentSearches(updated);
+            await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+        } catch (e) {
+            console.error('Failed to remove search');
+        }
+    };
 
     useEffect(() => {
         fetchMusic();
@@ -41,12 +87,20 @@ export const SearchScreen = () => {
     );
 
     const handlePlaySong = React.useCallback((song: Song) => {
-        const index = filteredSongs.findIndex(s => s.id === song.id);
+        saveSearch(song);
+        // If searching, find in filtered list. If clicking recent, find in all songs or just play it as single
+        const contextList = query ? filteredSongs : [song];
+        const index = query ? filteredSongs.findIndex(s => s.id === song.id) : 0;
+
         if (index !== -1) {
-            playSongInPlaylist(filteredSongs, index, "Search Results");
+            playSongInPlaylist(contextList, index, query ? "Search Results" : "Recent Search");
             navigation.navigate('Player', { trackIndex: index });
+        } else if (!query) {
+            // Fallback for recent item if not in current filter context (shouldn't happen with logic above but for safety)
+            playSongInPlaylist([song], 0, "Recent Search");
+            navigation.navigate('Player');
         }
-    }, [filteredSongs, playSongInPlaylist, navigation]);
+    }, [filteredSongs, playSongInPlaylist, navigation, query]);
 
 
     const onOpenOptions = React.useCallback((item: Song) => {
@@ -91,19 +145,49 @@ export const SearchScreen = () => {
             </View>
 
             <FlatList
-                data={query ? filteredSongs : []}
+                data={query ? filteredSongs : recentSearches}
                 keyExtractor={item => item.id}
-                renderItem={renderItem}
-                ListFooterComponent={<View style={{ height: 100 }} />}
-                ListEmptyComponent={
+                renderItem={({ item, index }) => (
                     query ? (
-                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No results found.</Text>
+                        renderItem({ item, index })
                     ) : (
-                        <View style={styles.placeholderContainer}>
-                            <Ionicons name="musical-notes-outline" size={80} color={theme.textSecondary + '40'} />
-                            <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>Find your favorite music</Text>
+                        <View style={styles.recentItemContainer}>
+                            <View style={{ flex: 1 }}>
+                                <SongItem
+                                    item={item}
+                                    index={index}
+                                    isCurrent={false}
+                                    theme={theme}
+                                    onPress={() => handlePlaySong(item)}
+                                    onOpenOptions={onOpenOptions}
+                                />
+                            </View>
+                            <TouchableOpacity onPress={() => removeRecentSearch(item.id)} style={styles.removeButton}>
+                                <Ionicons name="close" size={20} color={theme.textSecondary} />
+                            </TouchableOpacity>
                         </View>
                     )
+                )}
+                ListHeaderComponent={
+                    !query && recentSearches.length > 0 ? (
+                        <View style={styles.recentHeader}>
+                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Searches</Text>
+                            <TouchableOpacity onPress={clearRecentSearches}>
+                                <Text style={[styles.clearText, { color: theme.primary }]}>Clear All</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : null
+                }
+                ListFooterComponent={<View style={{ height: 100 }} />}
+                ListEmptyComponent={
+                    !query && recentSearches.length === 0 ? (
+                        <View style={styles.placeholderContainer}>
+                            <Ionicons name="search" size={80} color={theme.textSecondary + '40'} />
+                            <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>Search for songs, artists, or albums</Text>
+                        </View>
+                    ) : query && filteredSongs.length === 0 ? (
+                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No results found.</Text>
+                    ) : null
                 }
             />
 
@@ -272,9 +356,28 @@ const styles = StyleSheet.create({
     songCount: {
         fontSize: 12
     },
-    emptyState: {
-        padding: 20,
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center'
+        paddingHorizontal: 20,
+        marginBottom: 10,
+        marginTop: 10
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold'
+    },
+    clearText: {
+        fontSize: 14,
+        fontWeight: '600'
+    },
+    recentItemContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingRight: 15
+    },
+    removeButton: {
+        padding: 10
     }
 });
