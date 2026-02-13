@@ -119,20 +119,13 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                         {/* Left: Cover Art */}
                         <View style={styles.coverSide}>
                             <View style={styles.artWrapper}>
-                                {coverImage ? (
-                                    <Image
-                                        source={{ uri: coverImage }}
-                                        style={styles.art}
-                                    />
-                                ) : (
-                                    <MusicImage
-                                        uri={song.coverImage}
-                                        id={song.id}
-                                        style={styles.art}
-                                        iconSize={40}
-                                        containerStyle={[styles.artContainer, { backgroundColor: theme.card }]}
-                                    />
-                                )}
+                                <MusicImage
+                                    uri={coverImage || undefined}
+                                    id={song.id}
+                                    style={styles.art}
+                                    iconSize={40}
+                                    containerStyle={[styles.artContainer, { backgroundColor: theme.card }]}
+                                />
                             </View>
                             <TouchableOpacity onPress={handleScanTags} style={{ marginTop: 12, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.cardBorder, alignItems: 'center' }}>
                                 <Text style={{ fontSize: 12, fontWeight: '600', color: theme.primary }}>Scan Tags</Text>

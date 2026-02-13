@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, FlatList, Dimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Song } from '../hooks/useLocalMusic';
 import { useTheme } from '../hooks/ThemeContext';
@@ -163,11 +163,8 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
             visible={visible}
             onRequestClose={onClose}
         >
-            <TouchableOpacity
-                style={styles.overlay}
-                activeOpacity={1}
-                onPress={onClose}
-            >
+            <View style={styles.overlay}>
+                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <View style={[styles.container, { backgroundColor: theme.background }]}>
                     <View style={styles.handleBarContainer}>
                         <View style={[styles.handleBar, { backgroundColor: theme.cardBorder }]} />
@@ -242,7 +239,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
                         />
                     ) : null}
                 </View>
-            </TouchableOpacity>
+            </View>
         </Modal>
     );
 };
