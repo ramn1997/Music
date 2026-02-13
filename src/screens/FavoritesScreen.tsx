@@ -146,7 +146,8 @@ export const FavoritesScreen = () => {
                     style={isList ? styles.listItem : undefined}
                 >
                     <View style={[
-                        styles.cardContainer,
+                        // Only apply card shadows/elevation to NON-artists
+                        !isArtist && styles.cardContainer,
                         !isList && {
                             height: isArtist ? (isGrid3 ? 80 : 120) : cardHeight,
                             width: isArtist ? (isGrid3 ? 80 : 120) : '100%',
@@ -158,7 +159,7 @@ export const FavoritesScreen = () => {
                             borderRadius: isArtist ? 25 : 8,
                             marginRight: 15
                         },
-                        { overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }
+                        { overflow: 'visible', justifyContent: 'center', alignItems: 'center' }
                     ]}>
                         {!isArtist && (
                             <>

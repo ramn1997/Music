@@ -211,33 +211,43 @@ const FavoriteItemCard = ({ item, theme, navigation }: { item: any, theme: any, 
         >
             <View
                 style={[
-                    styles.favoriteCard,
+                    // Base styles
                     {
-                        borderRadius: 16,
-                        overflow: 'hidden',
-                        justifyContent: 'center',
-                        alignItems: 'center',
                         width: '100%',
                         height: 150,
                         alignSelf: 'center',
-                        borderWidth: 1,
-                        borderColor: theme.cardBorder
-                    }
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    },
+                    // Card styles only for non-artists
+                    !isArtist && [
+                        styles.favoriteCard,
+                        {
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                            borderWidth: 1,
+                            borderColor: theme.cardBorder
+                        }
+                    ]
                 ]}
             >
-                <LinearGradient
-                    colors={getGradientColors(item.id)}
-                    style={StyleSheet.absoluteFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                />
-                {item.id === 'liked' ? (
-                    <>
-                        <View style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                        <View style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-                    </>
-                ) : (
-                    <CardDesign />
+                {!isArtist && (
+                    <LinearGradient
+                        colors={getGradientColors(item.id)}
+                        style={StyleSheet.absoluteFill}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    />
+                )}
+                {!isArtist && (
+                    item.id === 'liked' ? (
+                        <>
+                            <View style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                            <View style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+                        </>
+                    ) : (
+                        <CardDesign />
+                    )
                 )}
                 <View style={{ alignItems: 'center', zIndex: 1, justifyContent: 'center', flex: 1, paddingHorizontal: isArtist ? 10 : 0 }}>
                     {displayImage ? (
@@ -288,7 +298,17 @@ const FavoriteItemCard = ({ item, theme, navigation }: { item: any, theme: any, 
                             />
                         </View>
                     )}
-                    <MarqueeText text={item.name} style={[styles.favoriteName, { color: 'white', fontWeight: 'bold' }]} />
+                    <MarqueeText
+                        text={item.name}
+                        style={[
+                            styles.favoriteName,
+                            {
+                                color: isArtist ? theme.text : 'white',
+                                fontWeight: 'bold',
+                                marginTop: isArtist ? 4 : 0
+                            }
+                        ]}
+                    />
 
                     {item.type === 'Playlist' && item.id !== 'liked' && (
                         <View style={styles.playlistTag}>
@@ -297,7 +317,7 @@ const FavoriteItemCard = ({ item, theme, navigation }: { item: any, theme: any, 
                     )}
                 </View>
             </View>
-        </TouchableOpacity>
+        </TouchableOpacity >
     );
 };
 
