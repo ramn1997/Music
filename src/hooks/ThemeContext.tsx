@@ -14,6 +14,7 @@ interface Theme {
     cardBorder: string;
     gradient: string[];
     menuBackground: string;
+    textOnPrimary: string;
 }
 
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
@@ -26,7 +27,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         card: 'rgba(255, 255, 255, 0.05)',
         cardBorder: 'rgba(255, 255, 255, 0.1)',
         gradient: ['#050505', '#1a0b2e'],
-        menuBackground: '#1F1F1F'
+        menuBackground: '#1F1F1F',
+        textOnPrimary: '#ffffff'
     },
     purple: {
         background: '#1a0b2e',
@@ -37,7 +39,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         card: 'rgba(139, 92, 246, 0.1)',
         cardBorder: 'rgba(139, 92, 246, 0.2)',
         gradient: ['#2e1065', '#1a0b2e'],
-        menuBackground: '#2E1065'
+        menuBackground: '#2E1065',
+        textOnPrimary: '#000000'
     },
     blue: {
         background: '#020617',
@@ -48,7 +51,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         card: 'rgba(30, 41, 59, 0.5)',
         cardBorder: 'rgba(56, 189, 248, 0.2)',
         gradient: ['#0f172a', '#020617'],
-        menuBackground: '#1E293B'
+        menuBackground: '#1E293B',
+        textOnPrimary: '#000000'
     },
     glass: {
         background: '#000000',
@@ -59,7 +63,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         card: 'rgba(255, 255, 255, 0.1)',
         cardBorder: 'rgba(255, 255, 255, 0.2)',
         gradient: ['#000000', '#111827'],
-        menuBackground: '#1F2937'
+        menuBackground: '#1F2937',
+        textOnPrimary: '#000000'
     },
     black: {
         background: '#000000',
@@ -70,7 +75,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         card: '#121212', // Solid dark grey card for OLED contrast
         cardBorder: '#262626',
         gradient: ['#000000', '#000000'],
-        menuBackground: '#000000'
+        menuBackground: '#000000',
+        textOnPrimary: '#000000'
     },
 };
 

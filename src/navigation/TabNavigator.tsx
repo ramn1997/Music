@@ -68,7 +68,7 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
                 <Ionicons
                     name={iconName() as any}
                     size={22}
-                    color={isFocused ? (theme.primary === '#E6FF6E' ? '#000' : '#fff') : 'rgba(255,255,255,0.6)'}
+                    color={isFocused ? theme.textOnPrimary : 'rgba(255,255,255,0.6)'}
                 />
                 {isFocused && (
                     <Animated.View style={animatedTextStyle}>
@@ -76,7 +76,7 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
                             numberOfLines={1}
                             style={[
                                 styles.tabLabel,
-                                { color: theme.primary === '#E6FF6E' ? '#000' : '#fff' }
+                                { color: theme.textOnPrimary }
                             ]}
                         >
                             {label}

@@ -11,6 +11,8 @@ import { GlassCard } from '../components/GlassCard';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { usePlayerContext } from '../hooks/PlayerContext';
+import { useArtistImage } from '../hooks/useArtistImage';
+import { MusicImage } from '../components/MusicImage';
 
 const FAVORITES = [
     { id: 'most_played', name: 'Most Played', type: 'Smart Playlist', image: 'https://images.unsplash.com/photo-1514525253440-b393452e8fc4?q=80&w=300&auto=format&fit=crop', screen: 'Playlist', params: { id: 'most', name: 'Most Played', type: 'most_played' } },
@@ -46,6 +48,27 @@ const CardDesign = () => (
         <View style={{ position: 'absolute', bottom: -10, left: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.05)' }} />
     </>
 );
+
+const ArtistAvatar = ({ name, id, isList, isGrid3 }: { name: string, id: string, isList: boolean, isGrid3: boolean }) => {
+    const imageUri = useArtistImage(name);
+
+    // If list mode, small circle. If grid, large circle.
+    // However, the container already handles size/radius.
+    // We just need to fill it with the MusicImage or Fallback.
+
+    return (
+        <View style={StyleSheet.absoluteFill}>
+            <MusicImage
+                uri={imageUri || undefined}
+                id={id}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+                iconSize={isList ? 24 : (isGrid3 ? 30 : 50)}
+                iconName="person"
+            />
+        </View>
+    );
+};
 
 export const FavoritesScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -137,33 +160,45 @@ export const FavoritesScreen = () => {
                         },
                         { overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }
                     ]}>
-                        <LinearGradient
-                            colors={getGradientColors(item.id)}
-                            style={StyleSheet.absoluteFill}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        />
-                        {!isArtist && <CardDesign />}
+                        {!isArtist && (
+                            <>
+                                <LinearGradient
+                                    colors={getGradientColors(item.id)}
+                                    style={StyleSheet.absoluteFill}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                />
+                                <CardDesign />
+                                <View style={{ alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                                    <Ionicons
+                                        name={
+                                            item.id === 'most_played' ? "refresh" :
+                                                item.id === 'liked' ? "heart" :
+                                                    item.type === 'Album' ? "disc" :
+                                                        item.type === 'Genre' ? "pricetags" :
+                                                            "musical-notes"
+                                        }
+                                        size={isList ? 24 : 28}
+                                        color="white"
+                                    />
+                                </View>
+                                {!isList && (
+                                    <View style={styles.cardTextOverlay}>
+                                        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+                                        <Text style={styles.cardSubtitle} numberOfLines={1}>{item.type}</Text>
+                                    </View>
+                                )}
+                            </>
+                        )}
 
-                        <View style={{ alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                            <Ionicons
-                                name={
-                                    item.id === 'most_played' ? "refresh" :
-                                        item.id === 'liked' ? "heart" :
-                                            isArtist ? "person" :
-                                                item.type === 'Album' ? "disc" :
-                                                    item.type === 'Genre' ? "pricetags" :
-                                                        "musical-notes"
-                                }
-                                size={isList ? 24 : (isArtist ? (isGrid3 ? 30 : 50) : 28)}
-                                color="white"
+                        {/* Special Rendering for Artists with Image Support */}
+                        {isArtist && (
+                            <ArtistAvatar
+                                name={item.name}
+                                id={item.id}
+                                isList={isList}
+                                isGrid3={isGrid3}
                             />
-                        </View>
-                        {!isArtist && !isList && (
-                            <View style={styles.cardTextOverlay}>
-                                <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
-                                <Text style={styles.cardSubtitle} numberOfLines={1}>{item.type}</Text>
-                            </View>
                         )}
                     </View>
 

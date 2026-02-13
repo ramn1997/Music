@@ -43,6 +43,7 @@ interface MusicImageProps {
     id?: string; // Song ID for lazy loading album art
     assetUri?: string; // Asset URI for fetching album art
     blurRadius?: number;
+    iconName?: string; // Custom icon name for fallback
 }
 
 
@@ -50,7 +51,7 @@ interface MusicImageProps {
 const artLoadingInProgress = new Set<string>();
 const lazyArtCache = new Map<string, string | null>();
 
-export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyle, resizeMode = 'cover', id, assetUri, blurRadius }: MusicImageProps) => {
+export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyle, resizeMode = 'cover', id, assetUri, blurRadius, iconName = "musical-note" }: MusicImageProps) => {
     const [error, setError] = useState(false);
     const [lazyUri, setLazyUri] = useState<string | null>(null);
     const [ignorePropUri, setIgnorePropUri] = useState(false);
@@ -203,7 +204,7 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
 
                     {iconSize > 0 && (
                         <Ionicons
-                            name="musical-note"
+                            name={iconName as any}
                             size={Math.max(5, iconSize * 0.5)}
                             color="#fff"
                             style={{ opacity: 0.5 }}
