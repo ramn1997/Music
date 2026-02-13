@@ -159,7 +159,7 @@ export const FavoritesScreen = () => {
                             borderRadius: isArtist ? 25 : 8,
                             marginRight: 15
                         },
-                        { overflow: 'visible', justifyContent: 'center', alignItems: 'center' }
+                        { overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }
                     ]}>
                         {!isArtist && (
                             <>
