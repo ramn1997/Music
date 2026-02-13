@@ -26,7 +26,7 @@ export const ScreenContainer = ({ children, variant = 'default', style }: Screen
     let gradientColors = theme.gradient;
 
     if (variant === 'player') {
-        gradientColors = theme.gradient;
+        gradientColors = ['#000000', '#000000'];
     }
 
     const isFocused = useIsFocused();
