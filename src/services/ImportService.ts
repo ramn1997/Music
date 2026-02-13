@@ -148,23 +148,32 @@ class ImportService {
     /**
      * Robust metadata fetcher with fallback for Android Content URIs
      */
-    private async safeGetMusicInfo(uri: string, options: any, songId?: string): Promise<any> {
+    private async safeGetMusicInfo(uri: string, options: any, songId?: string, fallbackContentUri?: string): Promise<any> {
         try {
-            // First attempt: Direct read
+            // First attempt: Direct read usually works for file:// if permitted, or content:// if supported
             const meta = await getMusicInfoAsync(uri, options);
             if (meta) return meta;
             throw new Error('No metadata returned');
         } catch (e) {
-            // Fallback: Copy to internal cache for extraction (Scoped Storage bypass)
-            if (uri.startsWith('content://')) {
-                const tempFile = `${FileSystem.cacheDirectory}meta_temp_${songId || Date.now()}.mp3`;
+            // Failure! likely due to Scoped Storage (Permission Denied on file://)
+            // or expo-music-info-2 limitations with content:// streams.
+
+            // Determine which URI to use for the copy-fallback.
+            // If the original uri is content://, use it.
+            // If the original was file:// (and failed), use the fallbackContentUri (content://).
+            const uriToCopy = uri.startsWith('content://') ? uri : (fallbackContentUri?.startsWith('content://') ? fallbackContentUri : null);
+
+            if (uriToCopy) {
+                const tempFile = `${FileSystem.cacheDirectory}meta_${songId || Date.now()}_temp.mp3`;
                 try {
-                    await FileSystem.copyAsync({ from: uri, to: tempFile });
+                    console.log(`[ImportService] Copying ${songId} for metadata enhancement...`);
+                    await FileSystem.copyAsync({ from: uriToCopy, to: tempFile });
                     const meta = await getMusicInfoAsync(tempFile, options);
+                    // Cleanup
                     await FileSystem.deleteAsync(tempFile, { idempotent: true });
                     return meta;
                 } catch (copyError) {
-                    console.warn(`[ImportService] Meta-copy fallback failed for ${songId}`);
+                    console.warn(`[ImportService] Meta-copy fallback failed for ${songId}`, copyError);
                     return null;
                 }
             }
@@ -428,7 +437,7 @@ class ImportService {
                                 genre: true,
                                 year: true,
                                 picture: shouldExtractArt // Extract picture if we don't have it or forcing
-                            }, song.id);
+                            }, song.id, song.uri); // Pass song.uri (content://) as fallback
 
                             if (meta) {
                                 if (meta.title) libTitle = meta.title;
@@ -569,7 +578,7 @@ class ImportService {
                     const metadata = await this.safeGetMusicInfo(localUri, {
                         title: false,
                         picture: true
-                    }, songId);
+                    }, songId, assetUri); // Pass assetUri (likely content://) as fallback
 
                     if (metadata?.picture?.pictureData) {
                         let base64Data = metadata.picture.pictureData;

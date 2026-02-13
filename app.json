@@ -51,8 +51,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow Music to access your photos.",
-          "savePhotosPermission": "Allow Music to save photos.",
+          "photosPermission": "Allow Music to access your library.",
+          "savePhotosPermission": "Allow Music to save to library.",
           "isAccessMediaLocationEnabled": true
         }
       ],
@@ -63,8 +63,7 @@
             "foregroundServiceType": "mediaPlayback"
           }
         }
-      ],
-      "react-native-track-player"
+      ]
     ],
     "owner": "ram1997",
     "extra": {
