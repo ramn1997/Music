@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Image, View, StyleProp, ImageStyle, StyleSheet, ViewStyle } from 'react-native';
+import { View, StyleProp, ImageStyle, StyleSheet, ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../hooks/ThemeContext';
@@ -66,61 +67,66 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
     }, [uri]);
 
     // Lazy load album art if no uri provided but we have an id
+    // Lazy load album art if no uri provided but we have an id
     useEffect(() => {
+        let isMounted = true;
+
         if (!uri && id && !lazyUri && !artLoadingInProgress.has(id)) {
-            // Check cache first
+            // Check cache first (synchronous check)
             if (lazyArtCache.has(id)) {
                 const cached = lazyArtCache.get(id);
                 if (cached) {
                     setLazyUri(cached);
                 }
-                // If cached is null, it means we already tried and failed, so don't retry immediately
-                // unless we want to implement a retry mechanism.
                 return;
             }
 
-            // Priority loading for Player Screen (large images)
-            const isPlayerScreen = iconSize > 100;
-            const delay = isPlayerScreen ? 0 : 100;
+            // Debounce the heavy async loading to improve scroll performance
+            const timer = setTimeout(() => {
+                if (!isMounted) return;
 
-            const timer = setTimeout(async () => {
-                if (artLoadingInProgress.has(id)) return;
-                artLoadingInProgress.add(id);
+                const loadArt = async () => {
+                    if (artLoadingInProgress.has(id)) return;
 
-                try {
-                    // check cache again inside timeout just in case
+                    // Double check cache before starting work
                     if (lazyArtCache.has(id)) {
                         const cached = lazyArtCache.get(id);
-                        if (cached) setLazyUri(cached);
-                        artLoadingInProgress.delete(id);
+                        if (cached && isMounted) setLazyUri(cached);
                         return;
                     }
-                    // 1. Try fast lookup (System Art / Cache)
-                    let coverImage = await importService.getAlbumArt(id, assetUri || '');
 
-                    // 2. If fast lookup failed, try full extraction
-                    if (!coverImage) {
-                        // Only if not explicitly disabled or too heavy?
-                        // For now, let's enable it to fix the "not visible" issue.
-                        console.log(`[MusicImage] Fast lookup failed for ${id}, attempting extraction...`);
-                        coverImage = await importService.getAlbumArt(id, assetUri || '', true);
+                    artLoadingInProgress.add(id);
+
+                    try {
+                        // Try fast lookup first (System Art / DB Cache)
+                        let coverImage = await importService.getAlbumArt(id, assetUri || '');
+
+                        // Only do deep extraction if needed and for larger images (Player screen)
+                        if (!coverImage && iconSize > 100) {
+                            coverImage = await importService.getAlbumArt(id, assetUri || '', true);
+                        }
+
+                        lazyArtCache.set(id, coverImage);
+                        if (coverImage && isMounted) {
+                            setLazyUri(coverImage);
+                        }
+                    } catch (e) {
+                        // warning suppressed for cleaner logs in production
+                        lazyArtCache.set(id, null);
+                    } finally {
+                        artLoadingInProgress.delete(id);
                     }
+                };
 
-                    lazyArtCache.set(id, coverImage);
-                    if (coverImage) {
-                        setLazyUri(coverImage);
-                    }
-                } catch (e) {
-                    console.warn(`[MusicImage] Load failed for ${id}`, e);
-                    lazyArtCache.set(id, null);
-                } finally {
-                    artLoadingInProgress.delete(id);
-                }
-            }, delay);
+                loadArt();
+            }, 100); // 100ms debounce
 
-            return () => clearTimeout(timer);
+            return () => {
+                isMounted = false;
+                clearTimeout(timer);
+            };
         }
-    }, [uri, id, assetUri, lazyUri]);
+    }, [uri, id, assetUri, lazyUri, iconSize]);
 
     const handleImageError = async () => {
         // If we were using the prop 'uri' and it failed, try to force extract
@@ -132,12 +138,10 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
                 // Force extraction since the provided URI (system) failed
                 const extractedUri = await importService.getAlbumArt(id, assetUri || '', true);
                 if (extractedUri) {
-                    console.log(`[MusicImage] Extraction successful for ${id}: ${extractedUri}`);
                     setLazyUri(extractedUri);
                     // Error will be cleared on re-render if effectiveUri is valid
                     setError(false);
                 } else {
-                    console.log(`[MusicImage] Extraction returned null for ${id}`);
                     setError(true);
                 }
             } catch (e) {
@@ -146,8 +150,7 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
             }
         } else {
             // We were already using lazyUri or simply failed
-            // Only log if not already in error state to avoid spam
-            if (!error) console.log(`[MusicImage] Final load failure for ${id}`);
+            // Silence noise for missing artwork as it's common
             setError(true);
             if (id) {
                 lazyArtCache.set(id, null);
@@ -164,6 +167,8 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
         // Fix common URI issues
         if (finalUri.startsWith('file://file://')) {
             finalUri = finalUri.replace(/^file:\/\/file:\/\//, 'file://');
+        } else if (finalUri.startsWith('//')) {
+            finalUri = `https:${finalUri}`;
         } else if (!finalUri.match(/^(file|content|http|https):\/\//)) {
             finalUri = `file://${finalUri}`;
         }
@@ -218,7 +223,10 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
                 <Image
                     source={{ uri: finalUri }}
                     style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
-                    resizeMode={resizeMode}
+                    contentFit={resizeMode === 'cover' ? 'cover' : 'contain'}
+                    transition={100}
+                    cachePolicy="memory-disk"
+                    priority="high"
                     blurRadius={blurRadius}
                     onError={() => {
                         setError(true);

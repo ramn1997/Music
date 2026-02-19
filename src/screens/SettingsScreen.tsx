@@ -72,7 +72,7 @@ export const SettingsScreen = () => {
     return (
         <ScreenContainer variant="settings">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
@@ -146,7 +146,7 @@ export const SettingsScreen = () => {
 
                     {styleExpanded && (
                         <View style={[styles.dropdownContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                            {(['square', 'circle', 'rounded', 'squircle'] as const).map((s) => (
+                            {(['square', 'sharp', 'rounded', 'soft', 'squircle', 'circle'] as const).map((s) => (
                                 <TouchableOpacity
                                     key={s}
                                     style={[

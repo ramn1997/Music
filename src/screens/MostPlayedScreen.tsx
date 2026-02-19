@@ -4,6 +4,9 @@ import { MusicImage } from '../components/MusicImage';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Platform } from 'react-native';
 import { useLocalMusic, Song } from '../hooks/useLocalMusic';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -56,31 +59,66 @@ export const MostPlayedScreen = () => {
         </TouchableOpacity>
     );
 
+    const topSong = sortedSongs.length > 0 ? sortedSongs[0] : null;
+
     return (
-        <ScreenContainer variant="default">
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Most Played</Text>
+        <View style={styles.container}>
+            {/* Animated Background */}
+            <View style={StyleSheet.absoluteFill}>
+                {topSong && (
+                    <MusicImage
+                        uri={topSong.coverImage}
+                        id={topSong.id}
+                        style={StyleSheet.absoluteFill}
+                        resizeMode="cover"
+                        iconSize={0}
+                    />
+                )}
+                <BlurView
+                    intensity={Platform.OS === 'ios' ? 80 : 100}
+                    tint="dark"
+                    style={StyleSheet.absoluteFill}
+                />
+                <LinearGradient
+                    colors={[theme.background, 'rgba(0,0,0,0.6)', theme.background]}
+                    style={StyleSheet.absoluteFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                />
             </View>
 
-            <FlatList
-                data={sortedSongs}
-                keyExtractor={(item) => item.id}
-                renderItem={renderSong}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <View style={styles.center}>
-                        <Text style={{ color: theme.textSecondary }}>No most played songs yet.</Text>
-                    </View>
-                }
-            />
-        </ScreenContainer>
+            <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? 40 : 60 }]}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color={theme.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Most Played</Text>
+                </View>
+
+                <FlatList
+                    data={sortedSongs}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderSong}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        <View style={styles.center}>
+                            <Text style={{ color: theme.textSecondary }}>No most played songs yet.</Text>
+                        </View>
+                    }
+                />
+            </View>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000'
+    },
+    safeArea: {
+        flex: 1,
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',

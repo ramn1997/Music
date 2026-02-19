@@ -145,36 +145,11 @@ export const PlaylistsScreen = () => {
                     />
                     <CardDesign />
 
-                    <View style={[
-                        styles.iconPlaceholder,
-                        {
-                            backgroundColor: 'transparent',
-                            width: isGrid3 ? 70 : 100,
-                            height: isGrid3 ? 70 : 100,
-                            borderRadius: isGrid3 ? 35 : 50,
-                            overflow: 'hidden',
-                            borderWidth: 2,
-                            borderColor: 'rgba(255,255,255,0.3)',
-                            marginBottom: 8
-                        }
-                    ]}>
-                        {item.coverImage ? (
-                            <MusicImage
-                                uri={item.coverImage}
-                                id={item.id}
-                                style={StyleSheet.absoluteFill}
-                                iconSize={isGrid3 ? 24 : 36}
-                            />
-                        ) : (
-                            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }]}>
-                                <Ionicons
-                                    name={item.id === 'liked' ? "heart" : "musical-notes"}
-                                    size={isGrid3 ? 32 : 48}
-                                    color="white"
-                                />
-                            </View>
-                        )}
-                    </View>
+                    <Ionicons
+                        name={item.id === 'liked' ? "heart" : "musical-notes"}
+                        size={isGrid3 ? 32 : 48}
+                        color="white"
+                    />
                     <MarqueeText
                         text={item.name}
                         style={[styles.playlistName, { color: 'white', fontSize: isGrid3 ? 12 : 16, paddingHorizontal: 5 }]}
@@ -192,7 +167,7 @@ export const PlaylistsScreen = () => {
             <View style={{ flex: 1 }}>
                 <View style={styles.header}>
                     <View style={styles.headerLeft}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Playlists</Text>

@@ -53,10 +53,11 @@ export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListIte
                     <View style={styles.row}>
                         <View style={[styles.listIconPlaceholder, { backgroundColor: 'transparent' }]}>
                             <MusicImage
-                                uri={displayImage}
+                                uri={fetchedImage || undefined}
                                 id={item.id}
                                 style={{ width: 45, height: 45, borderRadius: 22.5 }}
                                 iconSize={20}
+                                iconName="person"
                             />
                         </View>
                         <View style={styles.info}>
@@ -72,53 +73,54 @@ export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListIte
                 <TouchableOpacity
                     style={[isGrid3 ? styles.gridItem3 : styles.gridItem2, { width: '100%', maxWidth: '100%' }]}
                     onPress={onPress}
+                    activeOpacity={0.7}
                 >
-                    <View
-                        style={[
-                            styles.card,
-                            { backgroundColor: theme.card, borderColor: theme.cardBorder, overflow: 'hidden' },
-                            { height: isGrid3 ? 160 : 200 }
-                        ]}
-                    >
-                        <LinearGradient
-                            colors={getGradientColors(item.id)}
-                            style={StyleSheet.absoluteFill}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        />
-                        <CardDesign />
-                        <View style={[
-                            styles.iconPlaceholder,
-                            {
-                                backgroundColor: 'transparent',
-                                width: isGrid3 ? 90 : 120,
-                                height: isGrid3 ? 90 : 120,
-                                borderRadius: isGrid3 ? 45 : 60,
-                                overflow: 'hidden',
-                                borderWidth: 2,
-                                borderColor: 'rgba(255,255,255,0.3)',
-                                marginBottom: 10
-                            }
-                        ]}>
+                    <View style={{ width: '100%', alignItems: 'center' }}>
+                        <View
+                            style={[
+                                styles.card,
+                                {
+                                    backgroundColor: 'transparent',
+                                    borderWidth: 0,
+                                    padding: 0,
+                                    width: '100%',
+                                    aspectRatio: 1,
+                                    marginBottom: 8
+                                }
+                            ]}
+                        >
                             <MusicImage
-                                uri={displayImage}
+                                uri={fetchedImage || undefined}
                                 id={item.id}
                                 style={{ width: '100%', height: '100%' }}
-                                iconSize={isGrid3 ? 32 : 48}
+                                containerStyle={{
+                                    width: '100%',
+                                    height: '100%',
+                                    borderRadius: 1000
+                                }}
+                                iconSize={isGrid3 ? 40 : 50}
+                                iconName="person"
                             />
                         </View>
                         <MarqueeText
                             text={item.name}
-                            style={[
-                                styles.title,
-                                { color: 'white', marginTop: 0, fontSize: isGrid3 ? 12 : 16, paddingHorizontal: 5 }
-                            ]}
+                            style={{
+                                color: theme.text,
+                                fontSize: isGrid3 ? 12 : 14,
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                width: '100%'
+                            }}
                         />
                         <Text
-                            style={[
-                                styles.count,
-                                { color: 'rgba(255,255,255,0.8)', fontSize: isGrid3 ? 10 : 13 }
-                            ]}
+                            style={{
+                                marginTop: 2,
+                                color: theme.textSecondary,
+                                fontSize: isGrid3 ? 10 : 12,
+                                textAlign: 'center',
+                                width: '100%'
+                            }}
+                            numberOfLines={1}
                         >
                             {item.count} Songs
                         </Text>

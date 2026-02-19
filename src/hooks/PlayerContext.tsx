@@ -22,8 +22,6 @@ interface PlayerContextType {
     currentTrack: Song | null;
     currentSong: Song | null;
     isPlaying: boolean;
-    position: number;
-    duration: number;
     play: (song: Song) => Promise<void>;
     pause: () => Promise<void>;
     resume: () => Promise<void>;
@@ -50,6 +48,8 @@ interface PlayerContextType {
     playlistName: string;
     gaplessEnabled: boolean;
     toggleGapless: () => void;
+    volume: number;
+    updateVolume: (val: number) => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -118,11 +118,13 @@ const songToTrack = (song: Song): Track => {
     let artwork = song.coverImage;
 
     // 2. On Android, prefer content:// URIs for notifications as they have better permissions
-    // compared to file:// URIs in the app's private storage.
+    // compared to file:// URIs in the app's private storage, UNLESS it's a custom/extracted art.
     if (Platform.OS === 'android' && song.albumId && !['null', 'undefined', '-1', '0'].includes(String(song.albumId))) {
-        // Construct the content:// URI which is accessible by the system media player
-        // We only override if it's not a remote URL (likely a local file URI that might have permission issues)
-        if (!artwork || !artwork.startsWith('http')) {
+        // Custom art has 'custom_art_' in filename, extracted art has 'art_' prefix in cache
+        const isCustomOrExtracted = artwork && (artwork.includes('custom_art_') || artwork.includes('art_'));
+
+        // Only override if we don't have a custom/extracted art and it's not a remote URL
+        if (!artwork || (!artwork.startsWith('http') && !isCustomOrExtracted)) {
             artwork = `content://media/external/audio/albumart/${song.albumId}`;
         }
     }
@@ -149,7 +151,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     // Use TrackPlayer hooks but maintain local state for reliability
     const { playing } = useIsPlaying();
     const activeTrackFromHook = useActiveTrack();
-    const { position, duration } = useProgress(500);
 
     const [currentTrack, setCurrentTrack] = useState<Song | null>(null);
     const [playlist, setPlaylist] = useState<Song[]>([]);
@@ -162,6 +163,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const [gaplessEnabled, setGaplessEnabled] = useState(true);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
     const [isRestored, setIsRestored] = useState(false);
+    const [volume, setVolumeState] = useState(1.0);
+
+    const updateVolume = async (val: number) => {
+        const newVolume = Math.max(0, Math.min(1, val));
+        setVolumeState(newVolume);
+        await TrackPlayer.setVolume(newVolume);
+    };
 
     // Widget Communication
     useEffect(() => {
@@ -300,7 +308,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                                     // Use the same artwork logic as songToTrack
                                     let artwork = updatedCurrent.coverImage;
                                     if (Platform.OS === 'android' && updatedCurrent.albumId && !['null', 'undefined', '-1', '0'].includes(String(updatedCurrent.albumId))) {
-                                        if (!artwork || !artwork.startsWith('http')) {
+                                        const isCustomOrExtracted = artwork && (artwork.includes('custom_art_') || artwork.includes('art_'));
+                                        if (!artwork || (!artwork.startsWith('http') && !isCustomOrExtracted)) {
                                             artwork = `content://media/external/audio/albumart/${updatedCurrent.albumId}`;
                                         }
                                     }
@@ -495,12 +504,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         }
     });
 
-    // Sync refs for persistence
-    useEffect(() => {
-        positionRef.current = position * 1000;
-        durationRef.current = duration * 1000;
-    }, [position, duration]);
-
     // Initialize TrackPlayer
     const setup = useCallback(async () => {
         console.log('[PlayerContext] SETUP function called');
@@ -572,7 +575,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     Capability.SkipToPrevious,
                     Capability.SeekTo,
                 ],
-                compactCapabilities: [3, 0, 1, 2],
+                compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext, Capability.SkipToPrevious],
                 progressUpdateEventInterval: 5,
             });
             console.log('[PlayerContext] TrackPlayer options updated');
@@ -601,28 +604,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [setup]);
 
-    // Handle Remote Events for Notification Controls (Foreground + Background Fallback)
-    useTrackPlayerEvents([
-        Event.RemotePlay,
-        Event.RemotePause,
-        Event.RemoteNext,
-        Event.RemotePrevious,
-        Event.RemoteSeek,
-    ], async (event) => {
-        if (event.type === Event.RemotePlay) {
-            await TrackPlayer.play();
-            setIsPlaying(true);
-        } else if (event.type === Event.RemotePause) {
-            await TrackPlayer.pause();
-            setIsPlaying(false);
-        } else if (event.type === Event.RemoteNext) {
-            await nextTrack();
-        } else if (event.type === Event.RemotePrevious) {
-            await prevTrack();
-        } else if (event.type === Event.RemoteSeek) {
-            await TrackPlayer.seekTo(event.position);
-        }
-    });
 
     // Load persisted state
     useEffect(() => {
@@ -692,14 +673,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
                 console.log('[PlayerContext] Saving state. Position:', posToSave);
 
+                const pos = await TrackPlayer.getPosition();
+                const dur = await TrackPlayer.getDuration();
                 const state = {
                     currentTrack,
                     playlist,
                     currentIndex,
                     playlistName,
                     gaplessEnabled,
-                    position: posToSave,
-                    duration: durationRef.current
+                    position: pos * 1000,
+                    duration: dur * 1000
                 };
                 await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
             } catch (e) { }
@@ -712,14 +695,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             if (!isRestored) return;
             try {
                 if (currentTrack) {
+                    const pos = await TrackPlayer.getPosition();
+                    const dur = await TrackPlayer.getDuration();
                     const state = {
                         currentTrack,
                         playlist,
                         currentIndex,
                         playlistName,
                         gaplessEnabled,
-                        position: positionRef.current,
-                        duration: durationRef.current
+                        position: pos * 1000,
+                        duration: dur * 1000
                     };
                     await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
                 } else {
@@ -791,7 +776,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     // Update internal state from TrackPlayer events
     useTrackPlayerEvents([Event.PlaybackQueueEnded], async (event) => {
         if (event.type === Event.PlaybackQueueEnded) {
-            // End of queue logic
+            setIsPlaying(false);
         }
     });
 
@@ -860,6 +845,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     return;
                 }
 
+                // If the song has ended or is very close to the end, restart it before playing
+                const currentPos = await TrackPlayer.getPosition();
+                const currentDur = await TrackPlayer.getDuration();
+
+                if (currentDur > 0 && currentPos >= currentDur - 1) {
+                    console.log('[PlayerContext] Song seems to have ended, seeking to 0 before playing');
+                    await TrackPlayer.seekTo(0);
+                }
+
                 await TrackPlayer.play();
                 setIsPlaying(true); // Immediate UI update
             }
@@ -916,7 +910,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     async function prevTrack() {
         console.log('=== prevTrack called ===');
         try {
-            if (position > 3) { // If more than 3 seconds into the song, restart it
+            const currentPosition = await TrackPlayer.getPosition();
+            if (currentPosition > 3) { // If more than 3 seconds into the song, restart it
                 console.log('Restarting current song (position > 3s)');
                 await TrackPlayer.seekTo(0);
             } else {
@@ -956,8 +951,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         currentTrack,
         currentSong: currentTrack,
         isPlaying,
-        position: (position > 0 ? position * 1000 : (initialRestorePositionRef.current > 0 ? initialRestorePositionRef.current : 0)),
-        duration: (duration > 0 ? duration * 1000 : (currentTrack?.duration || 0)),
         isShuffle: isShuffleOn,
         isShuffleOn,
         repeatMode,
@@ -1057,6 +1050,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         playPause,
         nextTrack,
         prevTrack,
+        volume,
+        updateVolume,
     };
 
     return (

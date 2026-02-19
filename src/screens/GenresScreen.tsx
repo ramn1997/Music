@@ -35,7 +35,7 @@ const CardDesign = () => (
 
 export const GenresScreen = () => {
     const { theme } = useTheme();
-    const { songs } = useLocalMusic();
+    const { songs, loading, refreshMetadata } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
 
@@ -158,23 +158,38 @@ export const GenresScreen = () => {
         <ScreenContainer variant="default">
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Genres</Text>
                 </View>
 
-                <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                    <Ionicons
-                        name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                        size={24}
-                        color={theme.primary}
-                    />
-                </TouchableOpacity>
+                <View style={styles.headerRight}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            const { metadataService } = require('../services/MetadataService');
+                            metadataService.clearCache();
+                            refreshMetadata();
+                        }}
+                        style={[styles.layoutButton, { marginRight: 10 }]}
+                    >
+                        <Ionicons name="refresh" size={22} color={theme.primary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
+                        <Ionicons
+                            name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
+                            size={24}
+                            color={theme.primary}
+                        />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <FlatList
                 key={layoutMode}
+                refreshing={loading}
+                onRefresh={refreshMetadata}
                 data={genres}
                 keyExtractor={(item) => item.id}
                 renderItem={renderItem}
@@ -203,6 +218,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 15
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     backButton: {
         padding: 4

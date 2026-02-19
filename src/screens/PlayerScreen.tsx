@@ -17,7 +17,8 @@ import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { EditSongModal } from '../components/EditSongModal';
 import { LyricsModal } from '../components/LyricsModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
-
+import { MarqueeText } from '../components/MarqueeText';
+import { useProgress } from 'react-native-track-player';
 import { Song } from '../hooks/useLocalMusic';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
@@ -31,8 +32,6 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         playPause,
         nextTrack,
         prevTrack,
-        position,
-        duration,
         seek,
         playlist,
         currentIndex,
@@ -42,8 +41,13 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         toggleShuffle,
         repeatMode,
         toggleRepeat,
-        removeFromQueue
+        removeFromQueue,
     } = usePlayerContext();
+
+    const { position: rawPosition, duration: rawDuration } = useProgress(250); // Faster updates for the full player
+    const position = rawPosition * 1000;
+    const duration = rawDuration * 1000;
+
     const { theme, playerStyle } = useTheme();
 
     const getArtStyle = () => {
@@ -52,7 +56,10 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
 
         switch (playerStyle) {
             case 'circle': borderRadius = size / 2; break;
-            case 'square': borderRadius = 4; break;
+
+            case 'square': borderRadius = 12; break;
+            case 'sharp': borderRadius = 0; break;
+            case 'soft': borderRadius = 48; break;
             case 'squircle': borderRadius = size / 4; break;
             case 'rounded': default: borderRadius = 24; break;
         }
@@ -120,6 +127,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
     const [queueOptionsVisible, setQueueOptionsVisible] = useState(false);
+    const [activeModalSong, setActiveModalSong] = useState<Song | null>(null);
 
     const queueListRef = useRef<FlatList>(null);
 
@@ -145,8 +153,9 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
     };
 
     const handleAddToPlaylist = async (playlistId: string) => {
-        if (currentSong) {
-            await addToPlaylist(playlistId, currentSong);
+        const targetSong = activeModalSong || currentSong;
+        if (targetSong) {
+            await addToPlaylist(playlistId, targetSong);
             setPlaylistModalVisible(false);
         }
     };
@@ -264,13 +273,19 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
     const [sheetOpen, setSheetOpen] = useState(false);
 
     useEffect(() => {
-        if (sheetOpen && currentIndex !== -1 && playlist.length > 0) {
+        if (sheetOpen && currentIndex !== -1 && playlist.length > 0 && currentIndex < playlist.length) {
             setTimeout(() => {
-                queueListRef.current?.scrollToIndex({
-                    index: currentIndex,
-                    animated: true,
-                    viewPosition: 0.5
-                });
+                if (currentIndex < playlist.length) {
+                    try {
+                        queueListRef.current?.scrollToIndex({
+                            index: currentIndex,
+                            animated: true,
+                            viewPosition: 0.5
+                        });
+                    } catch (e) {
+                        console.warn('[PlayerScreen] Queue scroll failed:', e);
+                    }
+                }
             }, 300);
         }
     }, [sheetOpen, currentIndex, playlist.length]);
@@ -356,12 +371,17 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         <ScreenContainer variant="player">
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}>
                         <Ionicons name="chevron-down" size={30} color={theme.text} />
                     </TouchableOpacity>
                     <View style={{ alignItems: 'center' }}>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Now Playing</Text>
-                        {playlistName ? <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{playlistName}</Text> : null}
+                        <Text
+                            style={{ color: theme.textSecondary, fontSize: 13, marginTop: 2, maxWidth: 200, fontWeight: '500' }}
+                            numberOfLines={1}
+                        >
+                            {currentSong?.title || (playlistName || '')}
+                        </Text>
                     </View>
                     <TouchableOpacity onPress={toggleOptions}>
                         <Ionicons name="ellipsis-horizontal" size={28} color={theme.text} />
@@ -381,19 +401,17 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                                 containerStyle={styles.placeholderArt}
                                 resizeMode="cover"
                             />
+
                         </GlassCard>
                     </ReAnimated.View>
 
                     <View style={styles.bottomControlsBlock}>
                         <ReAnimated.View style={[styles.infoContainer, contentTransitionStyle]}>
                             <View style={{ flex: 1 }}>
-                                <Text
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
+                                <MarqueeText
+                                    text={currentSong?.title || "Not Playing"}
                                     style={[styles.songTitle, { color: theme.text }]}
-                                >
-                                    {currentSong?.title || "Not Playing"}
-                                </Text>
+                                />
                                 <Text
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
@@ -409,26 +427,35 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                                     {currentSong?.artist || "Select a song"}
                                 </Text>
                             </View>
-                            <TouchableOpacity onPress={handleLike} style={{ justifyContent: 'center', alignItems: 'center', width: 44, height: 44 }}>
-                                <ReAnimated.View style={[
-                                    {
-                                        position: 'absolute',
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 20,
-                                        backgroundColor: liked ? '#ef4444' : theme.primary,
-                                        zIndex: -1
-                                    },
-                                    likeShineStyle
-                                ]} />
-                                <Animated.View style={{ transform: [{ scale: likeScale }] }}>
-                                    <Ionicons
-                                        name={liked ? "heart" : "heart-outline"}
-                                        size={28}
-                                        color={liked ? '#ef4444' : theme.primary}
-                                    />
-                                </Animated.View>
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                                <TouchableOpacity
+                                    onPress={() => setLyricsModalVisible(true)}
+                                    style={[styles.lyricsPillButton, { backgroundColor: theme.card }]}
+                                >
+                                    <Ionicons name="document-text-outline" size={16} color={theme.primary} />
+                                    <Text style={[styles.lyricsPillText, { color: theme.text }]}>Lyrics</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleLike} style={[styles.iconButton, { backgroundColor: theme.card }]}>
+                                    <ReAnimated.View style={[
+                                        {
+                                            position: 'absolute',
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: 20,
+                                            backgroundColor: liked ? '#ef4444' : theme.primary,
+                                            zIndex: -1
+                                        },
+                                        likeShineStyle
+                                    ]} />
+                                    <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                                        <Ionicons
+                                            name={liked ? "heart" : "heart-outline"}
+                                            size={28}
+                                            color={liked ? '#ef4444' : theme.primary}
+                                        />
+                                    </Animated.View>
+                                </TouchableOpacity>
+                            </View>
                         </ReAnimated.View>
 
                         <View style={styles.progressContainer}>
@@ -497,6 +524,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                                 </ReAnimated.View>
                             </TouchableOpacity>
                         </View>
+
                     </View>
                 </View>
             </SafeAreaView>
@@ -505,7 +533,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                 style={[
                     styles.bottomSheet,
                     {
-                        backgroundColor: theme.background,
+                        backgroundColor: '#000',
                         height: SHEET_MAX_HEIGHT,
                         transform: [{ translateY: translateY }],
                         bottom: -SHEET_MAX_HEIGHT + SHEET_MIN_HEIGHT + 60
@@ -568,22 +596,20 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                 visible={optionsModalVisible}
                 onClose={() => setOptionsModalVisible(false)}
                 song={currentSong}
-                onRequestPlaylistAdd={() => { setOptionsModalVisible(false); setTimeout(() => setPlaylistModalVisible(true), 100); }}
-                onEditDetails={() => { setOptionsModalVisible(false); setTimeout(() => setEditModalVisible(true), 100); }}
-                onShowLyrics={() => { setOptionsModalVisible(false); setTimeout(() => setLyricsModalVisible(true), 100); }}
+                onRequestPlaylistAdd={() => { setActiveModalSong(currentSong); setOptionsModalVisible(false); setTimeout(() => setPlaylistModalVisible(true), 100); }}
+                onEditDetails={() => { setActiveModalSong(currentSong); setOptionsModalVisible(false); setTimeout(() => setEditModalVisible(true), 100); }}
             />
 
             <SongOptionsMenu
                 visible={queueOptionsVisible}
                 onClose={() => setQueueOptionsVisible(false)}
                 song={selectedQueueItem?.song || null}
-                onRequestPlaylistAdd={() => { setQueueOptionsVisible(false); setTimeout(() => setPlaylistModalVisible(true), 100); }}
+                onRequestPlaylistAdd={() => { setActiveModalSong(selectedQueueItem?.song || null); setQueueOptionsVisible(false); setTimeout(() => setPlaylistModalVisible(true), 100); }}
                 onRemoveFromQueue={() => { if (selectedQueueItem) removeFromQueue(selectedQueueItem.index); }}
-                onEditDetails={() => { setQueueOptionsVisible(false); setTimeout(() => setEditModalVisible(true), 100); }}
-                onShowLyrics={() => { setQueueOptionsVisible(false); setTimeout(() => setLyricsModalVisible(true), 100); }}
+                onEditDetails={() => { setActiveModalSong(selectedQueueItem?.song || null); setQueueOptionsVisible(false); setTimeout(() => setEditModalVisible(true), 100); }}
             />
 
-            <EditSongModal visible={editModalVisible} onClose={() => setEditModalVisible(false)} song={currentSong} onSave={updateSongMetadata} />
+            <EditSongModal visible={editModalVisible} onClose={() => setEditModalVisible(false)} song={activeModalSong || currentSong} onSave={updateSongMetadata} />
             <LyricsModal visible={lyricsModalVisible} onClose={() => setLyricsModalVisible(false)} song={currentSong} />
 
             <Modal animationType="slide" transparent={true} visible={playlistModalVisible} onRequestClose={() => setPlaylistModalVisible(false)}>
@@ -645,5 +671,8 @@ const styles = StyleSheet.create({
     playlistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1 },
     playlistIcon: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
     playlistName: { fontSize: 16, fontWeight: '600' },
-    songCount: { fontSize: 13, opacity: 0.6 }
+    songCount: { fontSize: 13, opacity: 0.6 },
+    iconButton: { justifyContent: 'center', alignItems: 'center', width: 44, height: 44, borderRadius: 22 },
+    lyricsPillButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, gap: 6 },
+    lyricsPillText: { fontSize: 12, fontWeight: '600' }
 });

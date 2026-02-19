@@ -12,6 +12,9 @@ interface SongItemProps {
     theme: any;
     onPress: (item: Song) => void;
     onOpenOptions: (item: Song) => void;
+    onLongPress?: (item: Song) => void;
+    isSelectionMode?: boolean;
+    isSelected?: boolean;
 }
 
 const formatDuration = (ms: number) => {
@@ -20,12 +23,23 @@ const formatDuration = (ms: number) => {
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
-export const SongItem = React.memo(({ item, index, isCurrent, theme, onPress, onOpenOptions }: SongItemProps) => {
+export const SongItem = React.memo(({ item, index, isCurrent, theme, onPress, onOpenOptions, onLongPress, isSelectionMode, isSelected }: SongItemProps) => {
     return (
         <TouchableOpacity
             style={styles.songItem}
             onPress={() => onPress(item)}
+            onLongPress={() => onLongPress && onLongPress(item)}
+            delayLongPress={300}
         >
+            {isSelectionMode && (
+                <View style={{ marginRight: 15 }}>
+                    <Ionicons
+                        name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+                        size={24}
+                        color={isSelected ? theme.primary : theme.textSecondary}
+                    />
+                </View>
+            )}
             <View style={styles.iconContainer}>
                 <MusicImage
                     uri={item.coverImage}

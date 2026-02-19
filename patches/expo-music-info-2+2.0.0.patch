@@ -1,0 +1,10 @@
+diff --git a/node_modules/expo-music-info-2/MusicInfo.js b/node_modules/expo-music-info-2/MusicInfo.js
+index c8d8d4a..9e3b44b 100644
+--- a/node_modules/expo-music-info-2/MusicInfo.js
++++ b/node_modules/expo-music-info-2/MusicInfo.js
+@@ -1,4 +1,4 @@
+-import * as FileSystem from 'expo-file-system';
++import * as FileSystem from 'expo-file-system/legacy';
+ import { decode, encode } from 'base-64';
+ 
+ import MusicInfoResponse from './MusicInfo';

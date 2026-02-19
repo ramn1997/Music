@@ -73,7 +73,7 @@ const ArtistAvatar = ({ name, id, isList, isGrid3 }: { name: string, id: string,
 export const FavoritesScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
-    const { playlists, favoriteArtists, favoriteAlbums, favoriteGenres, likedSongs } = useMusicLibrary();
+    const { playlists, favoriteArtists, favoriteAlbums, likedSongs } = useMusicLibrary();
     const { playSongInPlaylist } = usePlayerContext();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
 
@@ -102,16 +102,10 @@ export const FavoritesScreen = () => {
             params: { id: album, name: album, type: 'album' }
         }));
 
-        const favGenres = (favoriteGenres || []).map(genre => ({
-            id: genre,
-            name: genre,
-            type: 'Genre',
-            screen: 'Playlist',
-            params: { id: genre, name: genre, type: 'genre' }
-        }));
 
-        return [...FAVORITES, ...favoritedPlaylists, ...favArtists, ...favAlbums, ...favGenres];
-    }, [playlists, favoriteArtists, favoriteAlbums, favoriteGenres]);
+
+        return [...FAVORITES, ...favoritedPlaylists, ...favArtists, ...favAlbums];
+    }, [playlists, favoriteArtists, favoriteAlbums]);
 
     const toggleLayout = () => {
         if (layoutMode === 'grid3') setLayoutMode('grid2');
@@ -170,23 +164,35 @@ export const FavoritesScreen = () => {
                                     end={{ x: 1, y: 1 }}
                                 />
                                 <CardDesign />
-                                <View style={{ alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                                    <Ionicons
-                                        name={
-                                            item.id === 'most_played' ? "refresh" :
-                                                item.id === 'liked' ? "heart" :
-                                                    item.type === 'Album' ? "disc" :
-                                                        item.type === 'Genre' ? "pricetags" :
-                                                            "musical-notes"
-                                        }
-                                        size={isList ? 24 : 28}
-                                        color="white"
-                                    />
-                                </View>
-                                {!isList && (
-                                    <View style={styles.cardTextOverlay}>
+                                {!isList ? (
+                                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10 }}>
+                                        <Ionicons
+                                            name={
+                                                item.id === 'most_played' ? "refresh" :
+                                                    item.id === 'liked' ? "heart" :
+                                                        item.type === 'Album' ? "disc" :
+                                                            item.type === 'Genre' ? "pricetags" :
+                                                                "musical-notes"
+                                            }
+                                            size={32}
+                                            color="white"
+                                            style={{ marginBottom: 8 }}
+                                        />
                                         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
-                                        <Text style={styles.cardSubtitle} numberOfLines={1}>{item.type}</Text>
+                                    </View>
+                                ) : (
+                                    <View style={{ alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                                        <Ionicons
+                                            name={
+                                                item.id === 'most_played' ? "refresh" :
+                                                    item.id === 'liked' ? "heart" :
+                                                        item.type === 'Album' ? "disc" :
+                                                            item.type === 'Genre' ? "pricetags" :
+                                                                "musical-notes"
+                                            }
+                                            size={24}
+                                            color="white"
+                                        />
                                     </View>
                                 )}
                             </>
@@ -224,7 +230,7 @@ export const FavoritesScreen = () => {
     return (
         <ScreenContainer variant="default">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Favorites</Text>
@@ -296,18 +302,25 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         padding: 10,
-        backgroundColor: 'rgba(0,0,0,0.3)'
+        backgroundColor: 'transparent'
     },
     cardTitle: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 12,
-        textAlign: 'center'
+        fontSize: 13,
+        textAlign: 'center',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3
     },
     cardSubtitle: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 10,
-        textAlign: 'center'
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 11,
+        textAlign: 'center',
+        marginTop: 2,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2
     },
     artistName: {
         marginTop: 5,

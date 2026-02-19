@@ -15,7 +15,7 @@ import { FlashList } from '@shopify/flash-list';
 import { SongItem } from '../components/SongItem';
 import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { EditSongModal } from '../components/EditSongModal';
-import { LyricsModal } from '../components/LyricsModal';
+
 import { PlayingIndicator } from '../components/PlayingIndicator';
 import { MarqueeText } from '../components/MarqueeText';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
@@ -33,10 +33,29 @@ export const SongsScreen = () => {
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
+
     const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+    const [songsToAddToPlaylist, setSongsToAddToPlaylist] = useState<Song[]>([]);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-    const flatListRef = React.useRef<any>(null); // Using any for generic compatibility with FlashList scroll methods
+    const flatListRef = React.useRef<any>(null);
+
+    // Multi-select state
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
+
+    const toggleSelection = (id: string) => {
+        const newSet = new Set(selectedSongIds);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+
+        setSelectedSongIds(newSet);
+        if (newSet.size === 0) setIsSelectionMode(false);
+    };
+
+    const cancelSelection = () => {
+        setIsSelectionMode(false);
+        setSelectedSongIds(new Set());
+    };
 
     const filteredSongs = React.useMemo(() => {
         const activeSongs = songs.filter(song =>
@@ -78,10 +97,23 @@ export const SongsScreen = () => {
             index={index}
             isCurrent={currentSong?.id === item.id}
             theme={theme}
-            onPress={handlePlaySong}
+            onPress={(song) => {
+                if (isSelectionMode) toggleSelection(song.id);
+                else handlePlaySong(song);
+            }}
+            onLongPress={(song) => {
+                if (!isSelectionMode) {
+                    setIsSelectionMode(true);
+                    setSelectedSongIds(new Set([song.id]));
+                } else {
+                    toggleSelection(song.id);
+                }
+            }}
+            isSelectionMode={isSelectionMode}
+            isSelected={selectedSongIds.has(item.id)}
             onOpenOptions={onOpenOptions}
         />
-    ), [theme, handlePlaySong, onOpenOptions, currentSong?.id]);
+    ), [theme, handlePlaySong, onOpenOptions, currentSong?.id, isSelectionMode, selectedSongIds]);
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
 
@@ -89,11 +121,34 @@ export const SongsScreen = () => {
         <ScreenContainer variant="default">
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
-                <View style={{ width: 40 }} />
+                {isSelectionMode ? (
+                    <>
+                        <TouchableOpacity onPress={cancelSelection} style={styles.backButton}>
+                            <Ionicons name="close" size={24} color={theme.text} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedSongIds.size} Selected</Text>
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (selectedSongIds.size > 0) {
+                                    const selected = songs.filter(s => selectedSongIds.has(s.id));
+                                    setSongsToAddToPlaylist(selected);
+                                    setPlaylistModalVisible(true);
+                                }
+                            }}
+                            style={{ padding: 8 }}
+                        >
+                            <Ionicons name="add-circle" size={28} color={theme.primary} />
+                        </TouchableOpacity>
+                    </>
+                ) : (
+                    <>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color={theme.text} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
+                        <View style={{ width: 40 }} />
+                    </>
+                )}
             </View>
 
             {/* Search Bar & Sort */}
@@ -120,6 +175,36 @@ export const SongsScreen = () => {
                 </TouchableOpacity>
             </View>
 
+            {/* Action Buttons: Play All & Shuffle */}
+            <View style={styles.actionButtonsContainer}>
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.primary, marginRight: 12 }]}
+                    onPress={() => {
+                        if (filteredSongs.length > 0) {
+                            playSongInPlaylist(filteredSongs, 0, "All Songs");
+                            navigation.navigate('Player', { trackIndex: 0 });
+                        }
+                    }}
+                >
+                    <Ionicons name="play" size={16} color={theme.textOnPrimary} />
+                    <Text style={[styles.actionButtonText, { color: theme.textOnPrimary }]}>Play All</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.primary, borderWidth: 1.5 }]}
+                    onPress={() => {
+                        if (filteredSongs.length > 0) {
+                            const shuffled = [...filteredSongs].sort(() => Math.random() - 0.5);
+                            playSongInPlaylist(shuffled, 0, "Shuffle Play");
+                            navigation.navigate('Player', { trackIndex: 0 });
+                        }
+                    }}
+                >
+                    <Ionicons name="shuffle" size={16} color={theme.primary} />
+                    <Text style={[styles.actionButtonText, { color: theme.text }]}>Shuffle</Text>
+                </TouchableOpacity>
+            </View>
+
             {loading ? (
                 <View style={styles.center}>
                     <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading Songs...</Text>
@@ -131,7 +216,7 @@ export const SongsScreen = () => {
                         data={filteredSongs}
                         keyExtractor={(item) => item.id}
                         renderItem={renderSong}
-                        extraData={handlePlaySong}
+                        extraData={[handlePlaySong, isSelectionMode, selectedSongIds]}
                         estimatedItemSize={70}
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}
@@ -165,15 +250,12 @@ export const SongsScreen = () => {
                         song={selectedSong}
                         onRequestPlaylistAdd={() => {
                             setOptionsModalVisible(false);
+                            if (selectedSong) setSongsToAddToPlaylist([selectedSong]);
                             setTimeout(() => setPlaylistModalVisible(true), 100);
                         }}
                         onEditDetails={() => {
                             setOptionsModalVisible(false);
                             setTimeout(() => setEditModalVisible(true), 100);
-                        }}
-                        onShowLyrics={() => {
-                            setOptionsModalVisible(false);
-                            setTimeout(() => setLyricsModalVisible(true), 100);
                         }}
                     />
 
@@ -185,18 +267,16 @@ export const SongsScreen = () => {
                         onSave={updateSongMetadata}
                     />
 
-                    {/* Lyrics Modal */}
-                    <LyricsModal
-                        visible={lyricsModalVisible}
-                        onClose={() => setLyricsModalVisible(false)}
-                        song={selectedSong}
-                    />
+
 
                     {/* Add to Playlist Modal */}
                     <AddToPlaylistModal
                         visible={playlistModalVisible}
-                        onClose={() => setPlaylistModalVisible(false)}
-                        song={selectedSong}
+                        onClose={() => {
+                            setPlaylistModalVisible(false);
+                            setSongsToAddToPlaylist([]);
+                        }}
+                        songs={songsToAddToPlaylist}
                     />
                 </View>
             )
@@ -421,5 +501,29 @@ const styles = StyleSheet.create({
         height: 40,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    actionButtonsContainer: {
+        flexDirection: 'row',
+        paddingLeft: 20,
+        paddingRight: 35, // Extra space to avoid alphabet sidebar
+        marginBottom: 15,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 38,
+        borderRadius: 19, // Pill shape
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+    },
+    actionButtonText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        marginLeft: 6,
     }
 });

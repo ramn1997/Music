@@ -92,7 +92,7 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
     },
 };
 
-export type PlayerStyle = 'square' | 'circle' | 'rounded' | 'squircle';
+export type PlayerStyle = 'square' | 'circle' | 'rounded' | 'squircle' | 'sharp' | 'soft';
 
 interface ThemeContextType {
     theme: Theme;

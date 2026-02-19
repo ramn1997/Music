@@ -54,10 +54,10 @@ interface MusicLibraryContextType {
     toggleLike: (song: Song) => Promise<void>;
     isLiked: (songId: string) => boolean;
     playlists: Playlist[];
-    createPlaylist: (name: string) => Promise<void>;
+    createPlaylist: (name: string, initialSongs?: Song[]) => Promise<void>;
     deletePlaylist: (id: string) => Promise<void>;
     togglePlaylistFavorite: (id: string) => Promise<void>;
-    addToPlaylist: (playlistId: string, song: Song) => Promise<void>;
+    addToPlaylist: (playlistId: string, song: Song | Song[]) => Promise<void>;
     removeFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
     incrementPlayCount: (songId: string) => Promise<void>;
     favoriteArtists: string[];
@@ -179,6 +179,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         const suspicious = candidateSongs.filter(s =>
             (s.artist === 'Unknown Artist' || s.artist === '<unknown>' || !s.artist) ||
             (s.album === 'Unknown Album' || s.album === '<unknown>' || !s.album) ||
+            (s.genre === 'Unknown Genre' || !s.genre) ||
             (s.title === s.filename) ||
             (s.title === s.filename.replace(/\.[^/.]+$/, '')) ||
             (!s.title)
@@ -238,14 +239,43 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
             // Background Import
             await importService.importSongs(foldersToLoad, {
                 onProgress: (progress) => {
-                    if (showProgress) setImportProgress(progress);
+                    if (showProgress) {
+                        setImportProgress(progress);
+
+                        // If complete or cancelled, clear progress after delay
+                        if (progress.phase === 'complete' || progress.phase === 'cancelled') {
+                            setTimeout(() => {
+                                setImportProgress(prev => {
+                                    // Only clear if it's still the same phase (no new import started)
+                                    if (prev?.phase === 'complete' || prev?.phase === 'cancelled') {
+                                        return null;
+                                    }
+                                    return prev;
+                                });
+                            }, 2000);
+                        }
+                    }
                 },
-                onSongsUpdate: (updatedSongs) => {
-                    const convertedSongs = updatedSongs.map(s => ({
+                onSongsUpdate: (batch) => {
+                    const convertedBatch = batch.map(s => ({
                         ...s,
                         scanStatus: s.scanStatus as string | undefined
                     })) as Song[];
-                    setSongs(mergeSongData(convertedSongs, customMetadata, songMetadata));
+
+                    const mergedBatch = mergeSongData(convertedBatch, customMetadata, songMetadata);
+
+                    // Efficiently update only the songs in this batch within the main state
+                    setSongs(prevSongs => {
+                        const batchMap = new Map(mergedBatch.map(b => [b.id, b]));
+                        return prevSongs.map(s => batchMap.get(s.id) || s);
+                    });
+
+                    // Also sync with liked songs if any were enhanced
+                    setLikedSongs(prevLiked => {
+                        const batchMap = new Map(mergedBatch.map(b => [b.id, b]));
+                        if (!prevLiked.some(l => batchMap.has(l.id))) return prevLiked;
+                        return prevLiked.map(s => batchMap.get(s.id) || s);
+                    });
                 },
                 onComplete: (finalSongs) => {
                     const convertedSongs = finalSongs.map(s => ({
@@ -302,11 +332,13 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const createPlaylist = async (name: string) => {
+    const createPlaylist = async (name: string, initialSongs: Song[] = []) => {
+        const manualTime = Date.now();
+        const songsWithTime = initialSongs.map(s => ({ ...s, addedToPlaylistAt: manualTime }));
         const newPlaylist: Playlist = {
             id: Date.now().toString(),
             name: name.trim(),
-            songs: [],
+            songs: songsWithTime,
             createdAt: Date.now()
         };
         const updated = [...playlists, newPlaylist];
@@ -328,12 +360,18 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         await savePlaylists(updated);
     };
 
-    const addToPlaylist = async (playlistId: string, song: Song) => {
+    const addToPlaylist = async (playlistId: string, song: Song | Song[]) => {
+        const songsToAdd = Array.isArray(song) ? song : [song];
         const updated = playlists.map(p => {
             if (p.id === playlistId) {
-                if (p.songs.some(s => s.id === song.id)) return p;
-                const songWithTime = { ...song, addedToPlaylistAt: Date.now() };
-                return { ...p, songs: [songWithTime, ...p.songs] };
+                const existingIds = new Set(p.songs.map(s => s.id));
+                const manualTime = Date.now();
+                const newSongs = songsToAdd
+                    .filter(s => !existingIds.has(s.id))
+                    .map(s => ({ ...s, addedToPlaylistAt: manualTime }));
+
+                if (newSongs.length === 0) return p;
+                return { ...p, songs: [...newSongs, ...p.songs] };
             }
             return p;
         });

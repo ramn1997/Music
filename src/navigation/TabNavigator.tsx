@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: '#000',
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.05)',
+        borderTopColor: 'rgba(255,255,255,0.1)',
         position: 'relative',
         zIndex: 100,
         height: 65,

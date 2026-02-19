@@ -20,7 +20,6 @@ interface SongOptionsMenuProps {
     onRemoveFromPlaylist?: () => void;
     onRemoveFromQueue?: () => void;
     onEditDetails?: () => void;
-    onShowLyrics?: () => void;
 }
 
 export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
@@ -30,8 +29,7 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
     onRequestPlaylistAdd,
     onRemoveFromPlaylist,
     onRemoveFromQueue,
-    onEditDetails,
-    onShowLyrics
+    onEditDetails
 }) => {
     const { theme } = useTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -101,11 +99,7 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
             label: 'Go to album',
             action: () => navigation.navigate('Playlist', { id: song.albumId || song.album || 'unknown', name: song.album || 'Unknown', type: 'album' })
         },
-        ...(onShowLyrics ? [{
-            icon: 'document-text-outline',
-            label: 'Show Lyrics',
-            action: onShowLyrics
-        }] : []),
+
         ...(onEditDetails ? [{
             icon: 'create-outline',
             label: 'Edit Details',

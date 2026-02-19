@@ -5,6 +5,8 @@ interface MarqueeTextProps {
     text: string;
     style?: any;
     containerStyle?: any;
+    speed?: number; // Kept for compatibility
+    delay?: number; // Kept for compatibility
 }
 
 export const MarqueeText = ({

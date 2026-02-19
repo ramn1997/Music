@@ -63,12 +63,12 @@
             "foregroundServiceType": "mediaPlayback"
           }
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
-    "owner": "ram1997",
     "extra": {
       "eas": {
-        "projectId": "585b831f-6a65-4e72-aa80-242256894552"
+        "projectId": "a0481ebb-4404-433a-b6c2-a2df1910fc6c"
       }
     }
   }

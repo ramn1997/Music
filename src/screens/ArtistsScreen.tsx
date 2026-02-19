@@ -44,16 +44,51 @@ export const ArtistsScreen = () => {
                 map.set(artistName, {
                     id: artistName,
                     name: artistName,
-                    coverImage: song.coverImage,
                     count: 0
                 });
-            } else if (!map.get(artistName).coverImage && song.coverImage) {
-                map.get(artistName).coverImage = song.coverImage;
             }
             map.get(artistName).count++;
         });
-        return Array.from(map.values()).sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+        return Array.from(map.values()).sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+            const aIsLetter = /^[a-z]/.test(aName);
+            const bIsLetter = /^[a-z]/.test(bName);
+
+            if (aIsLetter && !bIsLetter) return -1;
+            if (!aIsLetter && bIsLetter) return 1;
+            return aName.localeCompare(bName);
+        });
     }, [songs]);
+
+    const flatListRef = React.useRef<FlatList>(null);
+
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+
+    const scrollToAlphabet = (letter: string) => {
+        let index = -1;
+        if (letter === '#') {
+            index = artists.findIndex(a => !/^[a-zA-Z]/.test(a.name));
+        } else {
+            // Find the first artist whose name is >= this letter, but still starts with a letter
+            index = artists.findIndex(a => {
+                const name = a.name.toUpperCase();
+                return /^[A-Z]/.test(name) && name >= letter;
+            });
+        }
+
+        if (index !== -1 && index < artists.length) {
+            try {
+                flatListRef.current?.scrollToIndex({
+                    index: index,
+                    animated: true,
+                    viewPosition: 0
+                });
+            } catch (e) {
+                console.warn('[ArtistsScreen] Scroll failed:', e);
+            }
+        }
+    };
 
     const toggleLayout = () => {
         if (layoutMode === 'grid3') setLayoutMode('grid2');
@@ -75,7 +110,7 @@ export const ArtistsScreen = () => {
         <ScreenContainer variant="default">
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Artists</Text>
@@ -90,21 +125,49 @@ export const ArtistsScreen = () => {
                 </TouchableOpacity>
             </View>
 
-            <FlatList
-                key={layoutMode}
-                data={artists}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
-                columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <View style={styles.center}>
-                        <Text style={{ color: theme.textSecondary }}>No artists found.</Text>
-                    </View>
-                }
-                showsVerticalScrollIndicator={false}
-            />
+            <View style={{ flex: 1, flexDirection: 'row' }}>
+                <FlatList
+                    ref={flatListRef}
+                    key={layoutMode}
+                    data={artists}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
+                    columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
+                    contentContainerStyle={styles.listContent}
+
+                    ListEmptyComponent={
+                        <View style={styles.center}>
+                            <Text style={{ color: theme.textSecondary }}>No artists found.</Text>
+                        </View>
+                    }
+                    showsVerticalScrollIndicator={false}
+                    onScrollToIndexFailed={(info) => {
+                        setTimeout(() => {
+                            flatListRef.current?.scrollToIndex({
+                                index: info.index,
+                                animated: true,
+                                viewPosition: 0
+                            });
+                        }, 100);
+                    }}
+                />
+
+                {/* Alphabet Sidebar */}
+                <View style={styles.alphabetSidebar}>
+                    {alphabet.map((letter) => (
+                        <TouchableOpacity
+                            key={letter}
+                            onPress={() => scrollToAlphabet(letter)}
+                            style={styles.alphabetLetter}
+                        >
+                            <Text style={[styles.alphabetText, { color: theme.textSecondary }]}>
+                                {letter}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
         </ScreenContainer>
     );
 };
@@ -138,7 +201,8 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     listContent: {
-        paddingHorizontal: 15,
+        paddingLeft: 15,
+        paddingRight: 35, // Space for sidebar
         paddingBottom: 150,
     },
     columnWrapper: {
@@ -210,5 +274,31 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         marginTop: 50
+    },
+    alphabetSidebar: {
+        width: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 15,
+        backgroundColor: 'transparent',
+        borderRadius: 15,
+        position: 'absolute',
+        right: 5,
+        top: '12%',
+        bottom: '15%',
+        zIndex: 10,
+        borderWidth: 0,
+        borderColor: 'transparent',
+    },
+    alphabetLetter: {
+        flex: 1,
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 1,
+    },
+    alphabetText: {
+        fontSize: 10,
+        fontWeight: '900',
     }
 });

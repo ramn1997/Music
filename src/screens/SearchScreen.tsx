@@ -14,7 +14,7 @@ import { useMusicLibrary } from '../hooks/MusicLibraryContext';
 import { SongItem } from '../components/SongItem';
 import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { EditSongModal } from '../components/EditSongModal';
-import { LyricsModal } from '../components/LyricsModal';
+
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 
 export const SearchScreen = () => {
@@ -28,7 +28,7 @@ export const SearchScreen = () => {
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
+
     const [selectedSong, setSelectedSong] = useState<Song | null>(null);
     const [recentSearches, setRecentSearches] = useState<Song[]>([]);
 
@@ -122,7 +122,7 @@ export const SearchScreen = () => {
     return (
         <ScreenContainer variant="default">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Search</Text>
@@ -203,10 +203,6 @@ export const SearchScreen = () => {
                     setOptionsModalVisible(false);
                     setTimeout(() => setEditModalVisible(true), 100);
                 }}
-                onShowLyrics={() => {
-                    setOptionsModalVisible(false);
-                    setTimeout(() => setLyricsModalVisible(true), 100);
-                }}
             />
 
             <EditSongModal
@@ -216,15 +212,11 @@ export const SearchScreen = () => {
                 onSave={updateSongMetadata}
             />
 
-            <LyricsModal
-                visible={lyricsModalVisible}
-                onClose={() => setLyricsModalVisible(false)}
-                song={selectedSong}
-            />
+
             <AddToPlaylistModal
                 visible={playlistModalVisible}
                 onClose={() => setPlaylistModalVisible(false)}
-                song={selectedSong}
+                songs={selectedSong ? [selectedSong] : []}
             />
         </ScreenContainer>
     );

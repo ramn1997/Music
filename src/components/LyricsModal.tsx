@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, FlatList, Dimensions, Pressable } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useProgress } from 'react-native-track-player';
 import { Ionicons } from '@expo/vector-icons';
 import { Song } from '../hooks/useLocalMusic';
 import { useTheme } from '../hooks/ThemeContext';
@@ -26,7 +28,9 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
     song
 }) => {
     const { theme } = useTheme();
-    const { position, isPlaying } = usePlayerContext();
+    const { isPlaying } = usePlayerContext();
+    const { position: positionSeconds } = useProgress(200);
+    const position = positionSeconds * 1000;
     const [syncedLyrics, setSyncedLyrics] = useState<LyricLine[]>([]);
     const [plainLyrics, setPlainLyrics] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -73,37 +77,82 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
         setPlainLyrics(null);
 
         try {
+            const cacheKey = `lyrics_${song.id}`;
+            const cachedData = await AsyncStorage.getItem(cacheKey);
+
+            if (cachedData) {
+                const { synced, plain, timestamp } = JSON.parse(cachedData);
+                // Cache valid for 7 days
+                if (Date.now() - timestamp < 7 * 24 * 60 * 60 * 1000) {
+                    if (synced) setSyncedLyrics(synced);
+                    if (plain) setPlainLyrics(plain);
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const artist = song.artist.split(/[&,\/]/)[0].replace(/\s*\([^)]*\)/g, '').trim();
             const title = song.title.replace(/\s*\([^)]*\)/g, '').replace(/\s*\[[^\]]*\]/g, '').replace(/\s*-\s*.*$/, '').trim();
 
-            // Try LRCLIB API first (Better for synced lyrics)
-            const response = await fetch(
-                `https://lrclib.net/api/get?artist=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`
-            );
+            const fetchWithTimeout = (url: string, timeout = 5000) => {
+                return Promise.race([
+                    fetch(url),
+                    new Promise<Response>((_, reject) =>
+                        setTimeout(() => reject(new Error('Timeout')), timeout)
+                    )
+                ]);
+            };
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.syncedLyrics) {
-                    const parsed = parseLRC(data.syncedLyrics);
-                    setSyncedLyrics(parsed);
-                } else if (data.plainLyrics) {
-                    setPlainLyrics(data.plainLyrics);
-                } else {
-                    throw new Error('No lyrics found');
-                }
-            } else {
-                // Fallback to lyrics.ovh
-                const ovhResponse = await fetch(
-                    `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`
+            // Try LRCLIB API first (Better for synced lyrics)
+            try {
+                const response = await fetchWithTimeout(
+                    `https://lrclib.net/api/get?artist=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`,
+                    4000
                 );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.syncedLyrics) {
+                        const parsed = parseLRC(data.syncedLyrics);
+                        setSyncedLyrics(parsed);
+                        await AsyncStorage.setItem(cacheKey, JSON.stringify({ synced: parsed, timestamp: Date.now() }));
+                        return; // Found synced lyrics, stop here
+                    } else if (data.plainLyrics) {
+                        setPlainLyrics(data.plainLyrics);
+                        await AsyncStorage.setItem(cacheKey, JSON.stringify({ plain: data.plainLyrics, timestamp: Date.now() }));
+                        return; // Found plain lyrics, stop here (could optionally continue for synced)
+                    }
+                }
+            } catch (e) {
+                console.log('LRCLIB failed or timed out:', e);
+            }
+
+            // Fallback to lyrics.ovh
+            try {
+                const ovhResponse = await fetchWithTimeout(
+                    `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`,
+                    4000
+                );
+
                 if (ovhResponse.ok) {
                     const ovhData = await ovhResponse.json();
-                    if (ovhData.lyrics) setPlainLyrics(ovhData.lyrics);
-                    else throw new Error('No lyrics found');
+                    if (ovhData.lyrics) {
+                        setPlainLyrics(ovhData.lyrics);
+                        await AsyncStorage.setItem(cacheKey, JSON.stringify({ plain: ovhData.lyrics, timestamp: Date.now() }));
+                    } else {
+                        throw new Error('No lyrics found');
+                    }
                 } else {
                     throw new Error('Lyrics not found');
                 }
+            } catch (e) {
+                console.log('OVH failed:', e);
+                // If both failed
+                if (!plainLyrics && syncedLyrics.length === 0) {
+                    throw new Error('Lyrics not found');
+                }
             }
+
         } catch (err) {
             setError('Lyrics not found for this song.');
         } finally {

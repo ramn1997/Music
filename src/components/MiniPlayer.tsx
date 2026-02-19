@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -5,13 +6,16 @@ import { usePlayerContext } from '../hooks/PlayerContext';
 import { useTheme } from '../hooks/ThemeContext';
 import { MusicImage } from './MusicImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useProgress } from 'react-native-track-player';
 
 export const MiniPlayer = () => {
     const navigation = useNavigation<any>();
-    const { currentSong, isPlaying, playPause, position, duration, nextTrack, prevTrack } = usePlayerContext();
-    const { theme, themeType } = useTheme();
+    const { currentSong, isPlaying, playPause, nextTrack, prevTrack } = usePlayerContext();
+    const { theme, themeType, playerStyle } = useTheme();
     const insets = useSafeAreaInsets();
+    const { position, duration } = useProgress(1000); // 1s update for mini player is enough
 
     // Get current route name to hide mini player when on Player screen
     const currentRouteName = useNavigationState(state =>
@@ -19,7 +23,8 @@ export const MiniPlayer = () => {
     );
 
     // Only hide mini player when on the full Player screen, Settings screen, or if no song exists
-    if (!currentSong || currentRouteName === 'Player' || currentRouteName === 'Settings') return null;
+    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Settings';
+    if (!currentSong || isHiddenScreen) return null;
 
     // List of screens that DO NOT have a bottom tab bar
     const noTabBarScreens = ['Player', 'Settings', 'Equalizer', 'EditSong', 'Lyrics'];
@@ -30,6 +35,17 @@ export const MiniPlayer = () => {
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
 
+    const getMiniRadius = () => {
+        switch (playerStyle) {
+            case 'circle': return 19;
+
+            case 'sharp': return 0;
+            case 'soft': return 12;
+            case 'square': return 4;
+            default: return 6;
+        }
+    };
+
 
     return (
         <View
@@ -39,23 +55,36 @@ export const MiniPlayer = () => {
             <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => navigation.navigate('Player')}
-                style={[styles.pillContainer, { overflow: 'hidden', borderColor: 'rgba(255,255,255,0.1)', backgroundColor: theme.background }]}
+                style={[styles.pillContainer, {
+                    overflow: 'hidden',
+                    borderColor: theme.cardBorder,
+                    backgroundColor: theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card
+                }]}
             >
-                {/* Adaptive Background based on Album Art (Pure JS Fallback) */}
                 {/* Adaptive Background based on Album Art */}
                 <View style={StyleSheet.absoluteFill}>
                     <MusicImage
                         uri={currentSong?.coverImage}
                         id={currentSong?.id || ''}
+                        assetUri={currentSong?.uri}
                         style={StyleSheet.absoluteFill}
                         resizeMode="cover"
-                        blurRadius={50}
-                        iconSize={0} // Hide icon for background
+                        blurRadius={Platform.OS === 'ios' ? 20 : 30}
+                        iconSize={0}
                     />
-                    {/* Overlay to ensure it feels solid and text is readable */}
-                    <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+                    <BlurView
+                        intensity={Platform.OS === 'ios' ? 30 : 60}
+                        tint={themeType === 'dark' || themeType === 'black' ? 'dark' : 'light'}
+                        style={StyleSheet.absoluteFill}
+                    />
+                    {/* Subtle Gradient Overlay for depth */}
+                    <LinearGradient
+                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
+                        style={StyleSheet.absoluteFill}
+                    />
                 </View>
-                <View style={[styles.blurContainer]}>
+
+                <View style={styles.blurContainer}>
                     {/* Progress Bar Line */}
                     <View style={styles.progressTrack}>
                         <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
@@ -66,9 +95,9 @@ export const MiniPlayer = () => {
                             <MusicImage
                                 uri={currentSong?.coverImage}
                                 id={currentSong?.id || ''}
-                                style={styles.albumArt}
+                                style={[styles.albumArt, { borderRadius: getMiniRadius() }]}
                                 iconSize={20}
-                                containerStyle={[styles.albumArt, { backgroundColor: theme.card }]}
+                                containerStyle={[styles.albumArt, { backgroundColor: theme.card, borderRadius: getMiniRadius() }]}
                             />
                         </View>
 
@@ -117,19 +146,21 @@ const styles = StyleSheet.create({
     },
     pillContainer: {
         width: '100%',
-        height: 60,
+        height: 65,
         borderRadius: 0,
         overflow: 'hidden',
         borderTopWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderBottomWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: '#121212', // Solid dark fallback for visibility
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
-            height: -2,
+            height: -4, // Higher shadow
         },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-        elevation: 8,
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 20, // Even higher elevation
     },
     blurContainer: {
         flex: 1,

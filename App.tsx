@@ -10,7 +10,6 @@ import { useFonts, Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, F
 
 import { PlayerProvider } from './src/hooks/PlayerContext';
 import { MusicLibraryProvider } from './src/hooks/MusicLibraryContext';
-import { ImportProgressOverlay } from './src/components/ImportProgressOverlay';
 
 import { ThemeProvider } from './src/hooks/ThemeContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -46,7 +45,6 @@ export default function App() {
                                     <AppNavigator />
                                 </View>
                             </NavigationContainer>
-                            {/* <ImportProgressOverlay /> Removed for mini-player in Settings */}
                         </PlayerProvider>
                     </MusicLibraryProvider>
                 </ThemeProvider>

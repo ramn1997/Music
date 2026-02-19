@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { colors } from '../theme/colors';
 
@@ -11,10 +11,19 @@ interface GlassCardProps {
     disableBlur?: boolean;
 }
 
-export const GlassCard: React.FC<GlassCardProps> = ({ children, style, contentStyle, intensity = 20, disableBlur = false }) => {
+export const GlassCard: React.FC<GlassCardProps> = ({
+    children,
+    style,
+    contentStyle,
+    intensity = 20,
+    disableBlur
+}) => {
+    // Disable blur by default on Android for performance
+    const shouldDisableBlur = disableBlur ?? (Platform.OS === 'android');
+
     return (
-        <View style={[styles.container, style, disableBlur && styles.noBlurContainer]}>
-            {!disableBlur && <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />}
+        <View style={[styles.container, style, shouldDisableBlur && styles.noBlurContainer]}>
+            {!shouldDisableBlur && <BlurView intensity={intensity} tint="light" style={StyleSheet.absoluteFill} />}
             <View style={[styles.content, contentStyle]}>{children}</View>
         </View>
     );
@@ -26,7 +35,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderColor: colors.cardBorder,
         borderWidth: 1,
-        backgroundColor: colors.card,
+        backgroundColor: 'transparent',
         position: 'relative',
     },
     content: {
@@ -34,6 +43,6 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     noBlurContainer: {
-        backgroundColor: '#1e1e1e', // Fallback for no blur
+        backgroundColor: 'rgba(255,255,255,0.05)', // Very subtle fallback
     }
 });

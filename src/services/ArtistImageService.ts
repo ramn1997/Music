@@ -1,84 +1,120 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_PREFIX = 'artist_img_url_';
-const CACHE_EXPIRY_PREFIX = 'artist_img_expiry_';
 const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-const QUEUE_DELAY = 300; // 300ms delay = ~3 req/sec (safe)
-let requestQueue: { name: string; resolve: (url: string | null) => void; }[] = [];
-let isProcessingQueue = false;
+// In-memory cache for the current session to avoid repeated AsyncStorage calls
+const memoryCache = new Map<string, string | null>();
+const activeRequests = new Map<string, Promise<string | null>>();
 
-const processQueue = async () => {
-    if (isProcessingQueue || requestQueue.length === 0) return;
-    isProcessingQueue = true;
+// Rate limiting
+const MAX_CONCURRENT_REQUESTS = 4;
+let requestCount = 0;
+const requestQueue: (() => void)[] = [];
 
-    const { name, resolve } = requestQueue.shift()!;
-
-    try {
-        const response = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(name)}&limit=1`);
-        const json = await response.json();
-
-        let imageUrl = null;
-        if (json.data && json.data.length > 0) {
-            const artist = json.data[0];
-            imageUrl = artist.picture_xl || artist.picture_big || artist.picture_medium || artist.picture;
-        }
-
-        // Cache result
-        const cleanName = name.trim();
-        const cacheKey = `${CACHE_PREFIX}${cleanName}`;
-        const expiryKey = `${CACHE_EXPIRY_PREFIX}${cleanName}`;
-
-        await AsyncStorage.setItem(cacheKey, imageUrl || 'null');
-        await AsyncStorage.setItem(expiryKey, (Date.now() + CACHE_DURATION).toString());
-
-        resolve(imageUrl);
-    } catch (e) {
-        console.warn(`[ArtistImageService] Failed to fetch for ${name}`, e);
-        resolve(null); // Resolve null on error to unblock UI
-    } finally {
-        setTimeout(() => {
-            isProcessingQueue = false;
-            processQueue();
-        }, QUEUE_DELAY);
+const processNext = () => {
+    if (requestCount < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
+        const next = requestQueue.shift();
+        next?.();
     }
 };
 
+const fetchWithTimeout = (url: string, timeout = 5000) => {
+    return Promise.race([
+        fetch(url),
+        new Promise<Response>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), timeout)
+        )
+    ]);
+};
+
 export const ArtistImageService = {
-    /**
-     * Get artist image URL from cache or fetch from Deezer API (Queued)
-     */
     getArtistImage: async (artistName: string): Promise<string | null> => {
         if (!artistName || artistName === 'Unknown Artist') return null;
-
         const cleanName = artistName.trim();
-        const cacheKey = `${CACHE_PREFIX}${cleanName}`;
 
-        // 1. Check Cache (Immediate)
-        try {
-            const cachedUrl = await AsyncStorage.getItem(cacheKey);
-            // Ignore expiry for now to speed up UI, trust cache until cleared
-            if (cachedUrl) return cachedUrl === 'null' ? null : cachedUrl;
-        } catch (e) { }
+        // 1. Check Memory Cache
+        if (memoryCache.has(cleanName)) {
+            return memoryCache.get(cleanName) || null;
+        }
 
-        // 2. Add to Queue if not cached
-        return new Promise((resolve) => {
-            requestQueue.push({ name: cleanName, resolve });
-            processQueue();
-        });
+        // 2. Check Deduplication (Active Request)
+        if (activeRequests.has(cleanName)) {
+            return activeRequests.get(cleanName)!;
+        }
+
+        // 3. Initiate Request Logic
+        const requestPromise = (async () => {
+            const cacheKey = `${CACHE_PREFIX}${cleanName}`;
+
+            // Check Persistent Cache
+            try {
+                const cachedUrl = await AsyncStorage.getItem(cacheKey);
+                if (cachedUrl !== null) {
+                    const result = cachedUrl === 'null' ? null : cachedUrl;
+                    memoryCache.set(cleanName, result);
+                    return result;
+                }
+            } catch (e) { }
+
+            // Fetch from API
+            // Wait for slot
+            if (requestCount >= MAX_CONCURRENT_REQUESTS) {
+                await new Promise<void>(resolve => requestQueue.push(resolve));
+            }
+
+            requestCount++;
+            try {
+                let searchQuery = cleanName;
+                // Simple cleanup for better search results
+                if (searchQuery.includes('feat.')) searchQuery = searchQuery.split('feat.')[0];
+                if (searchQuery.includes('ft.')) searchQuery = searchQuery.split('ft.')[0];
+                if (searchQuery.includes('&')) searchQuery = searchQuery.split('&')[0];
+                if (searchQuery.includes(',')) searchQuery = searchQuery.split(',')[0];
+                searchQuery = searchQuery.trim();
+
+                const response = await fetchWithTimeout(
+                    `https://api.deezer.com/search/artist?q=${encodeURIComponent(searchQuery)}&limit=1`,
+                    4000
+                );
+
+                let imageUrl = null;
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.data && json.data.length > 0) {
+                        const artist = json.data[0];
+                        // Prefer medium/big for lists, xl for details. Big is good compromise.
+                        imageUrl = artist.picture_big || artist.picture_medium || artist.picture;
+                    }
+                }
+
+                // Cache result
+                memoryCache.set(cleanName, imageUrl);
+                await AsyncStorage.setItem(cacheKey, imageUrl || 'null').catch(() => { });
+
+                return imageUrl;
+            } catch (e) {
+                console.warn(`[ArtistImageService] Failed to fetch for ${cleanName}`);
+                return null;
+            } finally {
+                requestCount--;
+                processNext();
+                activeRequests.delete(cleanName);
+            }
+        })();
+
+        activeRequests.set(cleanName, requestPromise);
+        return requestPromise;
     },
 
-    /**
-     * Clear all artist image cache
-     */
     clearCache: async () => {
+        memoryCache.clear();
         try {
             const keys = await AsyncStorage.getAllKeys();
-            const artistKeys = keys.filter(k => k.startsWith(CACHE_PREFIX) || k.startsWith(CACHE_EXPIRY_PREFIX));
+            const artistKeys = keys.filter(k => k.startsWith(CACHE_PREFIX));
             if (artistKeys.length > 0) {
                 await AsyncStorage.multiRemove(artistKeys);
             }
-            console.log('[ArtistImageService] Cache cleared');
         } catch (e) {
             console.error('[ArtistImageService] Failed to clear cache', e);
         }

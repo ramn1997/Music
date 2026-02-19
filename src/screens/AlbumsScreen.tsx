@@ -57,8 +57,46 @@ export const AlbumsScreen = () => {
             }
             map.get(albumName).count++;
         });
-        return Array.from(map.values()).sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+        return Array.from(map.values()).sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+            const aIsLetter = /^[a-z]/.test(aName);
+            const bIsLetter = /^[a-z]/.test(bName);
+
+            if (aIsLetter && !bIsLetter) return -1;
+            if (!aIsLetter && bIsLetter) return 1;
+            return aName.localeCompare(bName);
+        });
     }, [songs]);
+
+    const flatListRef = React.useRef<FlatList>(null);
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+
+    const scrollToAlphabet = (letter: string) => {
+        let index = -1;
+        if (letter === '#') {
+            index = albums.findIndex(a => !/^[a-zA-Z]/.test(a.name));
+        } else {
+            // Find the first album whose name is >= this letter, but still starts with a letter
+            index = albums.findIndex(a => {
+                const name = a.name.toUpperCase();
+                return /^[A-Z]/.test(name) && name >= letter;
+            });
+        }
+
+        if (index !== -1 && index < albums.length) {
+            try {
+                flatListRef.current?.scrollToIndex({
+                    index: index,
+                    animated: true,
+                    viewPosition: 0
+                });
+            } catch (e) {
+                console.warn('[AlbumsScreen] Scroll failed:', e);
+            }
+        }
+    };
 
     const toggleLayout = () => {
         if (layoutMode === 'grid3') setLayoutMode('grid2');
@@ -93,55 +131,53 @@ export const AlbumsScreen = () => {
                     <TouchableOpacity
                         style={[isGrid3 ? styles.gridItem3 : styles.gridItem2, { width: '100%', maxWidth: '100%' }]}
                         onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'album' })}
+                        activeOpacity={0.7}
                     >
-                        <View
-                            style={[
-                                styles.card,
-                                { backgroundColor: theme.card, borderColor: theme.cardBorder, overflow: 'hidden' },
-                                { height: isGrid3 ? 160 : 200 }
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={getGradientColors(item.id)}
-                                style={StyleSheet.absoluteFill}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            />
-                            <CardDesign />
-                            <View style={[
-                                styles.iconPlaceholder,
-                                { backgroundColor: 'transparent' },
-                                {
-                                    width: isGrid3 ? 80 : 110,
-                                    height: isGrid3 ? 80 : 110,
-                                    borderRadius: 12,
-                                    overflow: 'hidden',
-                                    borderWidth: 2,
-                                    borderColor: 'rgba(255,255,255,0.3)',
-                                    marginBottom: 10
-                                }
-                            ]}>
+                        <View style={{ width: '100%', alignItems: 'center' }}>
+                            <View
+                                style={[
+                                    styles.card,
+                                    {
+                                        backgroundColor: 'transparent',
+                                        borderWidth: 0,
+                                        padding: 0,
+                                        width: '100%',
+                                        aspectRatio: 1,
+                                        overflow: 'hidden',
+                                        marginBottom: 8
+                                    }
+                                ]}
+                            >
                                 <MusicImage
                                     uri={item.coverImage}
-                                    iconSize={isGrid3 ? 24 : 36}
+                                    id={item.id}
+                                    iconSize={isGrid3 ? 40 : 50}
                                     style={{ width: '100%', height: '100%' }}
-                                    containerStyle={{ width: '100%', height: '100%', backgroundColor: 'transparent' }}
+                                    containerStyle={{ width: '100%', height: '100%', borderRadius: 20 }}
                                 />
                             </View>
                             <MarqueeText
                                 text={item.name}
-                                style={[
-                                    styles.title,
-                                    { color: 'white', fontSize: isGrid3 ? 12 : 16, paddingHorizontal: 5 }
-                                ]}
+                                style={{
+                                    color: theme.text,
+                                    fontSize: isGrid3 ? 12 : 14,
+                                    fontWeight: 'bold',
+                                    textAlign: 'center',
+                                    width: '100%'
+                                }}
                             />
-                            <MarqueeText
-                                text={item.artist}
-                                style={[
-                                    styles.subtitle,
-                                    { color: 'rgba(255,255,255,0.8)', fontSize: isGrid3 ? 10 : 13, paddingHorizontal: 5 }
-                                ]}
-                            />
+                            <Text
+                                numberOfLines={1}
+                                style={{
+                                    marginTop: 2,
+                                    color: theme.textSecondary,
+                                    fontSize: isGrid3 ? 10 : 12,
+                                    textAlign: 'center',
+                                    width: '100%'
+                                }}
+                            >
+                                {item.artist}
+                            </Text>
                         </View>
                     </TouchableOpacity>
                 )}
@@ -153,7 +189,7 @@ export const AlbumsScreen = () => {
         <ScreenContainer variant="default">
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Albums</Text>
@@ -168,21 +204,54 @@ export const AlbumsScreen = () => {
                 </TouchableOpacity>
             </View>
 
-            <FlatList
-                key={layoutMode} // Force re-render when switching layouts
-                data={albums}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
-                columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <View style={styles.center}>
-                        <Text style={{ color: theme.textSecondary }}>No albums found.</Text>
+            <View style={{ flex: 1, position: 'relative' }}>
+                <View style={{ flex: 1, flexDirection: 'row' }}>
+                    <FlatList
+                        ref={flatListRef}
+                        key={layoutMode}
+                        style={{ flex: 1 }} // Force FlatList to take available width
+                        data={albums}
+                        keyExtractor={(item) => item.id}
+                        renderItem={renderItem}
+                        numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
+                        columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
+                        contentContainerStyle={styles.listContent}
+
+                        ListEmptyComponent={
+                            <View style={styles.center}>
+                                <Text style={{ color: theme.textSecondary }}>No albums found.</Text>
+                            </View>
+                        }
+                        showsVerticalScrollIndicator={false}
+                        onScrollToIndexFailed={(info) => {
+                            setTimeout(() => {
+                                if (flatListRef.current) {
+                                    flatListRef.current.scrollToIndex({
+                                        index: info.index,
+                                        animated: true,
+                                        viewPosition: 0
+                                    });
+                                }
+                            }, 150);
+                        }}
+                    />
+
+                    {/* Alphabet Sidebar */}
+                    <View style={styles.alphabetSidebar}>
+                        {alphabet.map((letter) => (
+                            <TouchableOpacity
+                                key={letter}
+                                onPress={() => scrollToAlphabet(letter)}
+                                style={styles.alphabetLetter}
+                            >
+                                <Text style={[styles.alphabetText, { color: theme.textSecondary }]}>
+                                    {letter}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
-                }
-                showsVerticalScrollIndicator={false}
-            />
+                </View>
+            </View>
         </ScreenContainer>
     );
 };
@@ -216,7 +285,8 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     listContent: {
-        paddingHorizontal: 15,
+        paddingLeft: 15,
+        paddingRight: 35, // Space for sidebar
         paddingBottom: 150,
     },
     columnWrapper: {
@@ -287,5 +357,31 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         marginTop: 50
+    },
+    alphabetSidebar: {
+        width: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 15,
+        backgroundColor: 'transparent',
+        borderRadius: 15,
+        position: 'absolute',
+        right: 5,
+        top: '12%',
+        bottom: '15%',
+        zIndex: 10,
+        borderWidth: 0,
+        borderColor: 'transparent',
+    },
+    alphabetLetter: {
+        flex: 1,
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 1,
+    },
+    alphabetText: {
+        fontSize: 10,
+        fontWeight: '900',
     }
 });

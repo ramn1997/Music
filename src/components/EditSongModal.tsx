@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+// Safe import for ImagePicker to prevent crash if native module is missing
+let ImagePicker: any;
+try {
+    ImagePicker = require('expo-image-picker');
+} catch (e) {
+    console.warn('[EditSongModal] expo-image-picker not found');
+}
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { Song } from '../hooks/useLocalMusic';
 import { useTheme } from '../hooks/ThemeContext';
@@ -23,34 +32,80 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     const [title, setTitle] = useState('');
     const [artist, setArtist] = useState('');
     const [album, setAlbum] = useState('');
-    const [genre, setGenre] = useState('');
     const [year, setYear] = useState('');
     const [coverImage, setCoverImage] = useState<string | null>(null);
+    const [isArtModified, setIsArtModified] = useState(false);
 
     useEffect(() => {
         if (song) {
             setTitle(song.title || '');
             setArtist(song.artist || '');
             setAlbum(song.album || '');
-            setGenre(song.genre || '');
             setYear(song.year || '');
             setCoverImage(song.coverImage || null);
+            setIsArtModified(false);
         }
     }, [song]);
 
     if (!song) return null;
 
+    const handlePickImage = async () => {
+        if (!ImagePicker || !ImagePicker.launchImageLibraryAsync) {
+            Alert.alert(
+                'Build Required',
+                'Custom image picking requires a new native build. Please rebuild your development client to enable this feature.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
 
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const pickedUri = result.assets[0].uri;
+
+                // Save permanently to app storage
+                const fileName = `custom_art_${song.id}_${Date.now()}.jpg`;
+                const dest = `${FileSystem.documentDirectory}${fileName}`;
+
+                await FileSystem.copyAsync({
+                    from: pickedUri,
+                    to: dest
+                });
+
+                setCoverImage(dest);
+                setIsArtModified(true);
+            }
+        } catch (e) {
+            console.error('[EditSongModal] Image pick failed', e);
+            Alert.alert('Error', 'Failed to pick image');
+        }
+    };
+
+    const handleResetArt = () => {
+        setCoverImage(null);
+        setIsArtModified(true);
+    };
 
     const handleSave = () => {
-        onSave(song.id, {
+        const updates: Partial<Song> = {
             title: title.trim() || song.title,
             artist: artist.trim() || song.artist,
             album: album.trim() || song.album,
-            genre: genre.trim() || song.genre,
             year: year.trim() || song.year,
-            coverImage: coverImage || song.coverImage,
-        });
+        };
+
+        if (isArtModified) {
+            updates.coverImage = coverImage || undefined;
+        }
+
+        onSave(song.id, updates);
         onClose();
     };
 
@@ -67,6 +122,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             const art = await metadataService.fetchArtwork(song.uri);
             if (art) {
                 setCoverImage(art);
+                setIsArtModified(true);
                 console.log('[EditSongModal] Found artwork:', art);
             }
 
@@ -74,7 +130,6 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             if (meta.title) { setTitle(meta.title); hasUpdates = true; }
             if (meta.artist) { setArtist(meta.artist); hasUpdates = true; }
             if (meta.album) { setAlbum(meta.album); hasUpdates = true; }
-            if (meta.genre) { setGenre(meta.genre); hasUpdates = true; }
 
             if (!hasUpdates) {
                 console.log('[EditSongModal] No better metadata found in tags');
@@ -88,7 +143,6 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
         { label: 'Title', value: title, setValue: setTitle, placeholder: 'Song title' },
         { label: 'Artist', value: artist, setValue: setArtist, placeholder: 'Artist name' },
         { label: 'Album', value: album, setValue: setAlbum, placeholder: 'Album name' },
-        { label: 'Genre', value: genre, setValue: setGenre, placeholder: 'Genre' },
         { label: 'Year', value: year, setValue: setYear, placeholder: 'Year', keyboardType: 'numeric' as const },
     ];
 
@@ -115,52 +169,75 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.contentRow}>
-                        {/* Left: Cover Art */}
-                        <View style={styles.coverSide}>
-                            <View style={styles.artWrapper}>
+                    <ScrollView
+                        style={styles.formScrollView}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {/* Art Section */}
+                        <View style={styles.artSection}>
+                            <TouchableOpacity
+                                onPress={handlePickImage}
+                                style={styles.artWrapper}
+                                activeOpacity={0.8}
+                            >
                                 <MusicImage
                                     uri={coverImage || undefined}
                                     id={song.id}
                                     style={styles.art}
-                                    iconSize={40}
+                                    iconSize={60}
                                     containerStyle={[styles.artContainer, { backgroundColor: theme.card }]}
                                 />
-                            </View>
-                            <TouchableOpacity onPress={handleScanTags} style={{ marginTop: 12, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.cardBorder, alignItems: 'center' }}>
-                                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.primary }}>Scan Tags</Text>
+                                <View style={styles.editOverlay}>
+                                    <Ionicons name="camera" size={18} color="#fff" />
+                                    <Text style={styles.editText}>CHANGE</Text>
+                                </View>
                             </TouchableOpacity>
+
+                            <View style={styles.artActions}>
+                                <TouchableOpacity
+                                    onPress={handleScanTags}
+                                    style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                                >
+                                    <Ionicons name="scan-outline" size={16} color={theme.primary} />
+                                    <Text style={[styles.actionButtonText, { color: theme.primary }]}>SCAN TAGS</Text>
+                                </TouchableOpacity>
+
+                                {isArtModified && (
+                                    <TouchableOpacity
+                                        onPress={handleResetArt}
+                                        style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                                    >
+                                        <Ionicons name="refresh-outline" size={16} color={theme.textSecondary} />
+                                        <Text style={[styles.actionButtonText, { color: theme.textSecondary }]}>RESET</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         </View>
 
-                        {/* Right: Form Fields */}
-                        <ScrollView
-                            style={styles.formContainer}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled"
-                        >
-                            {inputFields.map((field, index) => (
-                                <View key={index} style={styles.fieldContainer}>
-                                    <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
-                                    <TextInput
-                                        style={[
-                                            styles.input,
-                                            {
-                                                color: theme.text,
-                                                backgroundColor: theme.card,
-                                                borderColor: theme.cardBorder
-                                            }
-                                        ]}
-                                        value={field.value}
-                                        onChangeText={field.setValue}
-                                        placeholder={field.placeholder}
-                                        placeholderTextColor={theme.textSecondary}
-                                        keyboardType={field.keyboardType || 'default'}
-                                    />
-                                </View>
-                            ))}
-                            <View style={{ height: 40 }} />
-                        </ScrollView>
-                    </View>
+                        {/* Form Fields */}
+                        {inputFields.map((field, index) => (
+                            <View key={index} style={styles.fieldContainer}>
+                                <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        {
+                                            color: theme.text,
+                                            backgroundColor: theme.card,
+                                            borderColor: theme.cardBorder
+                                        }
+                                    ]}
+                                    value={field.value}
+                                    onChangeText={field.setValue}
+                                    placeholder={field.placeholder}
+                                    placeholderTextColor={theme.textSecondary}
+                                    keyboardType={field.keyboardType || 'default'}
+                                />
+                            </View>
+                        ))}
+                        <View style={styles.bottomSpacing} />
+                    </ScrollView>
                 </View>
             </KeyboardAvoidingView>
         </Modal>
@@ -170,56 +247,68 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'flex-end',
     },
     container: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '90%',
-        minHeight: '70%',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        maxHeight: '92%',
+        width: '100%',
+        overflow: 'hidden',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
         borderBottomWidth: 1,
     },
     closeButton: {
-        padding: 4,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 19,
+        fontWeight: 'bold',
     },
     saveButton: {
-        padding: 4,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
     },
     saveText: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
     },
-    contentRow: {
-        flexDirection: 'row',
-        flex: 1,
-        paddingTop: 20,
+    formScrollView: {
+        padding: 20,
     },
-    coverSide: {
-        paddingHorizontal: 20,
+    artSection: {
+        alignItems: 'center',
+        marginBottom: 25,
     },
     artWrapper: {
         position: 'relative',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     art: {
-        width: 80,
-        height: 80,
-        borderRadius: 8,
+        width: 140,
+        height: 140,
+        borderRadius: 16,
     },
     artContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 8,
+        width: 140,
+        height: 140,
+        borderRadius: 16,
         overflow: 'hidden',
     },
     editOverlay: {
@@ -227,38 +316,59 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: 40,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
+        height: 32,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 16,
         gap: 6,
     },
     editText: {
         color: 'white',
-        fontSize: 12,
-        fontWeight: '600',
+        fontSize: 11,
+        fontWeight: 'bold',
+        letterSpacing: 1,
     },
-    formContainer: {
-        flex: 1,
-        paddingRight: 20,
+    artActions: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 15,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        gap: 8,
+    },
+    actionButtonText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
     fieldContainer: {
         marginBottom: 12,
     },
     label: {
-        fontSize: 13,
-        fontWeight: '500',
-        marginBottom: 6,
+        fontSize: 11,
+        fontWeight: 'bold',
+        marginBottom: 4,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 1,
     },
     input: {
-        fontSize: 15,
+        fontSize: 14,
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderRadius: 10,
         borderWidth: 1,
     },
+    bottomSpacing: {
+        height: 60,
+    }
 });

@@ -17,7 +17,7 @@ import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { SongItem } from '../components/SongItem';
 import { FlashList } from '@shopify/flash-list';
 import { EditSongModal } from '../components/EditSongModal';
-import { LyricsModal } from '../components/LyricsModal';
+
 import { PlaylistOptionsMenu } from '../components/PlaylistOptionsMenu';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 import { MarqueeText } from '../components/MarqueeText';
@@ -28,7 +28,7 @@ const FlashListAny = FlashList as any;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Playlist'>;
 
-const AnimatedLikedBackground = () => {
+const AnimatedLikedDesign = () => {
     const scale = useSharedValue(1);
     const opacity = useSharedValue(0.1);
     const rotate = useSharedValue(0);
@@ -56,55 +56,114 @@ const AnimatedLikedBackground = () => {
     );
 };
 
-const ArtistProfileImage = ({ uri, name, primaryColor, cardColor }: { uri?: string, name: string, primaryColor: string, cardColor: string }) => {
-    return (
-        <View style={{ width: 140, height: 140, justifyContent: 'center', alignItems: 'center' }}>
+const AnimatedMostPlayedDesign = () => {
+    const rotate = useSharedValue(0);
+    const scale = useSharedValue(1);
 
-            <View style={{
-                width: 140,
-                height: 140,
-                borderRadius: 70,
-                borderWidth: 3,
-                borderColor: 'white',
-                overflow: 'hidden',
-                elevation: 10,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 5 },
-                shadowOpacity: 0.4,
-                shadowRadius: 10,
-            }}>
-                <MusicImage
-                    uri={uri}
-                    id={name}
-                    style={StyleSheet.absoluteFill}
-                    resizeMode="cover"
-                    iconSize={80}
-                />
-            </View>
+    useEffect(() => {
+        rotate.value = withRepeat(withTiming(360, { duration: 10000, easing: Easing.linear }), -1, false);
+        scale.value = withRepeat(withTiming(1.2, { duration: 2500, easing: Easing.inOut(Easing.ease) }), -1, true);
+    }, []);
+
+    const rotationStyle = useAnimatedStyle(() => ({
+        transform: [{ rotate: `${rotate.value}deg` }]
+    }));
+
+    const pulseStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: 0.1
+    }));
+
+    return (
+        <View style={StyleSheet.absoluteFill}>
+            <Animated.View style={[pulseStyle, { position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', borderRadius: 100, borderWidth: 2, borderColor: 'white' }]} />
+            <Animated.View style={[rotationStyle, { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }]} />
         </View>
     );
 };
 
-const CardDesign = () => (
-    <>
-        <View style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-        <View style={{ position: 'absolute', bottom: -10, left: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-    </>
-);
+const AnimatedHistoryDesign = () => {
+    const posX1 = useSharedValue(-50);
+    const posX2 = useSharedValue(-50);
 
-const HistoryCardDesign = () => (
-    <>
-        <View style={{ position: 'absolute', top: 0, bottom: 0, left: '30%', width: 20, transform: [{ skewX: '-20deg' }], backgroundColor: 'rgba(255,255,255,0.1)' }} />
-        <View style={{ position: 'absolute', top: 0, bottom: 0, left: '60%', width: 10, transform: [{ skewX: '-20deg' }], backgroundColor: 'rgba(255,255,255,0.05)' }} />
-    </>
-);
+    useEffect(() => {
+        posX1.value = withRepeat(withTiming(150, { duration: 4000, easing: Easing.linear }), -1, false);
+        setTimeout(() => {
+            posX2.value = withRepeat(withTiming(150, { duration: 4000, easing: Easing.linear }), -1, false);
+        }, 2000);
+    }, []);
+
+    const line1Style = useAnimatedStyle(() => ({
+        left: `${posX1.value}%`
+    }));
+
+    const line2Style = useAnimatedStyle(() => ({
+        left: `${posX2.value}%`
+    }));
+
+    return (
+        <View style={StyleSheet.absoluteFill}>
+            <Animated.View style={[line1Style, { position: 'absolute', top: 0, bottom: 0, width: 40, transform: [{ skewX: '-25deg' }], backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+            <Animated.View style={[line2Style, { position: 'absolute', top: 0, bottom: 0, width: 20, transform: [{ skewX: '-25deg' }], backgroundColor: 'rgba(255,255,255,0.04)' }]} />
+        </View>
+    );
+};
+
+const AnimatedDefaultDesign = () => {
+    const opacity = useSharedValue(0.1);
+
+    useEffect(() => {
+        opacity.value = withRepeat(withTiming(0.2, { duration: 3000, easing: Easing.inOut(Easing.ease) }), -1, true);
+    }, []);
+
+    const style = useAnimatedStyle(() => ({
+        opacity: opacity.value
+    }));
+
+    return (
+        <>
+            <Animated.View style={[style, { position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.2)' }]} />
+            <Animated.View style={[style, { position: 'absolute', bottom: -10, left: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)' }]} />
+        </>
+    );
+};
+
+const ArtistProfileImage = ({ uri, name }: { uri?: string, name: string, primaryColor: string, cardColor: string }) => {
+    return (
+        <View style={{
+            width: 180,
+            height: 180,
+            borderRadius: 90,
+            borderWidth: 4,
+            borderColor: 'white',
+            overflow: 'hidden',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            elevation: 15,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.5,
+            shadowRadius: 12,
+            justifyContent: 'center',
+            alignItems: 'center'
+        }}>
+            <MusicImage
+                uri={uri}
+                id={name}
+                style={StyleSheet.absoluteFill}
+                resizeMode="cover"
+                iconSize={100}
+                iconName="person"
+            />
+        </View>
+    );
+};
 
 export const PlaylistScreen = ({ route, navigation }: Props) => {
     const { id, name } = route.params;
     const type = route.params.type as any;
     const { songs, loading } = useLocalMusic();
     const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata } = useMusicLibrary();
-    const { playSongInPlaylist, addToQueue, addNext } = usePlayerContext();
+    const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
     const { theme } = useTheme();
     const [displaySongs, setDisplaySongs] = useState<Song[]>([]);
 
@@ -142,6 +201,28 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             bio: bio,
                             listeners: listeners
                         });
+                    } else if (name.includes('&') || name.includes(',') || name.toLowerCase().includes(' feat.') || name.toLowerCase().includes(' ft.')) {
+                        // Retry with primary artist for collaborations
+                        const primaryArtist = name.split(/ [&,] | feat\. | ft\. /i)[0].trim();
+                        if (primaryArtist && primaryArtist !== name) {
+                            const subResponse = await fetch(
+                                `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(primaryArtist)}&api_key=b25b959554ed76058ac220b7b2e0a026&format=json`
+                            );
+                            const subData = await subResponse.json();
+                            if (subData.artist) {
+                                const imageUrl = subData.artist.image?.find((img: any) => img.size === 'extralarge')?.['#text'] ||
+                                    subData.artist.image?.find((img: any) => img.size === 'large')?.['#text'] ||
+                                    null;
+                                const bio = subData.artist.bio?.summary?.replace(/<[^>]*>/g, '').split(' Read more')[0] || null;
+                                const listeners = subData.artist.stats?.listeners || null;
+
+                                setArtistInfo({
+                                    image: imageUrl && imageUrl !== '' ? imageUrl : null,
+                                    bio: bio,
+                                    listeners: listeners
+                                });
+                            }
+                        }
                     }
                 } catch (error) {
                     console.log('Could not fetch artist info (offline or API error)');
@@ -159,7 +240,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
+
     const [sortOrder, setSortOrder] = useState<'recent' | 'asc' | 'desc'>('recent');
     const [viewMode, setViewMode] = useState<'songs' | 'albums' | 'artists'>('songs');
 
@@ -178,11 +259,14 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             case 'Albums': return ['#4a044e', '#701a75'];
             case 'Artists': return ['#7c2d12', '#9a3412'];
             case 'Genres': return ['#064e3b', '#065f46'];
-            case 'most_played': return ['#2e1065', '#5b21b6'];
+            case 'most_played':
+            case 'most': return ['#2e1065', '#5b21b6'];
             case 'liked': return ['#881337', '#be123c'];
-            case 'recently_played': return ['#422006', '#854d0e'];
+            case 'recently_played':
+            case 'recently': return ['#422006', '#854d0e'];
             case 'recently_added': return ['#172554', '#1d4ed8'];
-            case 'never_played': return ['#020617', '#334155'];
+            case 'never_played':
+            case 'never': return ['#020617', '#334155'];
             default: {
                 const hash = playlistId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
                 const userColors: [string, string][] = [
@@ -286,12 +370,12 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         <SongItem
             item={item}
             index={index}
-            isCurrent={false}
+            isCurrent={currentSong?.id === item.id}
             theme={theme}
             onPress={handlePlaySong}
             onOpenOptions={onOpenOptions}
         />
-    ), [theme, handlePlaySong, onOpenOptions]);
+    ), [theme, handlePlaySong, onOpenOptions, currentSong?.id]);
 
 
 
@@ -318,7 +402,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         return [];
     }, [displaySongs, viewMode]);
 
-    const renderAlbumItem = ({ item }: { item: any }) => (
+    const renderAlbumItem = React.useCallback(({ item }: { item: any }) => (
         <TouchableOpacity
             style={styles.songItem}
             onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'album' })}
@@ -332,9 +416,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
         </TouchableOpacity>
-    );
+    ), [theme, navigation]);
 
-    const renderArtistItem = ({ item }: { item: any }) => (
+    const renderArtistItem = React.useCallback(({ item }: { item: any }) => (
         <TouchableOpacity
             style={styles.songItem}
             onPress={() => navigation.navigate('Playlist', { id: item.name, name: item.name, type: 'artist' })}
@@ -348,13 +432,13 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             </View>
             <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
         </TouchableOpacity>
-    );
+    ), [theme, navigation]);
 
     return (
         <ScreenContainer variant="default">
             <View style={{ flex: 1 }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
                     {/* Clean header for specific playlists */}
@@ -386,102 +470,96 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             }
                             ListHeaderComponent={
                                 <View style={styles.playlistHeader}>
-                                    <View style={[
-                                        styles.playlistArtCard,
-                                        { backgroundColor: theme.card, overflow: 'hidden', borderWidth: 1, borderColor: theme.cardBorder },
-                                        (type === 'recently_played' || type === 'recently_added' || type === 'never_played' || type === 'artist') && { borderRadius: 90 }
-                                    ]}>
-                                        <LinearGradient
-                                            colors={gradientColors as [string, string]}
-                                            style={StyleSheet.absoluteFill}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 1 }}
-                                        />
-
-                                        {/* Design Elements based on ID/Type */}
-                                        <CardDesign />
-
-                                        {/* Skewed design for history items */}
-                                        {(type === 'recently_played' || type === 'recently_added' || type === 'never_played') && <HistoryCardDesign />}
-
-                                        {id === 'liked' && <AnimatedLikedBackground />}
-
-                                        {type === 'artist' && (
-                                            <View style={StyleSheet.absoluteFill}>
-                                                <Image
-                                                    source={{ uri: deezerArtistImage || artistInfo?.image || undefined }}
-                                                    style={StyleSheet.absoluteFill}
-                                                    resizeMode="cover"
-                                                />
-                                                <BlurView intensity={30} style={StyleSheet.absoluteFill} tint="dark" />
-                                                <LinearGradient
-                                                    colors={['transparent', 'rgba(0,0,0,0.5)']}
-                                                    style={StyleSheet.absoluteFill}
-                                                />
-                                            </View>
-                                        )}
-
-                                        <View style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                                            {/* Priority 1: Listening History ALWAYS use icons to match HomeScreen */}
-                                            {(type === 'recently_played' || type === 'recently_added' || type === 'never_played') ? (
-                                                <View style={{
-                                                    backgroundColor: 'transparent',
-                                                    width: 120,
-                                                    height: 120,
-                                                    borderRadius: 60,
-                                                    borderWidth: 2,
-                                                    borderColor: 'rgba(255,255,255,0.2)',
-                                                    justifyContent: 'center',
-                                                    alignItems: 'center',
-                                                    shadowColor: '#000',
-                                                    shadowOffset: { width: 0, height: 4 },
-                                                    shadowOpacity: 0.1,
-                                                    shadowRadius: 8,
-                                                }}>
-                                                    <Ionicons
-                                                        name={
-                                                            type === 'never_played' ? "ban-outline" :
-                                                                type === 'recently_added' ? "time-outline" :
-                                                                    "musical-notes-outline"
-                                                        }
-                                                        size={70}
-                                                        color="white"
+                                    <GlassCard
+                                        disableBlur={type === 'album'}
+                                        style={[
+                                            styles.playlistArtCard,
+                                            (type === 'recently_played' || type === 'recently_added' || type === 'never_played' || type === 'artist') && { borderRadius: 90 },
+                                            type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 }
+                                        ]}
+                                        contentStyle={{ padding: 0, width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                        {(type === 'artist') ? (
+                                            <>
+                                                <View style={StyleSheet.absoluteFill}>
+                                                    <MusicImage
+                                                        uri={deezerArtistImage || artistInfo?.image || undefined}
+                                                        id={name}
+                                                        style={StyleSheet.absoluteFill}
+                                                        blurRadius={10}
+                                                    />
+                                                    <LinearGradient
+                                                        colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
+                                                        style={StyleSheet.absoluteFill}
                                                     />
                                                 </View>
-                                            ) : type === 'artist' ? (
                                                 <ArtistProfileImage
                                                     uri={deezerArtistImage || artistInfo?.image || undefined}
                                                     name={name}
                                                     primaryColor={theme.primary}
                                                     cardColor={theme.card}
                                                 />
-                                            ) : type === 'album' && displaySongs[0] ? (
-                                                <MusicImage
-                                                    uri={displaySongs[0].coverImage}
-                                                    id={displaySongs[0].id}
-                                                    assetUri={displaySongs[0].uri}
-                                                    style={{ width: '100%', height: '100%', borderRadius: 12 }}
-                                                    resizeMode="cover"
-                                                    iconSize={80}
-                                                />
-                                            ) : (
-                                                <Ionicons
-                                                    name={
-                                                        id === 'liked' ? 'heart' :
-                                                            id === 'most_played' ? 'refresh' :
-                                                                type === 'never_played' ? 'ban-outline' :
-                                                                    type === 'recently_added' ? 'time-outline' :
-                                                                        type === 'artist' ? 'person' :
-                                                                            type === 'album' ? 'disc' :
-                                                                                type === 'year' ? 'calendar' :
-                                                                                    'musical-notes-outline'
-                                                    }
-                                                    size={80}
-                                                    color="white"
-                                                />
-                                            )}
-                                        </View>
-                                    </View>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Only show gradient and design for non-album/artist types */}
+                                                {type !== 'album' && type !== 'artist' && (
+                                                    <>
+                                                        <LinearGradient
+                                                            colors={gradientColors as [string, string]}
+                                                            style={StyleSheet.absoluteFill}
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 1 }}
+                                                        />
+                                                        {id === 'liked' ? <AnimatedLikedDesign /> : <AnimatedDefaultDesign />}
+                                                    </>
+                                                )}
+
+                                                {type === 'album' && (
+                                                    <View style={StyleSheet.absoluteFill}>
+                                                        <Image
+                                                            source={{ uri: displaySongs[0]?.coverImage || undefined }}
+                                                            style={StyleSheet.absoluteFill}
+                                                            resizeMode="cover"
+                                                        />
+                                                        <BlurView intensity={30} style={StyleSheet.absoluteFill} tint="dark" />
+                                                        <LinearGradient
+                                                            colors={['transparent', 'rgba(0,0,0,0.5)']}
+                                                            style={StyleSheet.absoluteFill}
+                                                        />
+                                                    </View>
+                                                )}
+
+                                                <View style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {(type === 'album') && displaySongs[0]?.coverImage ? (
+                                                        <MusicImage
+                                                            uri={displaySongs[0].coverImage}
+                                                            id={displaySongs[0].id}
+                                                            assetUri={displaySongs[0].uri}
+                                                            style={{ width: '100%', height: '100%' }}
+                                                            containerStyle={{ width: '100%', height: '100%' }}
+                                                            iconSize={100}
+                                                        />
+                                                    ) : (
+                                                        <Ionicons
+                                                            name={
+                                                                id === 'liked' ? 'heart' :
+                                                                    (id === 'most_played' || type === 'most_played') ? 'refresh' :
+                                                                        type === 'never_played' ? 'ban' :
+                                                                            type === 'recently_added' ? 'time' :
+                                                                                type === 'recently_played' ? 'play' :
+                                                                                    type === 'album' ? 'disc' :
+                                                                                        type === 'year' ? 'calendar' :
+                                                                                            'musical-notes-outline'
+                                                            }
+                                                            size={100}
+                                                            color="white"
+                                                        />
+                                                    )}
+                                                </View>
+                                            </>
+                                        )}
+                                    </GlassCard>
                                     <Text style={[
                                         styles.playlistName,
                                         {
@@ -493,12 +571,12 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
                                     {/* Artist Info Section */}
                                     {type === 'artist' && artistInfo?.listeners && (
-                                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 4 }}>
+                                        <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 4, textAlign: 'center' }}>
                                             {parseInt(artistInfo.listeners).toLocaleString()} listeners on Last.fm
                                         </Text>
                                     )}
 
-                                    <Text style={[styles.playlistCount, { color: theme.textSecondary }]}>{displaySongs.length} Songs</Text>
+                                    <Text style={[styles.playlistCount, { color: theme.textSecondary, textAlign: 'center' }]}>{displaySongs.length} Songs</Text>
 
                                     {/* Artist Bio */}
                                     {type === 'artist' && artistInfo?.bio && (
@@ -527,6 +605,19 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                         >
                                             <Ionicons name="play" size={20} color={theme.background} />
                                             <Text style={[styles.playAllText, { color: theme.background }]}>Play All</Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={[styles.deleteButton, { backgroundColor: theme.card, borderWidth: 0 }]}
+                                            onPress={() => {
+                                                if (displaySongs.length > 0) {
+                                                    const shuffled = [...displaySongs].sort(() => Math.random() - 0.5);
+                                                    playSongInPlaylist(shuffled, 0, name);
+                                                    navigation.navigate('Player', { trackIndex: 0 });
+                                                }
+                                            }}
+                                        >
+                                            <Ionicons name="shuffle" size={22} color={theme.primary} />
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
@@ -584,12 +675,13 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                         onConfirm={async () => {
                                             setDeleteModalVisible(false);
                                             await deletePlaylist(id);
-                                            navigation.goBack();
+                                            if (navigation.canGoBack()) navigation.goBack();
+                                            else navigation.navigate('Home');
                                         }}
                                     />
 
                                     {/* View Mode Pills - Only for system playlists or generic lists */}
-                                    {(type !== 'playlist' || id === 'liked') && (
+                                    {(type !== 'playlist' && type !== 'most_played' && type !== 'recently_played' && type !== 'recently_added' && type !== 'never_played') && (
                                         <View style={styles.pillsContainer}>
                                             {(['songs', 'albums', 'artists'] as const)
                                                 .filter(mode => {
@@ -640,10 +732,6 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                 setOptionsModalVisible(false);
                                 setTimeout(() => setEditModalVisible(true), 100);
                             }}
-                            onShowLyrics={() => {
-                                setOptionsModalVisible(false);
-                                setTimeout(() => setLyricsModalVisible(true), 100);
-                            }}
                         />
 
                         {/* Edit Song Modal */}
@@ -654,18 +742,13 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             onSave={updateSongMetadata}
                         />
 
-                        {/* Lyrics Modal */}
-                        <LyricsModal
-                            visible={lyricsModalVisible}
-                            onClose={() => setLyricsModalVisible(false)}
-                            song={selectedSong}
-                        />
+
 
                         {/* Add to Playlist Modal */}
                         <AddToPlaylistModal
                             visible={playlistModalVisible}
                             onClose={() => setPlaylistModalVisible(false)}
-                            song={selectedSong}
+                            songs={selectedSong ? [selectedSong] : []}
                         />
                     </>
                 )}
@@ -680,7 +763,8 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                     onConfirm={async () => {
                         setDeleteModalVisible(false);
                         await deletePlaylist(id);
-                        navigation.goBack();
+                        if (navigation.canGoBack()) navigation.goBack();
+                        else navigation.navigate('Home');
                     }}
                 />
             </View>
@@ -748,6 +832,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: colors.text,
         marginBottom: 5,
+        textAlign: 'center',
+        paddingHorizontal: 20
     },
     songCount: {
         fontSize: 12,

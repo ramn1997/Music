@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList, Dimensions, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/ThemeContext';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
@@ -10,25 +10,35 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 interface AddToPlaylistModalProps {
     visible: boolean;
     onClose: () => void;
-    song: Song | null;
+    songs: Song[];
 }
 
 export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
     visible,
     onClose,
-    song
+    songs
 }) => {
     const { theme } = useTheme();
-    const { playlists, addToPlaylist } = useMusicLibrary();
+    const { playlists, addToPlaylist, createPlaylist } = useMusicLibrary();
+    const [isCreating, setIsCreating] = useState(false);
+    const [newPlaylistName, setNewPlaylistName] = useState('');
 
     const handleAddToPlaylist = async (playlistId: string) => {
-        if (song) {
-            await addToPlaylist(playlistId, song);
+        if (songs.length > 0) {
+            await addToPlaylist(playlistId, songs);
             onClose();
         }
     };
 
-    if (!song) return null;
+    const handleCreatePlaylist = async () => {
+        if (!newPlaylistName.trim()) return;
+        await createPlaylist(newPlaylistName, songs);
+        setNewPlaylistName('');
+        setIsCreating(false);
+        onClose();
+    };
+
+    if (songs.length === 0) return null;
 
     const filteredPlaylists = playlists.filter(p => !p.isSpecial && p.id !== 'liked');
 
@@ -39,64 +49,119 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
             visible={visible}
             onRequestClose={onClose}
         >
-            <TouchableOpacity
-                style={styles.overlay}
-                activeOpacity={1}
-                onPress={onClose}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <View style={[styles.container, { backgroundColor: theme.background }]}>
-                    <View style={styles.handleBarContainer}>
-                        <View style={[styles.handleBar, { backgroundColor: theme.cardBorder }]} />
-                    </View>
+                <TouchableOpacity
+                    style={styles.overlay}
+                    activeOpacity={1}
+                    onPress={onClose}
+                >
+                    <View style={[styles.container, { backgroundColor: theme.background }]}>
+                        <View style={styles.handleBarContainer}>
+                            <View style={[styles.handleBar, { backgroundColor: theme.cardBorder }]} />
+                        </View>
 
-                    <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
-                        <Text style={[styles.title, { color: theme.text }]}>Add to Playlist</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={theme.text} />
-                        </TouchableOpacity>
-                    </View>
+                        <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+                            <Text style={[styles.title, { color: theme.text }]}>Add to Playlist</Text>
+                            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                                <Ionicons name="close" size={24} color={theme.text} />
+                            </TouchableOpacity>
+                        </View>
 
-                    <View style={styles.songCard}>
-                        <Ionicons name="musical-note" size={20} color={theme.primary} />
-                        <Text style={[styles.songTitle, { color: theme.textSecondary }]} numberOfLines={1}>
-                            {song.title}
-                        </Text>
-                    </View>
-
-                    {filteredPlaylists.length > 0 ? (
-                        <FlatList
-                            data={filteredPlaylists}
-                            keyExtractor={item => item.id}
-                            contentContainerStyle={styles.listContent}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={[styles.playlistItem, { borderBottomColor: theme.cardBorder }]}
-                                    onPress={() => handleAddToPlaylist(item.id)}
-                                >
-                                    <View style={[styles.playlistIcon, { backgroundColor: theme.card }]}>
-                                        <Ionicons name="list" size={22} color={theme.primary} />
-                                    </View>
-                                    <View style={styles.playlistInfo}>
-                                        <Text style={[styles.playlistName, { color: theme.text }]}>{item.name}</Text>
-                                        <Text style={[styles.songCount, { color: theme.textSecondary }]}>
-                                            {item.songs.length} songs
-                                        </Text>
-                                    </View>
-                                    <Ionicons name="add-circle-outline" size={24} color={theme.primary} />
-                                </TouchableOpacity>
-                            )}
-                        />
-                    ) : (
-                        <View style={styles.emptyState}>
-                            <Ionicons name="add-circle-outline" size={60} color={theme.cardBorder} />
-                            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                                No playlists found. Create one first!
+                        <View style={styles.songCard}>
+                            <Ionicons name="musical-notes" size={20} color={theme.primary} />
+                            <Text style={[styles.songTitle, { color: theme.textSecondary }]} numberOfLines={1}>
+                                {songs.length === 1 ? songs[0].title : `${songs.length} songs selected`}
                             </Text>
                         </View>
-                    )}
-                </View>
-            </TouchableOpacity>
-        </Modal>
+
+                        {isCreating ? (
+                            <View style={{ padding: 20 }}>
+                                <Text style={{ color: theme.text, marginBottom: 10 }}>Playlist Name</Text>
+                                <TextInput
+                                    style={{
+                                        backgroundColor: theme.card,
+                                        color: theme.text,
+                                        padding: 12,
+                                        borderRadius: 8,
+                                        borderWidth: 1,
+                                        borderColor: theme.cardBorder,
+                                        marginBottom: 20
+                                    }}
+                                    value={newPlaylistName}
+                                    onChangeText={setNewPlaylistName}
+                                    placeholder="My Playlist"
+                                    placeholderTextColor={theme.textSecondary}
+                                    autoFocus
+                                />
+                                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                                    <TouchableOpacity
+                                        onPress={() => setIsCreating(false)}
+                                        style={{ padding: 10 }}
+                                    >
+                                        <Text style={{ color: theme.textSecondary }}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={handleCreatePlaylist}
+                                        style={{ backgroundColor: theme.primary, padding: 10, borderRadius: 8 }}
+                                    >
+                                        <Text style={{ color: theme.background, fontWeight: 'bold' }}>Create</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ) : (
+
+                            <FlatList
+                                data={filteredPlaylists}
+                                keyExtractor={item => item.id}
+                                contentContainerStyle={styles.listContent}
+                                ListHeaderComponent={() => (
+                                    <TouchableOpacity
+                                        style={[styles.playlistItem, { borderBottomColor: theme.cardBorder }]}
+                                        onPress={() => setIsCreating(true)}
+                                    >
+                                        <View style={[styles.playlistIcon, { backgroundColor: theme.card, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.textSecondary }]}>
+                                            <Ionicons name="add" size={24} color={theme.text} />
+                                        </View>
+                                        <View style={styles.playlistInfo}>
+                                            <Text style={[styles.playlistName, { color: theme.text }]}>Create New Playlist</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                )}
+                                ListEmptyComponent={() => (
+                                    <View style={styles.emptyState}>
+                                        <Ionicons name="add-circle-outline" size={60} color={theme.cardBorder} />
+                                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+                                            No playlists found. Create one above!
+                                        </Text>
+                                    </View>
+                                )}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={[styles.playlistItem, { borderBottomColor: theme.cardBorder }]}
+                                        onPress={() => handleAddToPlaylist(item.id)}
+                                    >
+                                        <View style={[styles.playlistIcon, { backgroundColor: theme.card }]}>
+                                            <Ionicons name="list" size={22} color={theme.primary} />
+                                        </View>
+                                        <View style={styles.playlistInfo}>
+                                            <Text style={[styles.playlistName, { color: theme.text }]}>{item.name}</Text>
+                                            <Text style={[styles.songCount, { color: theme.textSecondary }]}>
+                                                {item.songs.length} songs
+                                            </Text>
+                                        </View>
+                                        <Ionicons name="add-circle-outline" size={24} color={theme.primary} />
+                                    </TouchableOpacity>
+                                )}
+                            />
+                        )}
+
+                    </View>
+                </TouchableOpacity>
+            </KeyboardAvoidingView>
+        </Modal >
     );
 };
 
