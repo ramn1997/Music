@@ -227,7 +227,7 @@ class ImportService {
         // Loop until all done
         while (pendingCount > 0 && !this.cancelToken.cancelled) {
             // 1. Fetch a larger batch to work on
-            const batch = await databaseService.getUnenhancedSongs(10) as Song[];
+            const batch = await databaseService.getUnenhancedSongs(50) as Song[];
 
             if (batch.length === 0) break;
             pendingCount = batch.length;

@@ -80,11 +80,19 @@ export const SearchScreen = () => {
         fetchMusic();
     }, [fetchMusic]);
 
-    const filteredSongs = songs.filter(s =>
-        s.title.toLowerCase().includes(query.toLowerCase()) ||
-        s.artist.toLowerCase().includes(query.toLowerCase()) ||
-        (s.album && s.album.toLowerCase().includes(query.toLowerCase()))
-    );
+    const trimmedQuery = query.trim().toLowerCase();
+    const filteredSongs = trimmedQuery
+        ? songs.filter(s => {
+            const title = (s.title ?? '').toLowerCase();
+            const artist = (s.artist ?? '').toLowerCase();
+            const album = (s.album ?? '').toLowerCase();
+            return (
+                title.includes(trimmedQuery) ||
+                artist.includes(trimmedQuery) ||
+                album.includes(trimmedQuery)
+            );
+        })
+        : [];
 
     const handlePlaySong = React.useCallback((song: Song) => {
         saveSearch(song);

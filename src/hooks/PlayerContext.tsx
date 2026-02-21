@@ -237,7 +237,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
     // Get songs from MusicLibrary to sync metadata
     // PlayerProvider is now inside MusicLibraryProvider so this hook works
-    const { songs: librarySongs } = useLibrary();
+    const { songs: librarySongs, incrementPlayCount } = useLibrary();
 
     // Keep refs in sync with state
     useEffect(() => {
@@ -483,9 +483,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 if (song) {
                     console.log('[PlayerContext] Updating CurrentTrack to:', song.title);
                     setCurrentTrack(song);
-                    // Determine index
+                    // Update index
                     const newIndex = playlistRef.current.findIndex(s => String(s.id) === String(song?.id));
                     setCurrentIndex(newIndex !== -1 ? newIndex : (index ?? -1));
+
+                    // Add to recently played/increment play count
+                    incrementPlayCount(String(song.id));
                 } else {
                     // 4. Last Resort: Use Track Metadata directly (prevents blank UI)
                     console.warn('[PlayerContext] Song not found in app state. Using raw track data.');
@@ -599,7 +602,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     Capability.SeekTo,
                 ],
                 compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext, Capability.SkipToPrevious],
-                progressUpdateEventInterval: 5,
+                progressUpdateEventInterval: 1,
             });
             console.log('[PlayerContext] TrackPlayer options updated');
 
@@ -659,10 +662,14 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                                     initialRestorePositionRef.current = state.position;
                                     positionRef.current = state.position;
                                     console.log(`[PlayerContext] Restored position ref: ${state.position / 1000}s`);
-                                    try {
-                                        // Attempt initial seek so the player UI shows correct progress
-                                        await TrackPlayer.seekTo(state.position / 1000);
-                                    } catch (e) { }
+
+                                    // Attempt initial seek so the player UI shows correct progress
+                                    // Give it a tiny bit of time after skip
+                                    setTimeout(async () => {
+                                        try {
+                                            await TrackPlayer.seekTo(state.position / 1000);
+                                        } catch (e) { }
+                                    }, 500);
                                 }
                             }
                         }
@@ -688,67 +695,59 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }, [isPlayerReady]);
 
     const saveStateShortcut = async () => {
-        if (!isRestored) return;
-        if (currentTrack) {
+        if (!isRestored || !currentTrack) return;
+        try {
+            // Get current position from player but fallback to ref if needed
+            let playerPos = 0;
             try {
-                let pos = await TrackPlayer.getPosition();
-                if ((pos === 0 || isNaN(pos)) && positionRef.current > 0) {
-                    pos = positionRef.current / 1000;
-                }
-                if ((pos === 0 || isNaN(pos)) && initialRestorePositionRef.current > 0) {
-                    pos = initialRestorePositionRef.current / 1000;
-                }
-
-                console.log('[PlayerContext] Saving state shortcut. Position:', pos);
-
-                const dur = await TrackPlayer.getDuration();
-                const state = {
-                    currentTrack,
-                    playlist,
-                    currentIndex,
-                    playlistName,
-                    gaplessEnabled,
-                    position: pos * 1000,
-                    duration: dur > 0 ? dur * 1000 : undefined
-                };
-                await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+                playerPos = await TrackPlayer.getPosition();
             } catch (e) { }
+
+            // Use the most accurate position we have (player > ref > backup)
+            let pos = (playerPos > 0) ? playerPos : (positionRef.current / 1000);
+
+            // Final safety check: if we're at 0 but we have a restoration point, use that
+            if (pos <= 0 && initialRestorePositionRef.current > 0) {
+                pos = initialRestorePositionRef.current / 1000;
+            }
+
+            console.log(`[PlayerContext] Persistence: saving at ${pos.toFixed(2)}s (Source: ${playerPos > 0 ? 'Engine' : 'Memory'})`);
+
+            const dur = await TrackPlayer.getDuration();
+            const state = {
+                currentTrack,
+                playlist,
+                currentIndex,
+                playlistName,
+                gaplessEnabled,
+                position: pos * 1000,
+                duration: dur > 0 ? dur * 1000 : undefined
+            };
+            await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+        } catch (e) {
+            console.warn('[PlayerContext] Persistence failed:', e);
         }
     };
 
     // Save metadata on changes
     useEffect(() => {
-        const saveState = async () => {
-            if (!isRestored) return;
-            try {
-                if (currentTrack) {
-                    let pos = await TrackPlayer.getPosition();
-                    if ((pos === 0 || isNaN(pos)) && positionRef.current > 0) {
-                        pos = positionRef.current / 1000;
-                    }
-                    if ((pos === 0 || isNaN(pos)) && initialRestorePositionRef.current > 0) {
-                        pos = initialRestorePositionRef.current / 1000;
-                    }
-                    const dur = await TrackPlayer.getDuration();
-                    const state = {
-                        currentTrack,
-                        playlist,
-                        currentIndex,
-                        playlistName,
-                        gaplessEnabled,
-                        position: pos * 1000,
-                        duration: dur > 0 ? dur * 1000 : undefined
-                    };
-                    await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
-                } else {
-                    await AsyncStorage.removeItem(PLAYER_STATE_KEY);
-                }
-            } catch (e) {
-                console.error('Failed to save player state', e);
-            }
-        };
-        saveState();
+        saveStateShortcut();
     }, [currentTrack?.id, playlist.length, currentIndex, playlistName, isRestored]);
+
+    // Periodically save state during playback to prevent loss on crash/kill
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+
+        if (isPlaying && isRestored) {
+            interval = setInterval(async () => {
+                await saveStateShortcut();
+            }, 10000); // Save every 10 seconds
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isPlaying, isRestored]);
 
     // Listen for remote control events (notification controls)
     useTrackPlayerEvents([
@@ -832,17 +831,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     // Seek first, then play — this avoids the race condition of play-then-seek
                     await TrackPlayer.seekTo(targetSec);
 
-                    // Poll until seek lands (max 3s), then play
-                    const pollStart = Date.now();
-                    const waitForSeek = async (): Promise<void> => {
-                        while (Date.now() - pollStart < 3000) {
-                            const pos = await TrackPlayer.getPosition();
-                            if (Math.abs(pos - targetSec) <= 3) break; // Within 3s is close enough
-                            await new Promise(r => setTimeout(r, 200));
+                    // Verification & Retry logic
+                    let verified = false;
+                    for (let i = 0; i < 5; i++) {
+                        await new Promise(r => setTimeout(r, 200));
+                        const pos = await TrackPlayer.getPosition();
+                        if (Math.abs(pos - targetSec) <= 1.5) {
+                            verified = true;
+                            break;
                         }
-                    };
-                    await waitForSeek();
+                        console.log(`[PlayerContext] Seek verification failed (pos: ${pos}), retrying seek...`);
+                        await TrackPlayer.seekTo(targetSec);
+                    }
 
+                    console.log(`[PlayerContext] Seek verification ${verified ? 'SUCCEEDED' : 'FAILED'}`);
                     await TrackPlayer.play();
                     setIsPlaying(true);
                     return;
@@ -1049,6 +1051,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             await TrackPlayer.add(songs.map(songToTrack));
             setPlaylist(songs);
             setPlaylistName(name || '');
+            initialRestorePositionRef.current = 0; // Clear restoration if user manually starts new song
             if (songs.length > index) {
                 setCurrentIndex(index);
                 setCurrentTrack(songs[index]);

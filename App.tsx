@@ -14,6 +14,10 @@ import { MusicLibraryProvider } from './src/hooks/MusicLibraryContext';
 import { ThemeProvider } from './src/hooks/ThemeContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Hold the native splash screen until library is synced
+SplashScreen.preventAutoHideAsync().catch(() => { });
 
 // Apply global font
 // @ts-ignore

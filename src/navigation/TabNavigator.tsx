@@ -46,13 +46,13 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
                 activeOpacity={0.9}
                 style={styles.activePill}
             >
-                <Animated.View style={[styles.activePillInner, animatedStyle]}>
+                <Animated.View style={[styles.activePillInner, { backgroundColor: theme.primary }, animatedStyle]}>
                     <Ionicons
                         name={iconName() as any}
                         size={22}
-                        color="#000"
+                        color={theme.textOnPrimary}
                     />
-                    <Text style={styles.activeText}>{label}</Text>
+                    <Text style={[styles.activeText, { color: theme.textOnPrimary }]}>{label}</Text>
                 </Animated.View>
             </TouchableOpacity>
         );
@@ -225,7 +225,6 @@ const styles = StyleSheet.create({
     activePillInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FCFCFC',
         paddingHorizontal: 20,
         height: '100%',
         borderRadius: 30,

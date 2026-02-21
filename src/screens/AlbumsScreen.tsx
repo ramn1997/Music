@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
@@ -38,6 +38,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { songs } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Group songs by album
     const albums = useMemo(() => {
@@ -58,8 +59,24 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             map.get(albumName).count++;
         });
 
-        return Array.from(map.values()).sort((a, b) => b.count - a.count);
-    }, [songs]);
+        const albumList = Array.from(map.values());
+
+        // Filter by search query
+        const filtered = searchQuery.trim()
+            ? albumList.filter(a =>
+                a.name.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+                (a.artist && a.artist.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+            )
+            : albumList;
+
+        return filtered.sort((a, b) => {
+            const aIsUnknown = a.name === 'Unknown Album';
+            const bIsUnknown = b.name === 'Unknown Album';
+            if (aIsUnknown && !bIsUnknown) return -1;
+            if (!aIsUnknown && bIsUnknown) return 1;
+            return a.name.localeCompare(b.name);
+        });
+    }, [songs, searchQuery]);
 
 
 
@@ -153,7 +170,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const content = (
         <View style={{ flex: 1, position: 'relative' }}>
             {!isEmbedded && (
-                <View style={[styles.header, { marginVertical: 0, paddingVertical: 20 }]}>
+                <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: 20 }]}>
                     <View style={styles.headerLeft}>
                         <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
@@ -170,6 +187,36 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     </TouchableOpacity>
                 </View>
             )}
+
+            {/* Separate Search Bar Row */}
+            <View style={{
+                paddingHorizontal: 20,
+                marginBottom: 10,
+                marginTop: isEmbedded ? 10 : 0
+            }}>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderRadius: 20,
+                    paddingHorizontal: 12,
+                    height: 38
+                }}>
+                    <Ionicons name="search" size={16} color={theme.textSecondary} />
+                    <TextInput
+                        style={{ flex: 1, color: theme.text, marginLeft: 8, fontSize: 14, paddingVertical: 0 }}
+                        placeholder="Search albums..."
+                        placeholderTextColor={theme.textSecondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
 
             <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : 0 }}>
                 <FlatList

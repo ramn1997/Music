@@ -218,7 +218,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         data={filteredSongs}
                         keyExtractor={(item) => item.id}
                         renderItem={renderSong}
-                        extraData={[handlePlaySong, isSelectionMode, selectedSongIds]}
+                        extraData={[handlePlaySong, isSelectionMode, selectedSongIds, currentSong?.id, theme]}
                         estimatedItemSize={70}
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     actionButton: {
-        flex: 1,
+        paddingHorizontal: 20,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

@@ -21,12 +21,13 @@ import { BlurView } from 'expo-blur';
 import { SongsScreen } from './SongsScreen';
 import { AlbumsScreen } from './AlbumsScreen';
 import { ArtistsScreen } from './ArtistsScreen';
+import { GlassCard } from '../components/GlassCard';
 
 const TABS = ['Overview', 'Songs', 'Albums', 'Artists'];
 
 const FAVORITES = [
-    { id: 'most_played', name: 'Most Played', type: 'Smart Playlist', screen: 'Playlist', params: { id: 'most', name: 'Most Played', type: 'most_played' } },
-    { id: 'liked', name: 'Liked Songs', type: 'Playlist', screen: 'Playlist', params: { id: 'liked', name: 'Liked Songs', type: 'playlist' } },
+    { id: 'most_played', name: 'Most Played', type: 'Smart Playlist', params: { id: 'most_played', name: 'Most Played', type: 'most_played' } },
+    { id: 'liked', name: 'Liked Songs', type: 'Playlist', params: { id: 'liked', name: 'Liked Songs', type: 'playlist' } },
 ];
 
 const getGradientColors = (id: string): [string, string] => {
@@ -92,7 +93,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                     style={[
                         {
                             width: '100%',
-                            height: 160,
+                            height: 65,
                             alignSelf: 'center',
                             justifyContent: 'center',
                             alignItems: 'center',
@@ -100,7 +101,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                         !isArtist && [
                             styles.favoriteCard,
                             {
-                                borderRadius: 16,
+                                borderRadius: 14,
                                 overflow: 'hidden',
                                 borderWidth: 1,
                                 borderColor: theme.cardBorder
@@ -113,37 +114,31 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                             colors={getGradientColors(item.id)}
                             style={StyleSheet.absoluteFill}
                             start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
+                            end={{ x: 1, y: 0 }}
                         />
                     )}
                     {!isArtist && (
                         item.id === 'liked' ? (
                             <>
-                                <View style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                                <View style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+                                <View style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.1)' }} />
                             </>
                         ) : (
-                            <CardDesign />
+                            <View style={{ position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.05)' }} />
                         )
                     )}
-                    <View style={{ alignItems: 'center', zIndex: 1, justifyContent: 'center', flex: 1, width: '100%', paddingHorizontal: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', zIndex: 1, flex: 1, width: '100%', paddingHorizontal: 12 }}>
                         {isArtist ? (
                             <View style={[
                                 styles.iconCircle,
                                 {
-                                    marginBottom: 10,
-                                    width: 105,
-                                    height: 105,
-                                    borderRadius: 52.5,
+                                    width: 45,
+                                    height: 45,
+                                    borderRadius: 22.5,
                                     overflow: 'hidden',
-                                    borderWidth: 3,
+                                    borderWidth: 2,
                                     borderColor: 'white',
                                     backgroundColor: theme.card,
-                                    elevation: 8,
-                                    shadowColor: '#000',
-                                    shadowOffset: { width: 0, height: 4 },
-                                    shadowOpacity: 0.3,
-                                    shadowRadius: 6,
+                                    marginRight: 10
                                 }
                             ]}>
                                 <MusicImage
@@ -151,7 +146,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                                     id={item.id}
                                     assetUri={(item as any).assetUri}
                                     style={StyleSheet.absoluteFill}
-                                    iconSize={50}
+                                    iconSize={24}
                                     iconName="person"
                                 />
                             </View>
@@ -160,12 +155,12 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                                 styles.iconCircle,
                                 {
                                     backgroundColor: 'transparent',
-                                    marginBottom: 8,
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: 24,
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 16,
                                     justifyContent: 'center',
-                                    alignItems: 'center'
+                                    alignItems: 'center',
+                                    marginRight: 10
                                 }
                             ]}>
                                 <Ionicons
@@ -176,34 +171,41 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                                                     (item as any).type === 'Genre' ? "pricetags" :
                                                         "musical-notes"
                                     }
-                                    size={item.id === 'liked' ? 40 : 36}
+                                    size={24}
                                     color="white"
                                 />
                             </View>
                         )}
-                        <MarqueeText
-                            text={item.name}
-                            style={[
-                                styles.favoriteName,
-                                {
-                                    color: isArtist ? theme.text : 'white',
-                                    fontWeight: 'bold',
-                                    marginTop: isArtist ? 4 : 0,
-                                    width: '100%',
-                                    paddingHorizontal: 4
-                                }
-                            ]}
-                        />
-
-                        {item.type === 'Playlist' && item.id !== 'liked' && (
-                            <View style={styles.playlistTag}>
-                                <Text style={styles.playlistTagText}>PLAYLIST</Text>
-                            </View>
-                        )}
+                        <View style={{ flex: 1 }}>
+                            <MarqueeText
+                                text={item.name}
+                                style={[
+                                    styles.favoriteName,
+                                    {
+                                        color: isArtist ? theme.text : 'white',
+                                        fontWeight: 'bold',
+                                        fontSize: 14,
+                                        textAlign: 'left',
+                                        width: '100%'
+                                    }
+                                ]}
+                            />
+                            {!isArtist && (
+                                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '500' }}>
+                                    {item.id === 'liked' ? 'Playlist' : 'Smart Playlist'}
+                                </Text>
+                            )}
+                        </View>
                     </View>
+
+                    {item.type === 'Playlist' && item.id !== 'liked' && (
+                        <View style={styles.playlistTag}>
+                            <Text style={styles.playlistTagText}>PLAYLIST</Text>
+                        </View>
+                    )}
                 </View>
             </Animated.View>
-        </TouchableOpacity >
+        </TouchableOpacity>
     );
 });
 
@@ -225,9 +227,38 @@ const SmartPlaylistCard = ({
     onPlayPress?: () => void,
     onShufflePress?: () => void
 }) => {
+    // Get unique album arts from songs for collage
+    const collageSongs = React.useMemo(() => {
+        if (!item.songs) return [];
+        const seen = new Set();
+        const unique = [];
+        for (const s of item.songs) {
+            const art = s.coverImage || s.uri; // fallback to uri if no coverImage
+            if (art && !seen.has(art)) {
+                seen.add(art);
+                unique.push(s);
+            }
+            if (unique.length >= 4) break;
+        }
+        return unique;
+    }, [item.songs]);
+
     return (
         <TouchableOpacity style={styles.historyCard} onPress={onPress} activeOpacity={0.9}>
             <View style={[styles.historyImageContainer, { backgroundColor: item.color, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }]}>
+                {/* Subtle Collage Background */}
+                <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', opacity: 0.25 }]}>
+                    {collageSongs.map((song: any, i: number) => (
+                        <View key={song.id + i} style={{ width: '50%', height: '50%' }}>
+                            <MusicImage
+                                uri={song.coverImage}
+                                id={song.id}
+                                style={{ width: '100%', height: '100%' }}
+                                assetUri={song.uri}
+                            />
+                        </View>
+                    ))}
+                </View>
 
                 <HistoryCardDesign />
                 <Ionicons
@@ -259,10 +290,6 @@ const SmartPlaylistCard = ({
                         >
                             <Ionicons name="shuffle" size={16} color="#000" />
                         </TouchableOpacity>
-                    </View>
-                    <View style={styles.historyStatGroup}>
-                        <Text style={styles.historyStatText}>{item.count}</Text>
-                        <Ionicons name="musical-notes-outline" size={10} color="#fff" />
                     </View>
                 </View>
             </View>
@@ -300,24 +327,25 @@ const TopSongItem = ({ song, isPlaying, onPress, appTheme }: { song: Song, isPla
 };
 
 const TopArtistCard = ({ artist, appTheme, onPress }: any) => {
+    if (!artist) return null;
     const artistImage = useArtistImage(artist.name);
 
     return (
         <TouchableOpacity style={styles.topArtistCard} onPress={onPress}>
             <View style={styles.topArtistImageContainer}>
                 <MusicImage
-                    uri={artistImage || (artist.songs[0]?.coverImage)}
-                    id={artist.name}
+                    uri={artistImage || artist.coverImage}
+                    id={artist.name || 'unknown_artist'}
                     style={StyleSheet.absoluteFill}
                     iconSize={40}
                     iconName="person"
                 />
             </View>
-            <Text style={[styles.topArtistName, { color: appTheme.text }]} numberOfLines={1}>
+            <Text style={[styles.topArtistName, { color: appTheme?.text || '#fff' }]} numberOfLines={1}>
                 {artist.name}
             </Text>
-            <Text style={[styles.topArtistSub, { color: appTheme.textSecondary }]} numberOfLines={1}>
-                {artist.playedSongsCount} Songs
+            <Text style={[styles.topArtistSub, { color: appTheme?.textSecondary || '#aaa' }]} numberOfLines={1}>
+                {artist.songCount || 0} Songs
             </Text>
         </TouchableOpacity>
     );
@@ -328,6 +356,8 @@ export const HomeScreen = () => {
     const { theme: appTheme } = useTheme();
     const {
         songs,
+        loading,
+        savedFolders,
         likedSongs,
         playlists,
         favoriteArtists,
@@ -335,22 +365,28 @@ export const HomeScreen = () => {
         topArtists,
         recentlyPlayed,
         recentlyAdded,
-        neverPlayed
+        neverPlayed,
+        favoriteGenres
     } = useMusicLibrary();
     const { playSongInPlaylist, currentSong, isPlaying } = usePlayerContext();
     const [activeTab, setActiveTab] = useState('Overview');
 
-    // Handle tab reset when home button is pressed
+    // Handle tab reset when home button is pressed or screen is focused
     useEffect(() => {
-        const unsubscribe = (navigation.getParent() as any)?.addListener('tabPress', (e: any) => {
-            // Check if we are already focused and the target is this tab
-            const isFocused = navigation.isFocused();
-            if (isFocused) {
-                setActiveTab('Overview');
-            }
+        // 1. Reset when Home Tab button is pressed (from anywhere)
+        const unsubscribeTab = (navigation.getParent() as any)?.addListener('tabPress', () => {
+            setActiveTab('Overview');
         });
 
-        return unsubscribe;
+        // 2. Also reset when navigators focus this screen (e.g. going back or initial arrival)
+        const unsubscribeFocus = navigation.addListener('focus', () => {
+            setActiveTab('Overview');
+        });
+
+        return () => {
+            unsubscribeTab();
+            unsubscribeFocus();
+        };
     }, [navigation]);
 
     const listeningHistoryPlaylists = useMemo(() => {
@@ -360,6 +396,7 @@ export const HomeScreen = () => {
                 title: 'Recently Played',
                 type: 'recently_played',
                 coverSong: recentlyPlayed[0],
+                songs: recentlyPlayed,
                 count: recentlyPlayed.length,
                 color: '#1a140a',
                 cardColor: '#2b2112',
@@ -370,6 +407,7 @@ export const HomeScreen = () => {
                 title: 'Recently Added',
                 type: 'recently_added',
                 coverSong: recentlyAdded[0],
+                songs: recentlyAdded,
                 count: recentlyAdded.length,
                 color: '#0a0f1f',
                 cardColor: '#161d33',
@@ -380,6 +418,7 @@ export const HomeScreen = () => {
                 title: 'Never Played',
                 type: 'never_played',
                 coverSong: neverPlayed[0],
+                songs: neverPlayed,
                 count: neverPlayed.length,
                 color: '#0a0a0a',
                 cardColor: '#1a1a1a',
@@ -424,7 +463,11 @@ export const HomeScreen = () => {
                             >
                                 <Text style={[
                                     styles.tabText,
-                                    { color: isActive ? appTheme.text : appTheme.textSecondary }
+                                    {
+                                        color: isActive ? appTheme.text : appTheme.textSecondary,
+                                        fontSize: 16,
+                                        fontWeight: isActive ? '800' : '700'
+                                    }
                                 ]}>
                                     {tab}
                                 </Text>
@@ -438,8 +481,54 @@ export const HomeScreen = () => {
     };
 
     const renderOverviewContent = () => {
+        // ── Empty state: no folders selected yet ────────────────────────────────
+        if (!loading && songs.length === 0 && savedFolders.length === 0) {
+            return (
+                <View style={styles.emptyStateContainer}>
+                    <View style={styles.emptyStateIconWrap}>
+                        <Ionicons name="folder-open-outline" size={72} color={appTheme.primary} />
+                    </View>
+                    <Text style={[styles.emptyStateTitle, { color: appTheme.text }]}>
+                        No Music Yet
+                    </Text>
+                    <Text style={[styles.emptyStateSubtitle, { color: appTheme.textSecondary }]}>
+                        Add music by selecting a folder from Settings
+                    </Text>
+                </View>
+            );
+        }
+
+        // ── Special case: Folders selected but no songs found ────────────────────
+        if (!loading && songs.length === 0 && savedFolders.length > 0) {
+            return (
+                <View style={styles.emptyStateContainer}>
+                    <View style={styles.emptyStateIconWrap}>
+                        <Ionicons name="musical-note-outline" size={72} color={appTheme.primary} />
+                    </View>
+                    <Text style={[styles.emptyStateTitle, { color: appTheme.text }]}>
+                        No Songs Found
+                    </Text>
+                    <Text style={[styles.emptyStateSubtitle, { color: appTheme.textSecondary }]}>
+                        Make sure your selected folders contain audio files
+                    </Text>
+                </View>
+            );
+        }
+
+        // ── Normal content ────────────────────────────────────────────────────────
         return (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 150 }}>
+                {/* Your Collections */}
+                <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
+                    <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Your Collections</Text>
+                </View>
+
+                <View style={styles.favoritesGrid}>
+                    {FAVORITES.map((item) => (
+                        <FavoriteItemCard key={item.id} item={item} theme={appTheme} navigation={navigation} />
+                    ))}
+                </View>
+
                 {/* Listening History */}
                 <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -491,8 +580,6 @@ export const HomeScreen = () => {
                                     const playlistSongs = getPlaylistSongs();
                                     if (playlistSongs.length > 0) {
                                         const shuffled = shuffleArray(playlistSongs);
-                                        // If shuffle mode is already on, the player might shuffle it again.
-                                        // But manually shuffling the list and playing index 0 is the most direct way.
                                         playSongInPlaylist(shuffled, 0, `${item.title} (Shuffled)`);
                                     }
                                 }}
@@ -529,14 +616,17 @@ export const HomeScreen = () => {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
                         >
-                            {topArtists.slice(0, 10).map((artist) => (
-                                <TopArtistCard
-                                    key={artist.name}
-                                    artist={artist}
-                                    appTheme={appTheme}
-                                    onPress={() => navigation.navigate('Playlist', { id: artist.name, name: artist.name, type: 'artist' })}
-                                />
-                            ))}
+                            {topArtists.slice(0, 10).map((artist) => {
+                                if (!artist || !artist.name) return null;
+                                return (
+                                    <TopArtistCard
+                                        key={artist.name}
+                                        artist={artist}
+                                        appTheme={appTheme}
+                                        onPress={() => navigation.navigate('Playlist', { id: artist.name, name: artist.name, type: 'artist' })}
+                                    />
+                                );
+                            })}
                         </ScrollView>
                     </>
                 )}
@@ -601,10 +691,9 @@ const styles = StyleSheet.create({
     },
     activeIndicator: {
         position: 'absolute',
-        bottom: -6,
+        bottom: -8,
         width: '100%',
-        height: 3,
-        // backgroundColor set inline
+        height: 4,
         borderRadius: 2,
     },
     sectionHeader: {
@@ -691,7 +780,7 @@ const styles = StyleSheet.create({
     },
     favoriteCard: {
         width: '100%',
-        height: 130,
+        height: 65,
         padding: 0,
         overflow: 'hidden'
     },
@@ -787,5 +876,46 @@ const styles = StyleSheet.create({
         fontSize: 11,
         opacity: 0.6,
         marginTop: 2,
-    }
+    },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+        paddingBottom: 80,
+    },
+    emptyStateIconWrap: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 28,
+    },
+    emptyStateTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    emptyStateSubtitle: {
+        fontSize: 15,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 36,
+        opacity: 0.8,
+    },
+    emptyStateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 28,
+        paddingVertical: 14,
+        borderRadius: 30,
+    },
+    emptyStateButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
 });

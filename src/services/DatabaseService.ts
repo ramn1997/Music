@@ -186,6 +186,7 @@ class DatabaseService {
     }
 
     async updateSong(id: string, updates: any) {
+        if (!updates || typeof updates !== 'object') return;
         const db = await this.getDb();
         const fields = Object.keys(updates);
         if (fields.length === 0) return;

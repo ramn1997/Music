@@ -9,8 +9,24 @@ import { RootStackParamList } from '../types/navigation';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 import { MiniPlayer } from '../components/MiniPlayer';
+import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import * as SplashScreen from 'expo-splash-screen';
 
 export const AppNavigator = () => {
+    const { loading } = useMusicLibrary();
+
+    const isHiding = React.useRef(false);
+    React.useEffect(() => {
+        if (!loading && !isHiding.current) {
+            isHiding.current = true;
+            // Minimal delay (50ms) to ensure the first frame of the UI is painted
+            const timer = setTimeout(() => {
+                SplashScreen.hideAsync().catch(() => { });
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [loading]);
+
     return (
         <>
             <Stack.Navigator

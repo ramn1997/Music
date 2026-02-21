@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -163,10 +163,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const { id, name } = route.params;
     const type = route.params.type as any;
     const { songs, loading } = useLocalMusic();
-    const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked } = useMusicLibrary();
+    const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked, favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite } = useMusicLibrary();
     const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
     const { theme } = useTheme();
-    const [displaySongs, setDisplaySongs] = useState<Song[]>([]);
 
     // Artist info from internet
     const [artistInfo, setArtistInfo] = useState<{
@@ -263,7 +262,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             case 'Genres': return ['#064e3b', '#065f46'];
             case 'most_played':
             case 'most': return ['#2e1065', '#4c1d95']; // Deep Purple
-            case 'liked': return ['#450a0a', '#7f1d1d']; // Deep Red
+            case 'liked': return ['#881337', '#be123c']; // Deep Red
             case 'recently_played':
             case 'recently': return ['#1a140a', '#2b2112']; // Deep Amber/Brown
             case 'recently_added': return ['#0a0f1f', '#161d33']; // Deep Navy
@@ -313,7 +312,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         }
     }, [id, addSongsToLiked, addToPlaylist]);
 
-    useEffect(() => {
+    const displaySongs = useMemo(() => {
         let filtered = [...songs];
 
         // Filter based on type
@@ -370,6 +369,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                     return timeB - timeA;
                 }
                 // Otherwise use the file's modification date
+                if (type === 'recently_played') {
+                    return (b.lastPlayed || 0) - (a.lastPlayed || 0);
+                }
                 return (b.dateAdded || 0) - (a.dateAdded || 0);
             });
         } else if (sortOrder === 'asc') {
@@ -383,10 +385,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             }
         }
 
-        setDisplaySongs(filtered);
-        if (type === 'playlist' && id !== 'liked') {
-            // viewMode handled by dedicated effect now
-        }
+        return filtered;
     }, [songs, type, name, id, likedSongs, playlists, sortOrder, searchQuery]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
@@ -533,6 +532,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             renderItem={viewMode === 'songs' ? renderSong : (viewMode === 'albums' ? renderAlbumItem : renderArtistItem)}
                             contentContainerStyle={styles.listContent}
                             estimatedItemSize={70}
+                            extraData={[currentSong?.id, theme, viewMode]}
                             getItemType={(item) => viewMode === 'songs' ? 'song' : 'item'}
                             drawDistance={500}
                             removeClippedSubviews={true}
@@ -548,9 +548,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                         <View
                                             style={[
                                                 styles.playlistArtCard,
-                                                (type === 'artist') && { borderRadius: 50 },
+                                                (type === 'artist') && { borderRadius: 65 },
                                                 type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
-                                                { overflow: 'hidden', width: 100, height: 100, marginBottom: 0, marginRight: 20 }
+                                                { overflow: 'hidden', width: 130, height: 130, marginBottom: 0, marginRight: 20 }
                                             ]}
                                         >
                                             {(type === 'artist') ? (
@@ -558,7 +558,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     uri={deezerArtistImage || artistInfo?.image || undefined}
                                                     id={name}
                                                     style={StyleSheet.absoluteFill}
-                                                    iconSize={60}
+                                                    iconSize={80}
                                                 />
                                             ) : (type === 'album') ? (
                                                 <MusicImage
@@ -567,7 +567,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     assetUri={displaySongs[0]?.uri}
                                                     style={{ width: '100%', height: '100%' }}
                                                     containerStyle={{ width: '100%', height: '100%' }}
-                                                    iconSize={60}
+                                                    iconSize={80}
                                                 />
                                             ) : (
                                                 <View style={StyleSheet.absoluteFill}>
@@ -577,8 +577,8 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                         start={{ x: 0, y: 0 }}
                                                         end={{ x: 1, y: 1 }}
                                                     />
-                                                    <View style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-                                                    <View style={{ position: 'absolute', bottom: -5, left: -5, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)' }} />
+                                                    <View style={{ position: 'absolute', top: -10, right: -10, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                                                    <View style={{ position: 'absolute', bottom: -5, left: -5, width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.04)' }} />
                                                     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                                                         <Ionicons
                                                             name={
@@ -590,7 +590,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                                                     type === 'year' ? 'calendar' :
                                                                                         'musical-notes'
                                                             }
-                                                            size={50}
+                                                            size={70}
                                                             color="white"
                                                             style={{
                                                                 textShadowColor: 'rgba(0,0,0,0.3)',
@@ -626,28 +626,41 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     ]}
                                                 />
                                             ) : (
-                                                <TouchableOpacity
-                                                    disabled={type !== 'playlist' || id === 'liked'}
-                                                    onLongPress={() => {
-                                                        if (type === 'playlist' && id !== 'liked') {
-                                                            setEditName(displayName);
-                                                            setIsEditing(true);
-                                                        }
-                                                    }}
-                                                    delayLongPress={200}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <Text style={[
-                                                        styles.playlistName,
-                                                        {
-                                                            color: theme.text,
-                                                            fontSize: 26,
-                                                            marginBottom: 4,
-                                                            textAlign: 'left',
-                                                            paddingHorizontal: 0
-                                                        }
-                                                    ]}>{displayName}</Text>
-                                                </TouchableOpacity>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <TouchableOpacity
+                                                        disabled={type !== 'playlist' || id === 'liked'}
+                                                        onPress={() => {
+                                                            if (type === 'playlist' && id !== 'liked') {
+                                                                setEditName(displayName);
+                                                                setIsEditing(true);
+                                                            }
+                                                        }}
+                                                        activeOpacity={0.7}
+                                                        style={{ flexShrink: 1 }}
+                                                    >
+                                                        <Text style={[
+                                                            styles.playlistName,
+                                                            {
+                                                                color: theme.text,
+                                                                fontSize: 26,
+                                                                marginBottom: 4,
+                                                                textAlign: 'left',
+                                                                paddingHorizontal: 0
+                                                            }
+                                                        ]}>{displayName}</Text>
+                                                    </TouchableOpacity>
+                                                    {type === 'playlist' && id !== 'liked' && (
+                                                        <TouchableOpacity
+                                                            onPress={() => {
+                                                                setEditName(displayName);
+                                                                setIsEditing(true);
+                                                            }}
+                                                            style={{ marginLeft: 8, padding: 5 }}
+                                                        >
+                                                            <Ionicons name="pencil" size={18} color={theme.textSecondary} />
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
                                             )}
                                             <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
 
@@ -713,7 +726,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                             <Ionicons name="swap-vertical" size={20} color={theme.primary} />
                                         </TouchableOpacity>
 
-                                        {(type === 'playlist' && id !== 'liked') || ['artist', 'album', 'genre'].includes(type || '') ? (
+                                        {(type === 'playlist' || ['artist', 'album', 'genre', 'most_played', 'recently_played', 'recently_added', 'never_played'].includes(type || '') || id === 'liked') ? (
                                             <TouchableOpacity
                                                 style={[styles.deleteButton, { backgroundColor: 'transparent', borderWidth: 0 }]}
                                                 onPress={() => setPlaylistOptionsVisible(true)}
@@ -755,16 +768,18 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                         onClose={() => setPlaylistOptionsVisible(false)}
                                         playlistName={name}
                                         isFavorite={
-                                            type === 'playlist' ? isPlaylistFavorite :
-                                                type === 'artist' ? isFavoriteArtist(name) :
-                                                    type === 'album' ? isFavoriteAlbum(name) :
-                                                        type === 'genre' ? isFavoriteGenre(name) : false
+                                            (id === 'liked' || id === 'most_played' || ['recently_played', 'recently_added', 'never_played'].includes(type || '')) ? favoriteSpecialPlaylists.includes(id) :
+                                                type === 'playlist' ? isPlaylistFavorite :
+                                                    type === 'artist' ? isFavoriteArtist(name) :
+                                                        type === 'album' ? isFavoriteAlbum(name) :
+                                                            type === 'genre' ? isFavoriteGenre(name) : false
                                         }
                                         onToggleFavorite={
-                                            type === 'playlist' ? () => togglePlaylistFavorite(id) :
-                                                type === 'artist' ? () => toggleFavoriteArtist(name) :
-                                                    type === 'album' ? () => toggleFavoriteAlbum(name) :
-                                                        type === 'genre' ? () => toggleFavoriteGenre(name) : undefined
+                                            (id === 'liked' || id === 'most_played' || ['recently_played', 'recently_added', 'never_played'].includes(type || '')) ? () => toggleSpecialPlaylistFavorite(id) :
+                                                type === 'playlist' ? () => togglePlaylistFavorite(id) :
+                                                    type === 'artist' ? () => toggleFavoriteArtist(name) :
+                                                        type === 'album' ? () => toggleFavoriteAlbum(name) :
+                                                            type === 'genre' ? () => toggleFavoriteGenre(name) : undefined
                                         }
                                         onDelete={type === 'playlist' ? () => {
                                             // Wait a bit for menu to close before showing modal

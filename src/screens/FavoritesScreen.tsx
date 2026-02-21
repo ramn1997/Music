@@ -73,7 +73,7 @@ const ArtistAvatar = ({ name, id, isList, isGrid3 }: { name: string, id: string,
 export const FavoritesScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
-    const { playlists, favoriteArtists, favoriteAlbums, likedSongs } = useMusicLibrary();
+    const { playlists, favoriteArtists, favoriteAlbums, likedSongs, favoriteSpecialPlaylists } = useMusicLibrary();
     const { playSongInPlaylist } = usePlayerContext();
     const [layoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
 
@@ -102,10 +102,11 @@ export const FavoritesScreen = () => {
             params: { id: album, name: album, type: 'album' }
         }));
 
+        const dynamicSpecial = FAVORITES.filter(f => favoriteSpecialPlaylists.includes(f.id));
 
+        return [...dynamicSpecial, ...favoritedPlaylists, ...favArtists, ...favAlbums];
+    }, [playlists, favoriteArtists, favoriteAlbums, favoriteSpecialPlaylists]);
 
-        return [...FAVORITES, ...favoritedPlaylists, ...favArtists, ...favAlbums];
-    }, [playlists, favoriteArtists, favoriteAlbums]);
 
 
 

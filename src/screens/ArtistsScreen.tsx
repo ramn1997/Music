@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
@@ -34,6 +34,7 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { songs } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Group songs by artist
     const artists = useMemo(() => {
@@ -49,8 +50,22 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             }
             map.get(artistName).count++;
         });
-        return Array.from(map.values()).sort((a, b) => b.count - a.count);
-    }, [songs]);
+
+        const artistList = Array.from(map.values());
+
+        // Filter by search query
+        const filtered = searchQuery.trim()
+            ? artistList.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+            : artistList;
+
+        return filtered.sort((a, b) => {
+            const aIsUnknown = a.name === 'Unknown Artist';
+            const bIsUnknown = b.name === 'Unknown Artist';
+            if (aIsUnknown && !bIsUnknown) return -1;
+            if (!aIsUnknown && bIsUnknown) return 1;
+            return a.name.localeCompare(b.name);
+        });
+    }, [songs, searchQuery]);
 
 
 
@@ -71,9 +86,9 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     }, [navigation, layoutMode]);
 
     const content = (
-        <View style={{ flex: 1, flexDirection: 'row' }}>
+        <View style={{ flex: 1 }}>
             {!isEmbedded && (
-                <View style={[styles.header, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, marginVertical: 0, paddingVertical: 20 }]}>
+                <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: 20 }]}>
                     <View style={styles.headerLeft}>
                         <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
@@ -91,7 +106,37 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 </View>
             )}
 
-            <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : (isEmbedded ? 0 : 80) }}>
+            {/* Separate Search Bar Row */}
+            <View style={{
+                paddingHorizontal: 20,
+                marginBottom: 10,
+                marginTop: isEmbedded ? 10 : 0
+            }}>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    borderRadius: 20,
+                    paddingHorizontal: 12,
+                    height: 38
+                }}>
+                    <Ionicons name="search" size={16} color={theme.textSecondary} />
+                    <TextInput
+                        style={{ flex: 1, color: theme.text, marginLeft: 8, fontSize: 14, paddingVertical: 0 }}
+                        placeholder="Search artists..."
+                        placeholderTextColor={theme.textSecondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+
+            <View style={{ flex: 1 }}>
                 <FlatList
                     key={layoutMode}
                     data={artists}
