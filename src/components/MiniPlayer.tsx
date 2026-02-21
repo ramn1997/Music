@@ -30,8 +30,9 @@ export const MiniPlayer = () => {
     const noTabBarScreens = ['Player', 'Settings', 'Equalizer', 'EditSong', 'Lyrics'];
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
-    // Standard docked tab bar height is 65 + insets.bottom
-    const bottomOffset = hasTabBar ? (65 + insets.bottom) : insets.bottom;
+    // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.
+    const tabBarHeight = 60 + Math.max(insets.bottom, 10);
+    const bottomOffset = hasTabBar ? (tabBarHeight + 5) : (insets.bottom + 10);
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
 
@@ -74,7 +75,7 @@ export const MiniPlayer = () => {
                     />
                     <BlurView
                         intensity={Platform.OS === 'ios' ? 30 : 60}
-                        tint={themeType === 'dark' || themeType === 'black' ? 'dark' : 'light'}
+                        tint={['black', 'green', 'purple', 'blue'].includes(themeType) ? 'dark' : 'light'}
                         style={StyleSheet.absoluteFill}
                     />
                     {/* Subtle Gradient Overlay for depth */}
@@ -139,18 +140,17 @@ export const MiniPlayer = () => {
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        left: 0,
-        right: 0,
+        left: 15,
+        right: 15,
         zIndex: 1000, // Significantly higher to be above everything
         alignItems: 'center',
     },
     pillContainer: {
         width: '100%',
-        height: 65,
-        borderRadius: 0,
+        height: 60,
+        borderRadius: 30, // Make it pill shape
         overflow: 'hidden',
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
+        borderWidth: 1, // Full border instead of top/bottom
         borderColor: 'rgba(255,255,255,0.15)',
         backgroundColor: '#121212', // Solid dark fallback for visibility
         shadowColor: "#000",
@@ -169,8 +169,8 @@ const styles = StyleSheet.create({
     progressTrack: {
         position: 'absolute',
         bottom: 0,
-        left: 0,
-        right: 0,
+        left: 20, // inset for the pill bounds
+        right: 20,
         height: 2,
         backgroundColor: 'rgba(255,255,255,0.1)',
         zIndex: 10,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     contentRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
+        paddingHorizontal: 15,
         height: '100%',
     },
     albumArt: {

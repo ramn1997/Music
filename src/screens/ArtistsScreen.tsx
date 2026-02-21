@@ -29,11 +29,11 @@ const getGradientColors = (id: string): [string, string] => {
 
 // Removed local CardDesign as it's now handled by ArtistListItem
 
-export const ArtistsScreen = () => {
+export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
     const { songs } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
+    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
 
     // Group songs by artist
     const artists = useMemo(() => {
@@ -106,26 +106,28 @@ export const ArtistsScreen = () => {
         );
     }, [navigation, layoutMode]);
 
-    return (
-        <ScreenContainer variant="default">
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
+    const content = (
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+            {!isEmbedded && (
+                <View style={[styles.header, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, marginVertical: 0, paddingVertical: 20 }]}>
+                    <View style={styles.headerLeft}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color={theme.text} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>Artists</Text>
+                    </View>
+
+                    <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
+                        <Ionicons
+                            name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
+                            size={24}
+                            color={theme.primary}
+                        />
                     </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Artists</Text>
                 </View>
+            )}
 
-                <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                    <Ionicons
-                        name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                        size={24}
-                        color={theme.primary}
-                    />
-                </TouchableOpacity>
-            </View>
-
-            <View style={{ flex: 1, flexDirection: 'row' }}>
+            <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : (isEmbedded ? 0 : 80) }}>
                 <FlatList
                     ref={flatListRef}
                     key={layoutMode}
@@ -168,6 +170,14 @@ export const ArtistsScreen = () => {
                     ))}
                 </View>
             </View>
+        </View>
+    );
+
+    if (isEmbedded) return content;
+
+    return (
+        <ScreenContainer variant="default">
+            {content}
         </ScreenContainer>
     );
 };

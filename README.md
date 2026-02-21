@@ -4,23 +4,25 @@ A comprehensive and feature-rich music player application built with React Nativ
 
 ## Features
 
--   **Music Library Management**: Automatically scans and organizes your local music files.
--   **Navigation**: Browse by Songs, Albums, Artists, Genres, and Playlists.
+-   **Music Library Management**: Automatically scans and organizes your local music files with background metadata enhancement.
+-   **Advanced Performance**: Efficient caching and background calculations for instant loading of Top Artists and Recently Played lists.
+-   **Navigation**: Browse by Songs, Albums, Artists, Genres, and Playlists via a sleek bottom navigation bar with modernized icons.
 -   **Smart Playlists**:
     -   **Favorites**: Quickly access your favorite tracks.
-    -   **Most Played**: Automatically tracks your most listened-to songs.
+    -   **Recently Played**: Instant access to your listening history.
     -   **Recently Added**: See the latest additions to your library.
-    -   **Years**: Browse music by release year.
+    -   **Never Played**: Discover tracks you haven't heard yet.
 -   **Advanced Player**:
     -   Full playback controls (Play, Pause, Next, Previous, Seek).
     -   Background playback support.
     -   Shuffle and Repeat modes.
-    -   Interactive player screen with album art.
--   **Playlist Management**: Create, edit, and delete custom playlists.
+    -   Interactive player screen with high-quality album art display.
+-   **Customization**: Premium "Dark-Blackish" themes (Deep Emerald, Midnight Purple, True Black) for a sophisticated look.
+-   **Playlist Management**: Create, edit, rename and delete custom playlists directly in the app.
 -   **Search**: fast and efficient search functionality to find songs, albums, or artists.
 -   **Equalizer**: Customize your audio experience (if supported).
 -   **Settings**: Configure app preferences.
--   **Modern UI**: Sleek and responsive design with smooth animations.
+-   **Modern UI**: Premium and responsive design with smooth animations and glassmorphism elements.
 
 ## Tech Stack
 

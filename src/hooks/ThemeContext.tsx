@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'dark' | 'green' | 'purple' | 'blue' | 'glass' | 'black' | 'system';
+export type ThemeType = 'green' | 'purple' | 'blue' | 'glass' | 'black' | 'system';
 
 interface Theme {
     background: string;
@@ -18,28 +18,17 @@ interface Theme {
 }
 
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
-    dark: {
-        background: '#050505',
-        primary: '#8b5cf6',
-        secondary: '#ec4899',
-        text: '#ffffff',
-        textSecondary: '#a1a1aa',
-        card: 'rgba(255, 255, 255, 0.05)',
-        cardBorder: 'rgba(255, 255, 255, 0.1)',
-        gradient: ['#050505', '#1a0b2e'],
-        menuBackground: '#1F1F1F',
-        textOnPrimary: '#ffffff'
-    },
+
     purple: {
-        background: '#1a0b2e',
-        primary: '#d8b4fe',
-        secondary: '#f472b6',
-        text: '#ffffff',
-        textSecondary: '#c084fc',
-        card: 'rgba(139, 92, 246, 0.1)',
-        cardBorder: 'rgba(139, 92, 246, 0.2)',
-        gradient: ['#2e1065', '#1a0b2e'],
-        menuBackground: '#2E1065',
+        background: '#090412', // Almost black with a hint of purple
+        primary: '#a855f7', // Muted violet
+        secondary: '#6b21a8', // Dark purple
+        text: '#faf5ff', // Very light purple text
+        textSecondary: '#a78bfa', // Soft purple-slate contrast
+        card: '#12091d', // Dark purple-black card
+        cardBorder: '#241235',
+        gradient: ['#090412', '#12091d'],
+        menuBackground: '#12091d',
         textOnPrimary: '#000000'
     },
     blue: {
@@ -79,15 +68,15 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textOnPrimary: '#000000'
     },
     green: {
-        background: '#022c22', // Deep forest green
-        primary: '#4ade80', // bright green for accents
-        secondary: '#10b981', // emerald green
-        text: '#ecfccb', // light lime/cream text
-        textSecondary: '#a7f3d0', // soft mint text
-        card: '#064e3b', // darker forest card
-        cardBorder: '#065f46', // slightly lighter border
-        gradient: ['#022c22', '#064e3b'],
-        menuBackground: '#064e3b',
+        background: '#040d0a', // Almost black with a hint of green
+        primary: '#10b981', // Muted emerald green
+        secondary: '#065f46', // Dark emerald
+        text: '#f0fdf4', // Very light mint text
+        textSecondary: '#64748b', // Slate-ish contrast
+        card: '#0a1a15', // Dark green-black card
+        cardBorder: '#142d25',
+        gradient: ['#040d0a', '#061a14'],
+        menuBackground: '#061a14',
         textOnPrimary: '#000000'
     },
 };
@@ -106,14 +95,18 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const systemScheme = useColorScheme();
-    const [themeType, setThemeTypeState] = useState<ThemeType>('dark');
+    const [themeType, setThemeTypeState] = useState<ThemeType>('black');
     const [playerStyle, setPlayerStyleState] = useState<PlayerStyle>('rounded');
 
     useEffect(() => {
         const loadTheme = async () => {
-            const savedTheme = await AsyncStorage.getItem('appTheme');
+            const savedTheme = await AsyncStorage.getItem('appTheme') as ThemeType | 'dark';
             if (savedTheme) {
-                setThemeTypeState(savedTheme as ThemeType);
+                if (savedTheme === 'dark') {
+                    setThemeTypeState('black');
+                } else {
+                    setThemeTypeState(savedTheme as ThemeType);
+                }
             }
 
             const savedStyle = await AsyncStorage.getItem('playerStyle');
@@ -136,7 +129,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const getActiveTheme = (): Theme => {
         if (themeType === 'system') {
-            return Themes.dark;
+            return Themes.black;
         }
         return Themes[themeType];
     };

@@ -52,6 +52,7 @@ interface MusicLibraryContextType {
     savedFolders: string[];
     likedSongs: Song[];
     toggleLike: (song: Song) => Promise<void>;
+    addSongsToLiked: (songs: Song[]) => Promise<void>;
     isLiked: (songId: string) => boolean;
     playlists: Playlist[];
     createPlaylist: (name: string, initialSongs?: Song[]) => Promise<void>;
@@ -59,6 +60,7 @@ interface MusicLibraryContextType {
     togglePlaylistFavorite: (id: string) => Promise<void>;
     addToPlaylist: (playlistId: string, song: Song | Song[]) => Promise<void>;
     removeFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
+    renamePlaylist: (id: string, newName: string) => Promise<void>;
     incrementPlayCount: (songId: string) => Promise<void>;
     favoriteArtists: string[];
     toggleFavoriteArtist: (artistName: string) => Promise<void>;
@@ -73,6 +75,10 @@ interface MusicLibraryContextType {
     importProgress: ImportProgressType | null;
     cancelImport: () => void;
     refreshSongMetadata: (songId: string) => Promise<void>;
+    topArtists: any[];
+    recentlyPlayed: Song[];
+    recentlyAdded: Song[];
+    neverPlayed: Song[];
 }
 
 const MusicLibraryContext = createContext<MusicLibraryContextType | null>(null);
@@ -91,6 +97,11 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
     const [songMetadata, setSongMetadata] = useState<Record<string, { playCount: number, lastPlayed: number, playHistory: number[] }>>({});
     const [savedFolders, setSavedFolders] = useState<string[]>([]);
     const [customMetadata, setCustomMetadata] = useState<Record<string, Partial<Song>>>({});
+    const [topArtists, setTopArtists] = useState<any[]>([]);
+    const [recentlyPlayed, setRecentlyPlayed] = useState<Song[]>([]);
+    const [recentlyAdded, setRecentlyAdded] = useState<Song[]>([]);
+    const [neverPlayed, setNeverPlayed] = useState<Song[]>([]);
+    const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const cancelImport = useCallback(() => {
         importService.cancel();
@@ -388,6 +399,16 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         await savePlaylists(updated);
     };
 
+    const renamePlaylist = async (id: string, newName: string) => {
+        const updated = playlists.map(p => {
+            if (p.id === id) {
+                return { ...p, name: newName.trim() };
+            }
+            return p;
+        });
+        await savePlaylists(updated);
+    };
+
     // --- Likes ---
     React.useEffect(() => {
         const loadLikes = async () => {
@@ -415,6 +436,24 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         setLikedSongs(newLikedSongs);
         try {
             await AsyncStorage.setItem('liked_songs', JSON.stringify(newLikedSongs));
+        } catch (e) {
+            console.error("Failed to save liked songs", e);
+        }
+
+    };
+
+    const addSongsToLiked = async (songsToAdd: Song[]) => {
+        const existingIds = new Set(likedSongs.map(s => s.id));
+        const newSongs = songsToAdd
+            .filter(s => !existingIds.has(s.id))
+            .map(s => ({ ...s, addedToPlaylistAt: Date.now() }));
+
+        if (newSongs.length === 0) return;
+
+        const updatedLikes = [...newSongs, ...likedSongs];
+        setLikedSongs(updatedLikes);
+        try {
+            await AsyncStorage.setItem('liked_songs', JSON.stringify(updatedLikes));
         } catch (e) {
             console.error("Failed to save liked songs", e);
         }
@@ -504,18 +543,151 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
     }, [likedSongs]);
 
 
-    // --- Metadata ---
+    // --- Metadata & Pre-calculated Stats ---
     useEffect(() => {
-        const loadMeta = async () => {
+        const loadInitialData = async () => {
             try {
+                // 1. Load basic metadata
                 const saved = await AsyncStorage.getItem('song_metadata');
                 if (saved) setSongMetadata(JSON.parse(saved));
+
+                // 2. Load cached top artists for instant UI
+                const cachedArtists = await AsyncStorage.getItem('cached_top_artists');
+                if (cachedArtists) setTopArtists(JSON.parse(cachedArtists));
+
+                // 3. Load cached recently played for instant UI
+                const cachedRecent = await AsyncStorage.getItem('cached_recently_played');
+                if (cachedRecent) setRecentlyPlayed(JSON.parse(cachedRecent));
+
+                // 4. Load cached recently added
+                const cachedAdded = await AsyncStorage.getItem('cached_recently_added');
+                if (cachedAdded) setRecentlyAdded(JSON.parse(cachedAdded));
+
+                // 5. Load cached never played
+                const cachedNever = await AsyncStorage.getItem('cached_never_played');
+                if (cachedNever) setNeverPlayed(JSON.parse(cachedNever));
             } catch (e) {
                 console.error("Failed to load metadata", e);
             }
         };
-        loadMeta();
+        loadInitialData();
     }, []);
+
+    // Background calculation for heavy stats
+    useEffect(() => {
+        if (loading || songs.length === 0) return;
+
+        // Debounce calculation to avoid UI jank during startup or multiple updates
+        if (calculationTimeoutRef.current) clearTimeout(calculationTimeoutRef.current);
+
+        calculationTimeoutRef.current = setTimeout(() => {
+            const calculateStats = async () => {
+                // 1. Calculate Recently Played
+                const recent = songs
+                    .filter(s => s.lastPlayed && s.lastPlayed > 0)
+                    .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
+                    .slice(0, 30);
+
+                setRecentlyPlayed(recent);
+                AsyncStorage.setItem('cached_recently_played', JSON.stringify(recent));
+
+                // 2. Calculate Recently Added
+                const added = [...songs]
+                    .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0))
+                    .slice(0, 50);
+                setRecentlyAdded(added);
+                AsyncStorage.setItem('cached_recently_added', JSON.stringify(added));
+
+                // 3. Calculate Never Played
+                const never = songs
+                    .filter(s => !s.playCount || s.playCount === 0)
+                    .slice(0, 50);
+                setNeverPlayed(never);
+                AsyncStorage.setItem('cached_never_played', JSON.stringify(never));
+
+                // 4. Calculate Top Artists (Heavy)
+                const artistMap = new Map<string, {
+                    name: string,
+                    totalPlays: number,
+                    dailySongs: Map<string, Set<string>>,
+                    songs: Song[]
+                }>();
+
+                songs.forEach(song => {
+                    const artistName = song.artist || 'Unknown Artist';
+                    // Allow Unknown Artist to be mapped, but we'll sort them lower if possible later
+
+                    const artistData = artistMap.get(artistName) || {
+                        name: artistName,
+                        totalPlays: 0,
+                        dailySongs: new Map(),
+                        songs: []
+                    };
+
+                    artistData.totalPlays += (song.playCount || 0);
+                    artistData.songs.push(song);
+
+                    const history = song.playHistory || [];
+                    history.forEach(ts => {
+                        const date = new Date(ts);
+                        const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                        const daySet = artistData.dailySongs.get(dayKey) || new Set();
+                        daySet.add(song.id);
+                        artistData.dailySongs.set(dayKey, daySet);
+                    });
+
+                    artistMap.set(artistName, artistData);
+                });
+
+                const allArtists = Array.from(artistMap.values());
+
+                // 1. Pro: 3+ unique songs in a single day
+                let filtered = allArtists.filter(a => {
+                    return Array.from(a.dailySongs.values()).some(songSet => songSet.size >= 3);
+                });
+
+                // 2. Fallback: 3+ total plays
+                if (filtered.length === 0) {
+                    filtered = allArtists.filter(a => a.totalPlays >= 3);
+                }
+
+                // 3. Minimal: 1+ play
+                if (filtered.length === 0) {
+                    filtered = allArtists.filter(a => a.totalPlays >= 1);
+                }
+
+                // 4. Global Fallback: Most songs in library (Discovery mode)
+                if (filtered.length === 0) {
+                    filtered = allArtists
+                        .sort((a, b) => b.songs.length - a.songs.length)
+                        .slice(0, 10);
+                }
+
+                const top = filtered
+                    .map(a => ({
+                        ...a,
+                        playedSongsCount: new Set(a.songs.map(s => s.id)).size
+                    }))
+                    .sort((a, b) => {
+                        // Always put Unknown Artist at the bottom
+                        if (a.name === 'Unknown Artist') return 1;
+                        if (b.name === 'Unknown Artist') return -1;
+                        return b.totalPlays - a.totalPlays;
+                    })
+                    .slice(0, 10); // Calculate 10, though UI might show 5
+
+                setTopArtists(top);
+                AsyncStorage.setItem('cached_top_artists', JSON.stringify(top));
+                console.log('[MusicLibrary] Background stats calculation complete');
+            };
+
+            calculateStats();
+        }, 500); // 500ms debounce for faster initial population
+
+        return () => {
+            if (calculationTimeoutRef.current) clearTimeout(calculationTimeoutRef.current);
+        };
+    }, [songs, loading]); // Trigger on song list changes or whenever loading finishes
 
     const incrementPlayCount = async (songId: string) => {
         const now = Date.now();
@@ -707,6 +879,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         savedFolders,
         likedSongs,
         toggleLike,
+        addSongsToLiked,
         isLiked,
         playlists,
         createPlaylist,
@@ -714,6 +887,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         togglePlaylistFavorite,
         addToPlaylist,
         removeFromPlaylist,
+        renamePlaylist,
         incrementPlayCount,
         favoriteArtists,
         toggleFavoriteArtist,
@@ -727,16 +901,21 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         updateSongMetadata,
         importProgress,
         cancelImport,
-        refreshSongMetadata
+        refreshSongMetadata,
+        topArtists,
+        recentlyPlayed,
+        recentlyAdded,
+        neverPlayed
     }), [
         songs, loading, hasPermission, fetchMusic, scanForFolders, loadSongsFromFolders,
         refreshMetadata,
-        savedFolders, likedSongs, toggleLike, isLiked, playlists, createPlaylist,
-        deletePlaylist, togglePlaylistFavorite, addToPlaylist, removeFromPlaylist,
+        savedFolders, likedSongs, toggleLike, addSongsToLiked, isLiked, playlists, createPlaylist,
+        deletePlaylist, togglePlaylistFavorite, addToPlaylist, removeFromPlaylist, renamePlaylist,
         incrementPlayCount, favoriteArtists, toggleFavoriteArtist, isFavoriteArtist,
         favoriteAlbums, toggleFavoriteAlbum, isFavoriteAlbum, favoriteGenres,
         toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata,
-        importProgress, cancelImport, refreshSongMetadata
+        importProgress, cancelImport, refreshSongMetadata,
+        topArtists, recentlyPlayed, recentlyAdded, neverPlayed
     ]);
 
     return (

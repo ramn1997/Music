@@ -43,7 +43,6 @@ export const PlaylistsScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
     const { likedSongs, playlists: userPlaylists, createPlaylist, deletePlaylist } = useMusicLibrary();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
 
     const [modalVisible, setModalVisible] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -52,26 +51,29 @@ export const PlaylistsScreen = () => {
 
     const displayPlaylists = [
         {
+            id: 'create_action',
+            name: 'Create New Playlist',
+            isAction: true
+        },
+        {
             id: 'liked',
             name: 'Liked Songs',
             count: likedSongs.length,
             isSpecial: true,
-            coverImage: likedSongs[0]?.coverImage
+            coverImage: likedSongs[0]?.coverImage,
+            assetUri: likedSongs[0]?.uri
         },
         ...userPlaylists.map(p => ({
             id: p.id,
             name: p.name,
             count: p.songs.length,
             isSpecial: false,
-            coverImage: p.songs[0]?.coverImage
+            coverImage: p.songs[0]?.coverImage,
+            assetUri: p.songs[0]?.uri
         }))
     ];
 
-    const toggleLayout = () => {
-        if (layoutMode === 'grid3') setLayoutMode('grid2');
-        else if (layoutMode === 'grid2') setLayoutMode('list');
-        else setLayoutMode('grid3');
-    };
+
 
     const handleAddPlaylist = async () => {
         if (!newPlaylistName.trim()) return;
@@ -94,106 +96,117 @@ export const PlaylistsScreen = () => {
         }
     };
 
+    const itemWidth = (require('react-native').Dimensions.get('window').width - 40 - 20) / 3;
+
     const renderItem = React.useCallback(({ item }: { item: any }) => {
-        if (layoutMode === 'list') {
+        if (item.isAction) {
             return (
+                <View style={{ width: itemWidth, marginBottom: 15 }}>
+                    <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setModalVisible(true)}
+                    >
+                        <View style={[
+                            styles.cardContainer,
+                            {
+                                height: 95,
+                                width: '100%',
+                                borderRadius: 16,
+                                overflow: 'hidden',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                backgroundColor: 'rgba(255,255,255,0.03)',
+                                borderWidth: 1,
+                                borderStyle: 'dashed',
+                                borderColor: 'rgba(255,255,255,0.2)'
+                            }
+                        ]}>
+                            <Ionicons name="add" size={30} color={theme.primary} />
+                            <Text style={[styles.cardTitle, { color: theme.textSecondary, fontSize: 10, marginTop: 4 }]}>
+                                {item.name}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+
+        return (
+            <View
+                style={{
+                    width: itemWidth,
+                    marginBottom: 15,
+                    alignItems: 'stretch'
+                }}
+            >
                 <TouchableOpacity
-                    style={styles.listItem}
                     activeOpacity={0.8}
-                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'playlist' })}
+                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: item.id === 'liked' ? 'playlist' : 'playlist' })}
                     onLongPress={() => confirmDelete(item)}
+                    delayLongPress={500}
                 >
-                    <View style={styles.row}>
-                        <View style={[styles.listIconPlaceholder, { backgroundColor: 'transparent' }]}>
+                    <View style={[
+                        styles.cardContainer,
+                        {
+                            height: 95, // Matching FavoritesScreen Grid3 height
+                            width: '100%',
+                            borderRadius: 16,
+                            overflow: 'hidden',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: theme.card
+                        }
+                    ]}>
+                        <>
                             <LinearGradient
                                 colors={getGradientColors(item.id)}
                                 style={StyleSheet.absoluteFill}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             />
-                            <Ionicons name={item.id === 'liked' ? "heart" : "musical-notes"} size={20} color="white" />
+                            <CardDesign />
+                        </>
+
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 5, zIndex: 10 }}>
+                            <Ionicons
+                                name={item.id === 'liked' ? "heart" : item.id === 'recently_played' ? "time" : "musical-notes"}
+                                size={30}
+                                color="white"
+                                style={{ marginBottom: 5 }}
+                            />
+
+
+                            <Text
+                                numberOfLines={2}
+                                style={[
+                                    styles.cardTitle
+                                ]}
+                            >
+                                {item.name}
+                            </Text>
                         </View>
-                        <View style={styles.info}>
-                            <Text style={[styles.title, { color: theme.text, textAlign: 'left' }]} numberOfLines={1}>{item.name}</Text>
-                            <Text style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]} numberOfLines={1}>{item.count} Songs</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                     </View>
                 </TouchableOpacity>
-            );
-        }
-
-        const isGrid3 = layoutMode === 'grid3';
-        return (
-            <TouchableOpacity
-                style={isGrid3 ? styles.gridItem3 : styles.gridItem2}
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'playlist' })}
-                onLongPress={() => confirmDelete(item)}
-                delayLongPress={500}
-            >
-                <View style={[
-                    styles.card,
-                    { backgroundColor: theme.card, borderColor: theme.cardBorder, overflow: 'hidden' },
-                    { height: isGrid3 ? 140 : 180 }
-                ]}>
-                    <LinearGradient
-                        colors={getGradientColors(item.id)}
-                        style={StyleSheet.absoluteFill}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                    />
-                    <CardDesign />
-
-                    <Ionicons
-                        name={item.id === 'liked' ? "heart" : "musical-notes"}
-                        size={isGrid3 ? 32 : 48}
-                        color="white"
-                    />
-                    <MarqueeText
-                        text={item.name}
-                        style={[styles.playlistName, { color: 'white', fontSize: isGrid3 ? 12 : 16, paddingHorizontal: 5 }]}
-                    />
-                    <Text style={[styles.playlistCount, { color: 'rgba(255,255,255,0.8)', fontSize: isGrid3 ? 10 : 12 }]}>
-                        {item.count} Songs
-                    </Text>
-                </View>
-            </TouchableOpacity>
+            </View>
         );
-    }, [theme, navigation, confirmDelete, layoutMode]);
+    }, [theme, navigation, confirmDelete, itemWidth]);
 
     return (
         <ScreenContainer variant="default">
             <View style={{ flex: 1 }}>
                 <View style={styles.header}>
-                    <View style={styles.headerLeft}>
-                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color={theme.text} />
-                        </TouchableOpacity>
-                        <Text style={[styles.headerTitle, { color: theme.text }]}>Playlists</Text>
-                    </View>
-
-                    <View style={styles.headerRight}>
-                        <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                            <Ionicons
-                                name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                                size={22}
-                                color={theme.primary}
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setModalVisible(true)}>
-                            <Ionicons name="add-circle" size={32} color={theme.primary} />
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color={theme.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Playlists</Text>
                 </View>
 
                 <FlatList
-                    key={layoutMode}
                     data={displayPlaylists}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
-                    numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
-                    columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
+                    numColumns={3}
+                    columnWrapperStyle={styles.columnWrapper}
                     contentContainerStyle={styles.listContent}
                     style={{ flex: 1 }}
                     ListEmptyComponent={
@@ -291,14 +304,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 15
     },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 15
-    },
     headerTitle: {
         fontSize: 28,
         fontWeight: 'bold',
+        flex: 1
     },
     backButton: {
         width: 40,
@@ -376,6 +385,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 10,
     },
+    cardContainer: {
+        elevation: 5,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    cardTitle: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
+        textAlign: 'center',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3
+    },
     playlistName: {
         fontWeight: '600',
         marginBottom: 5,
@@ -438,5 +463,17 @@ const styles = StyleSheet.create({
         right: 10,
         padding: 5,
         zIndex: 10
+    },
+    createButtonPill: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    createButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
     }
 });

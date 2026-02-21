@@ -400,6 +400,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                                 iconSize={width * 0.4}
                                 containerStyle={styles.placeholderArt}
                                 resizeMode="cover"
+                                priority={true}
                             />
 
                         </GlassCard>

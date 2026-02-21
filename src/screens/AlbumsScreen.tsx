@@ -33,7 +33,7 @@ const CardDesign = () => (
     </>
 );
 
-export const AlbumsScreen = () => {
+export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
     const { songs } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -185,73 +185,81 @@ export const AlbumsScreen = () => {
         );
     }, [theme, navigation, layoutMode]);
 
+    const content = (
+        <View style={{ flex: 1, position: 'relative' }}>
+            {!isEmbedded && (
+                <View style={[styles.header, { marginVertical: 0, paddingVertical: 20 }]}>
+                    <View style={styles.headerLeft}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color={theme.text} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>Albums</Text>
+                    </View>
+
+                    <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
+                        <Ionicons
+                            name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
+                            size={24}
+                            color={theme.primary}
+                        />
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : 0 }}>
+                <FlatList
+                    ref={flatListRef}
+                    key={layoutMode}
+                    style={{ flex: 1 }} // Force FlatList to take available width
+                    data={albums}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
+                    columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
+                    contentContainerStyle={styles.listContent}
+
+                    ListEmptyComponent={
+                        <View style={styles.center}>
+                            <Text style={{ color: theme.textSecondary }}>No albums found.</Text>
+                        </View>
+                    }
+                    showsVerticalScrollIndicator={false}
+                    onScrollToIndexFailed={(info) => {
+                        setTimeout(() => {
+                            if (flatListRef.current) {
+                                flatListRef.current.scrollToIndex({
+                                    index: info.index,
+                                    animated: true,
+                                    viewPosition: 0
+                                });
+                            }
+                        }, 150);
+                    }}
+                />
+
+                {/* Alphabet Sidebar */}
+                <View style={styles.alphabetSidebar}>
+                    {alphabet.map((letter) => (
+                        <TouchableOpacity
+                            key={letter}
+                            onPress={() => scrollToAlphabet(letter)}
+                            style={styles.alphabetLetter}
+                        >
+                            <Text style={[styles.alphabetText, { color: theme.textSecondary }]}>
+                                {letter}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+        </View>
+    );
+
+    if (isEmbedded) return content;
+
     return (
         <ScreenContainer variant="default">
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Albums</Text>
-                </View>
-
-                <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                    <Ionicons
-                        name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                        size={24}
-                        color={theme.primary}
-                    />
-                </TouchableOpacity>
-            </View>
-
-            <View style={{ flex: 1, position: 'relative' }}>
-                <View style={{ flex: 1, flexDirection: 'row' }}>
-                    <FlatList
-                        ref={flatListRef}
-                        key={layoutMode}
-                        style={{ flex: 1 }} // Force FlatList to take available width
-                        data={albums}
-                        keyExtractor={(item) => item.id}
-                        renderItem={renderItem}
-                        numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
-                        columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
-                        contentContainerStyle={styles.listContent}
-
-                        ListEmptyComponent={
-                            <View style={styles.center}>
-                                <Text style={{ color: theme.textSecondary }}>No albums found.</Text>
-                            </View>
-                        }
-                        showsVerticalScrollIndicator={false}
-                        onScrollToIndexFailed={(info) => {
-                            setTimeout(() => {
-                                if (flatListRef.current) {
-                                    flatListRef.current.scrollToIndex({
-                                        index: info.index,
-                                        animated: true,
-                                        viewPosition: 0
-                                    });
-                                }
-                            }, 150);
-                        }}
-                    />
-
-                    {/* Alphabet Sidebar */}
-                    <View style={styles.alphabetSidebar}>
-                        {alphabet.map((letter) => (
-                            <TouchableOpacity
-                                key={letter}
-                                onPress={() => scrollToAlphabet(letter)}
-                                style={styles.alphabetLetter}
-                            >
-                                <Text style={[styles.alphabetText, { color: theme.textSecondary }]}>
-                                    {letter}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                </View>
-            </View>
+            {content}
         </ScreenContainer>
     );
 };

@@ -75,7 +75,7 @@ export const FavoritesScreen = () => {
     const { theme } = useTheme();
     const { playlists, favoriteArtists, favoriteAlbums, likedSongs } = useMusicLibrary();
     const { playSongInPlaylist } = usePlayerContext();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
+    const [layoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
 
     const allFavorites = useMemo(() => {
         const favoritedPlaylists = playlists.filter(p => p.isFavorite).map(p => ({
@@ -107,11 +107,7 @@ export const FavoritesScreen = () => {
         return [...FAVORITES, ...favoritedPlaylists, ...favArtists, ...favAlbums];
     }, [playlists, favoriteArtists, favoriteAlbums]);
 
-    const toggleLayout = () => {
-        if (layoutMode === 'grid3') setLayoutMode('grid2');
-        else if (layoutMode === 'grid2') setLayoutMode('list');
-        else setLayoutMode('grid3');
-    };
+
 
     const renderItem = ({ item, index }: { item: any, index: number }) => {
         const isArtist = item.type === 'Artist';
@@ -234,13 +230,6 @@ export const FavoritesScreen = () => {
                     <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Favorites</Text>
-                <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                    <Ionicons
-                        name={layoutMode === 'grid3' ? "grid" : layoutMode === 'grid2' ? "list" : "apps"}
-                        size={22}
-                        color={theme.text}
-                    />
-                </TouchableOpacity>
             </View>
 
             <FlatList
@@ -279,11 +268,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         flex: 1
-    },
-    layoutButton: {
-        padding: 8,
-        backgroundColor: 'transparent',
-        borderRadius: 12
     },
     listContent: {
         paddingHorizontal: 20,

@@ -6,7 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { colors } from './src/theme/colors';
-import { useFonts, Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from '@expo-google-fonts/figtree';
+import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans';
 
 import { PlayerProvider } from './src/hooks/PlayerContext';
 import { MusicLibraryProvider } from './src/hooks/MusicLibraryContext';
@@ -19,14 +19,14 @@ import React from 'react';
 // @ts-ignore
 if (Text.defaultProps == null) Text.defaultProps = {};
 // @ts-ignore
-Text.defaultProps.style = { fontFamily: 'Figtree_400Regular' };
+Text.defaultProps.style = { fontFamily: 'PlusJakartaSans_400Regular' };
 
 export default function App() {
     const [fontsLoaded] = useFonts({
-        Figtree_400Regular,
-        Figtree_500Medium,
-        Figtree_600SemiBold,
-        Figtree_700Bold,
+        PlusJakartaSans_400Regular,
+        PlusJakartaSans_500Medium,
+        PlusJakartaSans_600SemiBold,
+        PlusJakartaSans_700Bold,
     });
 
     if (!fontsLoaded) {

@@ -45,6 +45,7 @@ interface MusicImageProps {
     assetUri?: string; // Asset URI for fetching album art
     blurRadius?: number;
     iconName?: string; // Custom icon name for fallback
+    priority?: boolean; // Skip debounce for critical images
 }
 
 
@@ -52,7 +53,7 @@ interface MusicImageProps {
 const artLoadingInProgress = new Set<string>();
 const lazyArtCache = new Map<string, string | null>();
 
-export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyle, resizeMode = 'cover', id, assetUri, blurRadius, iconName = "musical-note" }: MusicImageProps) => {
+export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyle, resizeMode = 'cover', id, assetUri, blurRadius, iconName = "musical-note", priority = false }: MusicImageProps) => {
     const [error, setError] = useState(false);
     const [lazyUri, setLazyUri] = useState<string | null>(null);
     const [ignorePropUri, setIgnorePropUri] = useState(false);
@@ -64,15 +65,23 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
     useEffect(() => {
         setError(false);
         setIgnorePropUri(false);
-    }, [uri]);
 
-    // Lazy load album art if no uri provided but we have an id
+        // Immediate cache check on ID change to prevent stale art
+        if (id) {
+            if (lazyArtCache.has(id)) {
+                setLazyUri(lazyArtCache.get(id) || null);
+            } else {
+                setLazyUri(null); // Clear old art immediately while loading new
+            }
+        }
+    }, [uri, id]);
+
     // Lazy load album art if no uri provided but we have an id
     useEffect(() => {
         let isMounted = true;
 
         if (!uri && id && !lazyUri && !artLoadingInProgress.has(id)) {
-            // Check cache first (synchronous check)
+            // Check cache first (synchronous check) - though handled above, double check for safety
             if (lazyArtCache.has(id)) {
                 const cached = lazyArtCache.get(id);
                 if (cached) {
@@ -82,6 +91,9 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
             }
 
             // Debounce the heavy async loading to improve scroll performance
+            // But skip debounce if priority is true (Player Screen)
+            const timeoutMs = priority ? 0 : 100;
+
             const timer = setTimeout(() => {
                 if (!isMounted) return;
 
@@ -99,9 +111,11 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
 
                     try {
                         // Try fast lookup first (System Art / DB Cache)
+                        // This uses importService which may check DB or System.
                         let coverImage = await importService.getAlbumArt(id, assetUri || '');
 
                         // Only do deep extraction if needed and for larger images (Player screen)
+                        // AND only if we didn't find anything yet
                         if (!coverImage && iconSize > 100) {
                             coverImage = await importService.getAlbumArt(id, assetUri || '', true);
                         }
@@ -119,14 +133,14 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
                 };
 
                 loadArt();
-            }, 100); // 100ms debounce
+            }, timeoutMs);
 
             return () => {
                 isMounted = false;
                 clearTimeout(timer);
             };
         }
-    }, [uri, id, assetUri, lazyUri, iconSize]);
+    }, [uri, id, assetUri, lazyUri, iconSize, priority]);
 
     const handleImageError = async () => {
         // If we were using the prop 'uri' and it failed, try to force extract

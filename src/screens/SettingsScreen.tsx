@@ -72,9 +72,6 @@ export const SettingsScreen = () => {
     return (
         <ScreenContainer variant="settings">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
             </View>
 
@@ -99,7 +96,7 @@ export const SettingsScreen = () => {
 
                     {themeExpanded && (
                         <View style={[styles.dropdownContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                            {(['dark', 'green', 'purple', 'blue', 'glass', 'black'] as const).map((t) => (
+                            {(['green', 'purple', 'blue', 'glass', 'black'] as const).map((t) => (
                                 <TouchableOpacity
                                     key={t}
                                     style={[
@@ -376,7 +373,7 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingHorizontal: 20,
-        paddingBottom: 80, // Added padding for progress bar
+        paddingBottom: 120, // Added padding for floating tab bar
         paddingTop: 20,
     },
     section: {

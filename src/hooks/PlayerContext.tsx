@@ -143,7 +143,7 @@ const songToTrack = (song: Song): Track => {
         artist: song.artist,
         album: song.album,
         artwork: artwork,
-        duration: song.duration ? song.duration / 1000 : undefined,
+        // duration: song.duration ? song.duration / 1000 : undefined, // Let player determine actual duration from stream
     };
 };
 
@@ -196,15 +196,22 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         const { WidgetModule } = NativeModules;
         if (!WidgetModule) return;
 
-        // Determine best artwork for widget (same logic as TrackPlayer)
-        let widgetArtwork = currentTrack?.coverImage || null;
-        if (Platform.OS === 'android' && currentTrack?.albumId && !['null', 'undefined', '-1', '0'].includes(String(currentTrack.albumId))) {
-            if (!widgetArtwork || !widgetArtwork.startsWith('http')) {
-                widgetArtwork = `content://media/external/audio/albumart/${currentTrack.albumId}`;
+        // Determine best artwork for widget
+        let widgetArtwork: string | null = null;
+
+        // Priority 1: system MediaStore albumart URI (most reliable for widget)
+        if (currentTrack?.albumId && !['null', 'undefined', '-1', '0'].includes(String(currentTrack.albumId))) {
+            widgetArtwork = `content://media/external/audio/albumart/${currentTrack.albumId}`;
+        }
+
+        // Priority 2: coverImage path — strip file:// prefix so File() works natively
+        if (!widgetArtwork && currentTrack?.coverImage) {
+            const img = currentTrack.coverImage;
+            if (!img.startsWith('data:')) { // skip base64
+                widgetArtwork = img.startsWith('file://') ? img.replace('file://', '') : img;
             }
         }
-        // Don't send base64 to widget either
-        if (widgetArtwork?.startsWith('data:')) widgetArtwork = null;
+
 
         WidgetModule.updateWidget(
             currentTrack?.title || 'No song playing',
@@ -391,6 +398,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 const activeTrack = await TrackPlayer.getActiveTrack();
                 const currentId = currentTrackRef.current?.id;
 
+                // Update position reference for persistence
+                const pos = await TrackPlayer.getPosition();
+                if (pos > 0) {
+                    positionRef.current = pos * 1000;
+                }
+
                 if (activeTrack && String(activeTrack.id) !== String(currentId)) {
                     console.log('[PlayerContext] Polling found mismatch! active:', activeTrack.title, 'current:', currentId);
 
@@ -498,9 +511,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 const activeTrack = await TrackPlayer.getActiveTrack();
                 if (activeTrack && String(activeTrack.id) !== String(currentTrackRef.current?.id)) {
                     console.log('[PlayerContext] Detected missed track update via State change');
-                    // We rely on the hook or the event above to catch this eventually
                 }
             }
+        }
+    });
+
+    useTrackPlayerEvents([Event.PlaybackProgressUpdated], (event) => {
+        if (event.position > 0) {
+            positionRef.current = event.position * 1000;
+            durationRef.current = event.duration * 1000;
         }
     });
 
@@ -636,6 +655,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                                     initialRestorePositionRef.current = state.position;
                                     positionRef.current = state.position;
                                     console.log(`[PlayerContext] Restored position ref: ${state.position / 1000}s`);
+                                    try {
+                                        // Attempt initial seek so the player UI shows correct progress
+                                        await TrackPlayer.seekTo(state.position / 1000);
+                                    } catch (e) { }
                                 }
                             }
                         }
@@ -664,16 +687,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         if (!isRestored) return;
         if (currentTrack) {
             try {
-                // If we haven't played yet and position is 0, preserve the restored position
-                // This prevents overwriting the saved progress with 0 if user opens and closes app
-                let posToSave = positionRef.current;
-                if (posToSave === 0 && initialRestorePositionRef.current > 0) {
-                    posToSave = initialRestorePositionRef.current;
+                let pos = await TrackPlayer.getPosition();
+                if ((pos === 0 || isNaN(pos)) && positionRef.current > 0) {
+                    pos = positionRef.current / 1000;
+                }
+                if ((pos === 0 || isNaN(pos)) && initialRestorePositionRef.current > 0) {
+                    pos = initialRestorePositionRef.current / 1000;
                 }
 
-                console.log('[PlayerContext] Saving state. Position:', posToSave);
+                console.log('[PlayerContext] Saving state shortcut. Position:', pos);
 
-                const pos = await TrackPlayer.getPosition();
                 const dur = await TrackPlayer.getDuration();
                 const state = {
                     currentTrack,
@@ -682,7 +705,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     playlistName,
                     gaplessEnabled,
                     position: pos * 1000,
-                    duration: dur * 1000
+                    duration: dur > 0 ? dur * 1000 : undefined
                 };
                 await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
             } catch (e) { }
@@ -695,7 +718,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             if (!isRestored) return;
             try {
                 if (currentTrack) {
-                    const pos = await TrackPlayer.getPosition();
+                    let pos = await TrackPlayer.getPosition();
+                    if ((pos === 0 || isNaN(pos)) && positionRef.current > 0) {
+                        pos = positionRef.current / 1000;
+                    }
+                    if ((pos === 0 || isNaN(pos)) && initialRestorePositionRef.current > 0) {
+                        pos = initialRestorePositionRef.current / 1000;
+                    }
                     const dur = await TrackPlayer.getDuration();
                     const state = {
                         currentTrack,
@@ -704,7 +733,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                         playlistName,
                         gaplessEnabled,
                         position: pos * 1000,
-                        duration: dur * 1000
+                        duration: dur > 0 ? dur * 1000 : undefined
                     };
                     await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
                 } else {
@@ -735,38 +764,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             await TrackPlayer.pause();
         } else if (event.type === Event.RemoteNext) {
             console.log('Remote Next button pressed');
-            await TrackPlayer.skipToNext();
-
-            // Update track info
-            setTimeout(async () => {
-                const activeTrackIndex = await TrackPlayer.getActiveTrackIndex();
-                const queue = await TrackPlayer.getQueue();
-                if (activeTrackIndex !== null && activeTrackIndex >= 0 && queue[activeTrackIndex]) {
-                    const track = queue[activeTrackIndex];
-                    const song = playlist.find(s => s.id === track.id);
-                    if (song) {
-                        setCurrentTrack(song);
-                        setCurrentIndex(activeTrackIndex);
-                    }
-                }
-            }, 100);
+            await nextTrack();
         } else if (event.type === Event.RemotePrevious) {
             console.log('Remote Previous button pressed');
-            await TrackPlayer.skipToPrevious();
-
-            // Update track info
-            setTimeout(async () => {
-                const activeTrackIndex = await TrackPlayer.getActiveTrackIndex();
-                const queue = await TrackPlayer.getQueue();
-                if (activeTrackIndex !== null && activeTrackIndex >= 0 && queue[activeTrackIndex]) {
-                    const track = queue[activeTrackIndex];
-                    const song = playlist.find(s => s.id === track.id);
-                    if (song) {
-                        setCurrentTrack(song);
-                        setCurrentIndex(activeTrackIndex);
-                    }
-                }
-            }, 100);
+            await prevTrack();
         } else if (event.type === Event.RemoteSeek) {
             console.log('Remote Seek:', event.position);
             await TrackPlayer.seekTo(event.position);
@@ -823,23 +824,23 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     const searchSec = initialRestorePositionRef.current / 1000;
                     console.log('[PlayerContext] restoring position (play-then-seek):', searchSec);
 
-                    // Play first to initialize engine state properly
+                    // Small delay, then play
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     await TrackPlayer.play();
                     setIsPlaying(true);
 
-                    // Small delay to allow buffering/metadata load and then seek
-                    setTimeout(async () => {
-                        await TrackPlayer.seekTo(searchSec);
-
-                        // Verification after another delay
+                    // Robust restoration: Seek multiple times with increasing delays
+                    const seekAttempts = [300, 800, 1500, 3000];
+                    seekAttempts.forEach(delay => {
                         setTimeout(async () => {
-                            const pos = await TrackPlayer.getPosition();
-                            if (pos < 1 && searchSec > 5) {
-                                console.log('[PlayerContext] Seek failed, retrying behavior...');
+                            const currentPos = await TrackPlayer.getPosition();
+                            // If we're still at the beginning and the target is far ahead
+                            if (Math.abs(currentPos - searchSec) > 5) {
+                                console.log(`[PlayerContext] Attempting seek to ${searchSec} (current: ${currentPos}) after ${delay}ms`);
                                 await TrackPlayer.seekTo(searchSec);
                             }
-                        }, 800);
-                    }, 300);
+                        }, delay);
+                    });
 
                     initialRestorePositionRef.current = 0; // Consume
                     return;
@@ -872,8 +873,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     async function nextTrack() {
         console.log('=== nextTrack called ===');
         try {
-            await TrackPlayer.skipToNext();
-            console.log('skipToNext command sent');
+            const activeIndex = await TrackPlayer.getActiveTrackIndex();
+            const queue = await TrackPlayer.getQueue();
+
+            if (activeIndex !== null && activeIndex !== undefined && queue.length > 0) {
+                if (activeIndex === queue.length - 1) {
+                    console.log('At last track, looping to start');
+                    await TrackPlayer.skip(0);
+                } else {
+                    await TrackPlayer.skipToNext();
+                }
+            } else {
+                await TrackPlayer.skipToNext();
+            }
+            console.log('nextTrack command sent');
 
             // Manually fetch and update the new track using refs for latest state
             setTimeout(async () => {
@@ -900,9 +913,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             }, 150);
         } catch (e) {
             console.error('nextTrack error:', e);
+            // Fallback for any unexpected error
             if (repeatMode === 'all') {
-                await TrackPlayer.skip(0);
-                await TrackPlayer.play();
+                try {
+                    await TrackPlayer.skip(0);
+                    await TrackPlayer.play();
+                } catch (err) { }
             }
         }
     }
@@ -914,34 +930,48 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             if (currentPosition > 3) { // If more than 3 seconds into the song, restart it
                 console.log('Restarting current song (position > 3s)');
                 await TrackPlayer.seekTo(0);
-            } else {
-                console.log('Skipping to previous track');
-                await TrackPlayer.skipToPrevious();
-
-                // Manually fetch and update the new track using refs for latest state
-                setTimeout(async () => {
-                    const activeTrackIndex = await TrackPlayer.getActiveTrackIndex();
-                    const queue = await TrackPlayer.getQueue();
-                    console.log('After prev - Active index:', activeTrackIndex, 'Queue length:', queue.length);
-
-                    if (activeTrackIndex !== null && activeTrackIndex >= 0 && queue[activeTrackIndex]) {
-                        const track = queue[activeTrackIndex];
-                        console.log('New active track:', track.title);
-
-                        // Use ref to get latest playlist value
-                        let song = playlistRef.current.find(s => s.id === track.id);
-                        // Fallback to library songs for enhanced metadata
-                        if (!song) {
-                            song = librarySongsRef.current.find(s => s.id === track.id);
-                        }
-                        if (song) {
-                            console.log('Updating to song:', song.title);
-                            setCurrentTrack(song);
-                            setCurrentIndex(activeTrackIndex);
-                        }
-                    }
-                }, 150);
+                return;
             }
+
+            const activeIndex = await TrackPlayer.getActiveTrackIndex();
+            const queue = await TrackPlayer.getQueue();
+
+            if (activeIndex !== null && activeIndex !== undefined && queue.length > 0) {
+                if (activeIndex === 0) {
+                    console.log('At first track, looping to end');
+                    await TrackPlayer.skip(queue.length - 1);
+                } else {
+                    console.log('Skipping to previous track');
+                    await TrackPlayer.skipToPrevious();
+                }
+            } else {
+                await TrackPlayer.skipToPrevious();
+            }
+
+            // Manually fetch and update the new track using refs for latest state
+            setTimeout(async () => {
+                const activeTrackIndex = await TrackPlayer.getActiveTrackIndex();
+                const queue = await TrackPlayer.getQueue();
+                console.log('After prev - Active index:', activeTrackIndex, 'Queue length:', queue.length);
+
+                if (activeTrackIndex !== null && activeTrackIndex >= 0 && queue[activeTrackIndex]) {
+                    const track = queue[activeTrackIndex];
+                    console.log('New active track:', track.title);
+
+                    // Use ref to get latest playlist value
+                    let song = playlistRef.current.find(s => s.id === track.id);
+                    // Fallback to library songs for enhanced metadata
+                    if (!song) {
+                        song = librarySongsRef.current.find(s => s.id === track.id);
+                    }
+                    if (song) {
+                        console.log('Updating to song:', song.title);
+                        setCurrentTrack(song);
+                        setCurrentIndex(activeTrackIndex);
+                    }
+                }
+            }, 150);
+
         } catch (e) {
             console.error('prevTrack error:', e);
         }

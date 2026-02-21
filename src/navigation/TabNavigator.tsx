@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeNavigator } from './HomeNavigator';
-import { SearchNavigator } from './SearchNavigator';
+import { FavoritesScreen } from '../screens/FavoritesScreen';
 import { PlaylistsNavigator } from './PlaylistsNavigator';
+import { SearchNavigator } from './SearchNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
@@ -11,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
     useAnimatedStyle,
     withSpring,
+    withTiming,
     useSharedValue,
     SlideInRight,
     SlideInLeft,
@@ -19,114 +21,111 @@ import Animated, {
 const Tab = createBottomTabNavigator();
 
 const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
-    const scale = useSharedValue(isFocused ? 1 : 0.95);
-    const opacity = useSharedValue(isFocused ? 1 : 0);
+    const scale = useSharedValue(isFocused ? 1 : 0.9);
 
     useEffect(() => {
-        scale.value = withSpring(isFocused ? 1 : 0.95, { damping: 12 });
-        opacity.value = withSpring(isFocused ? 1 : 0, { duration: 200 });
+        scale.value = withSpring(isFocused ? 1 : 0.9, { damping: 15 });
     }, [isFocused]);
 
-    const animatedPillStyle = useAnimatedStyle(() => ({
-        backgroundColor: isFocused ? theme.primary : 'rgba(255,255,255,0.05)',
-        borderRadius: 25,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: isFocused ? 20 : 14,
-        height: 50,
-        justifyContent: 'center',
+    const iconName = () => {
+        if (route.name === 'HomeTab') return isFocused ? 'home' : 'home-outline';
+        if (route.name === 'Search') return isFocused ? 'search' : 'search-outline';
+        if (route.name === 'Favorites') return isFocused ? 'heart' : 'heart-outline';
+        if (route.name === 'Playlists') return isFocused ? 'library' : 'library-outline';
+        return 'musical-notes';
+    };
+
+    const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
     }));
 
-    const animatedTextStyle = useAnimatedStyle(() => ({
-        opacity: opacity.value,
-        width: isFocused ? 'auto' : 0,
-        marginLeft: isFocused ? 8 : 0,
-        overflow: 'hidden',
-    }));
-
-    const iconName = () => {
-        if (isFocused) {
-            if (route.name === 'HomeTab') return 'home';
-            if (route.name === 'Search') return 'search';
-            if (route.name === 'Playlists') return 'list';
-        } else {
-            if (route.name === 'HomeTab') return 'home-outline';
-            if (route.name === 'Search') return 'search-outline';
-            if (route.name === 'Playlists') return 'list-outline';
-        }
-        return 'musical-notes';
-    };
+    if (isFocused) {
+        return (
+            <TouchableOpacity
+                onPress={onPress}
+                activeOpacity={0.9}
+                style={styles.activePill}
+            >
+                <Animated.View style={[styles.activePillInner, animatedStyle]}>
+                    <Ionicons
+                        name={iconName() as any}
+                        size={22}
+                        color="#000"
+                    />
+                    <Text style={styles.activeText}>{label}</Text>
+                </Animated.View>
+            </TouchableOpacity>
+        );
+    }
 
     return (
         <TouchableOpacity
             onPress={onPress}
-            activeOpacity={0.9}
-            style={{ paddingHorizontal: 4 }}
+            activeOpacity={0.7}
+            style={styles.tabItemInactive}
         >
-            <Animated.View style={animatedPillStyle}>
+            <View style={styles.inactiveCircle}>
                 <Ionicons
                     name={iconName() as any}
-                    size={22}
-                    color={isFocused ? theme.textOnPrimary : 'rgba(255,255,255,0.6)'}
+                    size={24}
+                    color="rgba(255,255,255,0.5)"
                 />
-                {isFocused && (
-                    <Animated.View style={animatedTextStyle}>
-                        <Text
-                            numberOfLines={1}
-                            style={[
-                                styles.tabLabel,
-                                { color: theme.textOnPrimary }
-                            ]}
-                        >
-                            {label}
-                        </Text>
-                    </Animated.View>
-                )}
-            </Animated.View>
+            </View>
         </TouchableOpacity>
     );
 };
 
 const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) => {
+    // Determine a solid background color based on the theme
+    // If the theme is dark/black, we'll use a slightly lighter grey/black for contrast
+    // If it's a light theme, we'll use white.
+    const isDark = theme.background === '#050505' || theme.background === '#000000';
+    const solidBg = isDark ? '#121212' : '#ffffff';
+
     return (
-        <View style={[
-            styles.tabBarContainer,
-            { height: 65 + insets.bottom, paddingBottom: insets.bottom }
-        ]}>
-            <View style={styles.tabBarInner}>
-                {state.routes.map((route: any, index: number) => {
-                    const { options } = descriptors[route.key];
-                    const label = options.tabBarLabel !== undefined
-                        ? options.tabBarLabel
-                        : options.title !== undefined
-                            ? options.title
-                            : route.name;
-                    const isFocused = state.index === index;
+        <View style={styles.tabBarWrapper}>
+            <View style={[
+                styles.tabBarContainer,
+                {
+                    backgroundColor: '#000',
+                    paddingBottom: Math.max(insets.bottom, 10),
+                    height: 60 + Math.max(insets.bottom, 10)
+                }
+            ]}>
+                <View style={styles.tabBarInner}>
+                    {state.routes.map((route: any, index: number) => {
+                        const { options } = descriptors[route.key];
+                        const label = options.tabBarLabel !== undefined
+                            ? options.tabBarLabel
+                            : options.title !== undefined
+                                ? options.title
+                                : route.name;
+                        const isFocused = state.index === index;
 
-                    const onPress = () => {
-                        const event = navigation.emit({
-                            type: 'tabPress',
-                            target: route.key,
-                            canPreventDefault: true,
-                        });
+                        const onPress = () => {
+                            const event = navigation.emit({
+                                type: 'tabPress',
+                                target: route.key,
+                                canPreventDefault: true,
+                            });
 
-                        if (!isFocused && !event.defaultPrevented) {
-                            navigation.navigate(route.name);
-                        }
-                    };
+                            if (!isFocused && !event.defaultPrevented) {
+                                navigation.navigate(route.name);
+                            }
+                        };
 
-                    return (
-                        <TabItem
-                            key={route.key}
-                            route={route}
-                            isFocused={isFocused}
-                            onPress={onPress}
-                            label={label}
-                            theme={theme}
-                        />
-                    );
-                })}
+                        return (
+                            <TabItem
+                                key={route.key}
+                                route={route}
+                                isFocused={isFocused}
+                                onPress={onPress}
+                                label={label}
+                                theme={theme}
+                            />
+                        );
+                    })}
+                </View>
             </View>
         </View>
     );
@@ -138,15 +137,21 @@ const HomeTabScreen = () => (
     </View>
 );
 
-const SearchTabScreen = () => (
+const FavoritesTabScreen = () => (
     <View style={{ flex: 1 }}>
-        <SearchNavigator />
+        <FavoritesScreen />
     </View>
 );
 
 const PlaylistsTabScreen = () => (
     <View style={{ flex: 1 }}>
         <PlaylistsNavigator />
+    </View>
+);
+
+const SearchTabScreen = () => (
+    <View style={{ flex: 1 }}>
+        <SearchNavigator />
     </View>
 );
 
@@ -172,6 +177,11 @@ export const TabNavigator = () => {
                 options={{ tabBarLabel: 'Search' }}
             />
             <Tab.Screen
+                name="Favorites"
+                component={FavoritesTabScreen}
+                options={{ tabBarLabel: 'Favorites' }}
+            />
+            <Tab.Screen
                 name="Playlists"
                 component={PlaylistsTabScreen}
                 options={{ tabBarLabel: 'Playlists' }}
@@ -181,23 +191,63 @@ export const TabNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-    tabBarContainer: {
-        flexDirection: 'row',
-        backgroundColor: '#000',
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
-        position: 'relative',
+    tabBarWrapper: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
         zIndex: 100,
-        height: 65,
-        alignItems: 'center',
+    },
+    tabBarContainer: {
+        width: '100%',
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
         justifyContent: 'center',
-        paddingHorizontal: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -5 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 10,
     },
     tabBarInner: {
         flexDirection: 'row',
         width: '100%',
         alignItems: 'center',
-        justifyContent: 'space-around',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+    },
+    activePill: {
+        flex: 1.5,
+        height: 48,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    activePillInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FCFCFC',
+        paddingHorizontal: 20,
+        height: '100%',
+        borderRadius: 30,
+    },
+    activeText: {
+        color: '#000',
+        fontWeight: 'bold',
+        marginLeft: 6,
+        fontSize: 13, // Slightly smaller to fit 'Favorites' and 'Playlists' perfectly
+    },
+    tabItemInactive: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    inactiveCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#111',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     tabLabel: {
         fontSize: 14,

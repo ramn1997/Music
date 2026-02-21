@@ -82,19 +82,35 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
 
             if (cachedData) {
                 const { synced, plain, timestamp } = JSON.parse(cachedData);
-                // Cache valid for 7 days
-                if (Date.now() - timestamp < 7 * 24 * 60 * 60 * 1000) {
-                    if (synced) setSyncedLyrics(synced);
-                    if (plain) setPlainLyrics(plain);
-                    setLoading(false);
-                    return;
+                // Cache valid for 30 days (increased from 7)
+                if (Date.now() - timestamp < 30 * 24 * 60 * 60 * 1000) {
+                    if (synced && synced.length > 0) {
+                        setSyncedLyrics(synced);
+                        setLoading(false);
+                        return;
+                    }
+                    if (plain) {
+                        setPlainLyrics(plain);
+                        setLoading(false);
+                        // Don't return, maybe we can find synced now in background? 
+                        // actually for now let's just use cache to be fast
+                        return;
+                    }
                 }
             }
 
-            const artist = song.artist.split(/[&,\/]/)[0].replace(/\s*\([^)]*\)/g, '').trim();
-            const title = song.title.replace(/\s*\([^)]*\)/g, '').replace(/\s*\[[^\]]*\]/g, '').replace(/\s*-\s*.*$/, '').trim();
+            // Cleaning strategy
+            const cleanArtist = song.artist.split(/[&,\/]/)[0].replace(/\s*\([^)]*\)/g, '').trim();
+            const originalTitle = song.title.trim();
+            const cleanTitle = song.title
+                .replace(/\s*\([^)]*\)/g, '') // remove (...)
+                .replace(/\s*\[[^\]]*\]/g, '') // remove [...]
+                .replace(/\s*-\s*.*$/, '') // remove - ...
+                .replace(/feat\..*/i, '') // remove feat.
+                .replace(/ft\..*/i, '') // remove ft.
+                .trim();
 
-            const fetchWithTimeout = (url: string, timeout = 5000) => {
+            const fetchWithTimeout = (url: string, timeout = 3000) => {
                 return Promise.race([
                     fetch(url),
                     new Promise<Response>((_, reject) =>
@@ -103,58 +119,98 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
                 ]);
             };
 
-            // Try LRCLIB API first (Better for synced lyrics)
+            // 1. Try LRCLIB with CLEAN title first (higher success rate for pop/modern)
             try {
-                const response = await fetchWithTimeout(
-                    `https://lrclib.net/api/get?artist=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`,
-                    4000
-                );
+                const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(cleanTitle)}&album_name=${encodeURIComponent(song.album || '')}&duration=${song.duration ? song.duration / 1000 : ''}`;
+                console.log('Fetching Lyrics (Clean):', url);
 
+                const response = await fetchWithTimeout(url, 3000);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.syncedLyrics) {
                         const parsed = parseLRC(data.syncedLyrics);
                         setSyncedLyrics(parsed);
                         await AsyncStorage.setItem(cacheKey, JSON.stringify({ synced: parsed, timestamp: Date.now() }));
-                        return; // Found synced lyrics, stop here
+                        setLoading(false);
+                        return;
                     } else if (data.plainLyrics) {
                         setPlainLyrics(data.plainLyrics);
                         await AsyncStorage.setItem(cacheKey, JSON.stringify({ plain: data.plainLyrics, timestamp: Date.now() }));
-                        return; // Found plain lyrics, stop here (could optionally continue for synced)
+                        setLoading(false);
+                        return;
                     }
                 }
             } catch (e) {
-                console.log('LRCLIB failed or timed out:', e);
+                console.log('LRCLIB Clean attempt failed');
             }
 
-            // Fallback to lyrics.ovh
+            // 2. Try LRCLIB with ORIGINAL title (if clean failed)
+            if (originalTitle !== cleanTitle) {
+                try {
+                    const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(originalTitle)}&duration=${song.duration ? song.duration / 1000 : ''}`;
+                    console.log('Fetching Lyrics (Original):', url);
+
+                    const response = await fetchWithTimeout(url, 3000);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.syncedLyrics) {
+                            const parsed = parseLRC(data.syncedLyrics);
+                            setSyncedLyrics(parsed);
+                            await AsyncStorage.setItem(cacheKey, JSON.stringify({ synced: parsed, timestamp: Date.now() }));
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (e) { console.log('LRCLIB Original attempt failed'); }
+            }
+
+            // 3. Fallback to Search API (Slower but finds more matches)
+            try {
+                const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanArtist + ' ' + cleanTitle)}`;
+                console.log('Searching Lyrics:', searchUrl);
+                const response = await fetchWithTimeout(searchUrl, 4000);
+                if (response.ok) {
+                    const results = await response.json();
+                    if (Array.isArray(results) && results.length > 0) {
+                        // Find best match by duration if available
+                        const match = results[0]; // Take first for speed
+                        if (match.syncedLyrics) {
+                            const parsed = parseLRC(match.syncedLyrics);
+                            setSyncedLyrics(parsed);
+                            await AsyncStorage.setItem(cacheKey, JSON.stringify({ synced: parsed, timestamp: Date.now() }));
+                            setLoading(false);
+                            return;
+                        } else if (match.plainLyrics) {
+                            setPlainLyrics(match.plainLyrics);
+                            await AsyncStorage.setItem(cacheKey, JSON.stringify({ plain: match.plainLyrics, timestamp: Date.now() }));
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                }
+            } catch (e) { console.log('LRCLIB Search failed'); }
+
+            // 4. Last Resort: lyrics.ovh (Plain text only)
             try {
                 const ovhResponse = await fetchWithTimeout(
-                    `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`,
-                    4000
+                    `https://api.lyrics.ovh/v1/${encodeURIComponent(cleanArtist)}/${encodeURIComponent(cleanTitle)}`,
+                    3000
                 );
-
                 if (ovhResponse.ok) {
                     const ovhData = await ovhResponse.json();
                     if (ovhData.lyrics) {
                         setPlainLyrics(ovhData.lyrics);
                         await AsyncStorage.setItem(cacheKey, JSON.stringify({ plain: ovhData.lyrics, timestamp: Date.now() }));
-                    } else {
-                        throw new Error('No lyrics found');
+                        setLoading(false);
+                        return;
                     }
-                } else {
-                    throw new Error('Lyrics not found');
                 }
-            } catch (e) {
-                console.log('OVH failed:', e);
-                // If both failed
-                if (!plainLyrics && syncedLyrics.length === 0) {
-                    throw new Error('Lyrics not found');
-                }
-            }
+            } catch (e) { console.log('OVH failed'); }
+
+            setError('No lyrics found');
 
         } catch (err) {
-            setError('Lyrics not found for this song.');
+            setError('Lyrics not available');
         } finally {
             setLoading(false);
         }

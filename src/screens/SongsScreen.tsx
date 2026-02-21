@@ -23,7 +23,7 @@ import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 
 const FlashListAny = FlashList as any;
 
-export const SongsScreen = () => {
+export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { songs, loading } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
@@ -117,39 +117,41 @@ export const SongsScreen = () => {
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
 
-    return (
-        <ScreenContainer variant="default">
+    const content = (
+        <>
             {/* Header */}
-            <View style={styles.header}>
-                {isSelectionMode ? (
-                    <>
-                        <TouchableOpacity onPress={cancelSelection} style={styles.backButton}>
-                            <Ionicons name="close" size={24} color={theme.text} />
-                        </TouchableOpacity>
-                        <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedSongIds.size} Selected</Text>
-                        <TouchableOpacity
-                            onPress={() => {
-                                if (selectedSongIds.size > 0) {
-                                    const selected = songs.filter(s => selectedSongIds.has(s.id));
-                                    setSongsToAddToPlaylist(selected);
-                                    setPlaylistModalVisible(true);
-                                }
-                            }}
-                            style={{ padding: 8 }}
-                        >
-                            <Ionicons name="add-circle" size={28} color={theme.primary} />
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <>
-                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color={theme.text} />
-                        </TouchableOpacity>
-                        <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
-                        <View style={{ width: 40 }} />
-                    </>
-                )}
-            </View>
+            {!isEmbedded && (
+                <View style={styles.header}>
+                    {isSelectionMode ? (
+                        <>
+                            <TouchableOpacity onPress={cancelSelection} style={styles.backButton}>
+                                <Ionicons name="close" size={24} color={theme.text} />
+                            </TouchableOpacity>
+                            <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedSongIds.size} Selected</Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (selectedSongIds.size > 0) {
+                                        const selected = songs.filter(s => selectedSongIds.has(s.id));
+                                        setSongsToAddToPlaylist(selected);
+                                        setPlaylistModalVisible(true);
+                                    }
+                                }}
+                                style={{ padding: 8 }}
+                            >
+                                <Ionicons name="add-circle" size={28} color={theme.primary} />
+                            </TouchableOpacity>
+                        </>
+                    ) : (
+                        <>
+                            <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                                <Ionicons name="arrow-back" size={24} color={theme.text} />
+                            </TouchableOpacity>
+                            <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
+                            <View style={{ width: 40 }} />
+                        </>
+                    )}
+                </View>
+            )}
 
             {/* Search Bar & Sort */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10 }}>
@@ -279,9 +281,18 @@ export const SongsScreen = () => {
                         songs={songsToAddToPlaylist}
                     />
                 </View>
-            )
-            }
-        </ScreenContainer >
+            )}
+        </>
+    );
+
+    if (isEmbedded) {
+        return <View style={{ flex: 1 }}>{content}</View>;
+    }
+
+    return (
+        <ScreenContainer variant="default">
+            {content}
+        </ScreenContainer>
     );
 };
 
