@@ -171,7 +171,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         await TrackPlayer.setVolume(newVolume);
     };
 
-    // Widget Communication
+    // Widget Communication — use refs so we always call the LATEST functions (no stale closure)
     useEffect(() => {
         if (Platform.OS !== 'android') return;
 
@@ -179,15 +179,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         if (!WidgetModule) return;
 
         const eventEmitter = new NativeEventEmitter(WidgetModule);
-        const subscription = eventEmitter.addListener('onWidgetCommand', async (command: string) => {
+        const subscription = eventEmitter.addListener('onWidgetCommand', (command: string) => {
             console.log('[PlayerContext] Widget command:', command);
-            if (command === 'PLAY_PAUSE') playPause();
-            else if (command === 'NEXT') nextTrack();
-            else if (command === 'PREV') prevTrack();
+            if (command === 'PLAY_PAUSE') playPauseRef.current();
+            else if (command === 'NEXT') nextTrackRef.current();
+            else if (command === 'PREV') prevTrackRef.current();
         });
 
         return () => subscription.remove();
-    }, [isPlayerReady]);
+    }, []); // Run ONCE — refs always hold the latest functions
 
     // Update Widget when playback state changes
     useEffect(() => {
@@ -230,6 +230,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const librarySongsRef = useRef<Song[]>([]);
     const isMountedRef = useRef(true);
     const currentTrackRef = useRef<Song | null>(null);
+    // Refs to always call the LATEST version of these functions (avoids stale closures in widget/event listeners)
+    const playPauseRef = useRef<() => void>(() => { });
+    const nextTrackRef = useRef<() => void>(() => { });
+    const prevTrackRef = useRef<() => void>(() => { });
 
     // Get songs from MusicLibrary to sync metadata
     // PlayerProvider is now inside MusicLibraryProvider so this hook works
@@ -974,6 +978,14 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             console.error('prevTrack error:', e);
         }
     }
+
+    // Keep widget action refs updated with the latest function references
+    // This MUST be after playPause/nextTrack/prevTrack are defined
+    useEffect(() => {
+        playPauseRef.current = playPause;
+        nextTrackRef.current = nextTrack;
+        prevTrackRef.current = prevTrack;
+    });
 
     const player: PlayerContextType = {
         currentTrack,
