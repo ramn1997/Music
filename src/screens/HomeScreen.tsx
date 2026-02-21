@@ -228,8 +228,19 @@ const SmartPlaylistCard = ({
     return (
         <TouchableOpacity style={styles.historyCard} onPress={onPress} activeOpacity={0.9}>
             <View style={[styles.historyImageContainer, { backgroundColor: item.color, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }]}>
+
                 <HistoryCardDesign />
-                <Ionicons name={item.icon || "musical-notes"} size={48} color="#fff" style={{ zIndex: 1 }} />
+                <Ionicons
+                    name={item.icon || "musical-notes"}
+                    size={44}
+                    color="#fff"
+                    style={{
+                        zIndex: 1,
+                        textShadowColor: 'rgba(0,0,0,0.5)',
+                        textShadowOffset: { width: 0, height: 2 },
+                        textShadowRadius: 6
+                    }}
+                />
             </View>
             <View style={[styles.historyInfoContainer, { backgroundColor: item.cardColor || '#1a1a1a' }]}>
                 <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
@@ -518,7 +529,7 @@ export const HomeScreen = () => {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
                         >
-                            {topArtists.map((artist) => (
+                            {topArtists.slice(0, 10).map((artist) => (
                                 <TopArtistCard
                                     key={artist.name}
                                     artist={artist}

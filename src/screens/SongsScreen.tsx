@@ -156,7 +156,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             {/* Search Bar & Sort */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10 }}>
                 <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, marginRight: 10, marginHorizontal: 0, marginVertical: 0 }]}>
-                    <Ionicons name="search" size={18} color={theme.textSecondary} style={{ marginRight: 10 }} />
+                    <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
                     <TextInput
                         style={[styles.searchInput, { color: theme.text }]}
                         placeholder="Search songs..."
@@ -171,7 +171,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 >
                     <Ionicons
                         name="swap-vertical"
-                        size={18}
+                        size={16}
                         color={theme.primary}
                     />
                 </TouchableOpacity>
@@ -188,7 +188,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         }
                     }}
                 >
-                    <Ionicons name="play" size={16} color={theme.textOnPrimary} />
+                    <Ionicons name="play" size={14} color={theme.textOnPrimary} />
                     <Text style={[styles.actionButtonText, { color: theme.textOnPrimary }]}>Play All</Text>
                 </TouchableOpacity>
 
@@ -202,7 +202,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         }
                     }}
                 >
-                    <Ionicons name="shuffle" size={16} color={theme.primary} />
+                    <Ionicons name="shuffle" size={14} color={theme.primary} />
                     <Text style={[styles.actionButtonText, { color: theme.text }]}>Shuffle</Text>
                 </TouchableOpacity>
             </View>
@@ -342,14 +342,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginHorizontal: 20,
-        marginVertical: 10,
-        paddingHorizontal: 15,
-        height: 40,
-        borderRadius: 20,
+        paddingHorizontal: 12,
+        height: 34,
+        borderRadius: 17,
     },
     searchInput: {
         flex: 1,
-        fontSize: 14,
+        fontSize: 13,
         height: '100%',
         paddingVertical: 0, // Fix cross-platform vertical alignment
     },
@@ -508,8 +507,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     sortButton: {
-        width: 40,
-        height: 40,
+        width: 34,
+        height: 34,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -524,17 +523,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: 38,
-        borderRadius: 19, // Pill shape
-        elevation: 3,
+        height: 32,
+        borderRadius: 16, // Pill shape
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
     },
     actionButtonText: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 'bold',
-        marginLeft: 6,
+        marginLeft: 4,
     }
 });

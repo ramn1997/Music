@@ -641,40 +641,23 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
                 const allArtists = Array.from(artistMap.values());
 
-                // 1. Pro: 3+ unique songs in a single day
-                let filtered = allArtists.filter(a => {
-                    return Array.from(a.dailySongs.values()).some(songSet => songSet.size >= 3);
-                });
-
-                // 2. Fallback: 3+ total plays
-                if (filtered.length === 0) {
-                    filtered = allArtists.filter(a => a.totalPlays >= 3);
-                }
-
-                // 3. Minimal: 1+ play
-                if (filtered.length === 0) {
-                    filtered = allArtists.filter(a => a.totalPlays >= 1);
-                }
-
-                // 4. Global Fallback: Most songs in library (Discovery mode)
-                if (filtered.length === 0) {
-                    filtered = allArtists
-                        .sort((a, b) => b.songs.length - a.songs.length)
-                        .slice(0, 10);
-                }
-
-                const top = filtered
+                // Score each artist: weighted by play count + song count for discovery
+                // This ensures new users always see results (by library size)
+                // while active users see actual listening habits.
+                const top = allArtists
                     .map(a => ({
                         ...a,
-                        playedSongsCount: new Set(a.songs.map(s => s.id)).size
+                        playedSongsCount: a.songs.length,
+                        // Score: plays are weighted 3x more than song count (library-based discovery)
+                        score: (a.totalPlays * 3) + a.songs.length
                     }))
                     .sort((a, b) => {
                         // Always put Unknown Artist at the bottom
                         if (a.name === 'Unknown Artist') return 1;
                         if (b.name === 'Unknown Artist') return -1;
-                        return b.totalPlays - a.totalPlays;
+                        return b.score - a.score;
                     })
-                    .slice(0, 10); // Calculate 10, though UI might show 5
+                    .slice(0, 10);
 
                 setTopArtists(top);
                 AsyncStorage.setItem('cached_top_artists', JSON.stringify(top));
@@ -703,12 +686,24 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         const newMetadata = { ...songMetadata, [songId]: updatedMeta };
         setSongMetadata(newMetadata);
 
-        setSongs(prevSongs => prevSongs.map(s => {
-            if (s.id === songId) {
-                return { ...s, playCount: updatedMeta.playCount, lastPlayed: updatedMeta.lastPlayed, playHistory: updatedMeta.playHistory };
-            }
-            return s;
-        }));
+        setSongs(prevSongs => {
+            const updatedSongs = prevSongs.map(s => {
+                if (s.id === songId) {
+                    return { ...s, playCount: updatedMeta.playCount, lastPlayed: updatedMeta.lastPlayed, playHistory: updatedMeta.playHistory };
+                }
+                return s;
+            });
+
+            // Immediately re-derive recentlyPlayed from the updated songs list
+            const recent = [...updatedSongs]
+                .filter(s => s.lastPlayed && s.lastPlayed > 0)
+                .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
+                .slice(0, 30);
+            setRecentlyPlayed(recent);
+            AsyncStorage.setItem('cached_recently_played', JSON.stringify(recent)).catch(() => { });
+
+            return updatedSongs;
+        });
 
         try {
             await AsyncStorage.setItem('song_metadata', JSON.stringify(newMetadata));

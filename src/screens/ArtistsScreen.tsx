@@ -49,46 +49,10 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             }
             map.get(artistName).count++;
         });
-        return Array.from(map.values()).sort((a, b) => {
-            const aName = a.name.toLowerCase();
-            const bName = b.name.toLowerCase();
-            const aIsLetter = /^[a-z]/.test(aName);
-            const bIsLetter = /^[a-z]/.test(bName);
-
-            if (aIsLetter && !bIsLetter) return -1;
-            if (!aIsLetter && bIsLetter) return 1;
-            return aName.localeCompare(bName);
-        });
+        return Array.from(map.values()).sort((a, b) => b.count - a.count);
     }, [songs]);
 
-    const flatListRef = React.useRef<FlatList>(null);
 
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
-
-    const scrollToAlphabet = (letter: string) => {
-        let index = -1;
-        if (letter === '#') {
-            index = artists.findIndex(a => !/^[a-zA-Z]/.test(a.name));
-        } else {
-            // Find the first artist whose name is >= this letter, but still starts with a letter
-            index = artists.findIndex(a => {
-                const name = a.name.toUpperCase();
-                return /^[A-Z]/.test(name) && name >= letter;
-            });
-        }
-
-        if (index !== -1 && index < artists.length) {
-            try {
-                flatListRef.current?.scrollToIndex({
-                    index: index,
-                    animated: true,
-                    viewPosition: 0
-                });
-            } catch (e) {
-                console.warn('[ArtistsScreen] Scroll failed:', e);
-            }
-        }
-    };
 
     const toggleLayout = () => {
         if (layoutMode === 'grid3') setLayoutMode('grid2');
@@ -129,7 +93,6 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
             <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : (isEmbedded ? 0 : 80) }}>
                 <FlatList
-                    ref={flatListRef}
                     key={layoutMode}
                     data={artists}
                     keyExtractor={(item) => item.id}
@@ -144,31 +107,7 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         </View>
                     }
                     showsVerticalScrollIndicator={false}
-                    onScrollToIndexFailed={(info) => {
-                        setTimeout(() => {
-                            flatListRef.current?.scrollToIndex({
-                                index: info.index,
-                                animated: true,
-                                viewPosition: 0
-                            });
-                        }, 100);
-                    }}
                 />
-
-                {/* Alphabet Sidebar */}
-                <View style={styles.alphabetSidebar}>
-                    {alphabet.map((letter) => (
-                        <TouchableOpacity
-                            key={letter}
-                            onPress={() => scrollToAlphabet(letter)}
-                            style={styles.alphabetLetter}
-                        >
-                            <Text style={[styles.alphabetText, { color: theme.textSecondary }]}>
-                                {letter}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
             </View>
         </View>
     );
@@ -211,8 +150,7 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     listContent: {
-        paddingLeft: 15,
-        paddingRight: 35, // Space for sidebar
+        paddingHorizontal: 15,
         paddingBottom: 150,
     },
     columnWrapper: {

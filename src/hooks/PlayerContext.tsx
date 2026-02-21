@@ -821,28 +821,26 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     }
                     initialRestorePositionRef.current = 0; // Consume
                 } else if (initialRestorePositionRef.current > 0) {
-                    const searchSec = initialRestorePositionRef.current / 1000;
-                    console.log('[PlayerContext] restoring position (play-then-seek):', searchSec);
+                    const targetSec = initialRestorePositionRef.current / 1000;
+                    initialRestorePositionRef.current = 0; // Consume immediately to prevent re-entry
+                    console.log('[PlayerContext] Restoring position seek-first:', targetSec);
 
-                    // Small delay, then play
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // Seek first, then play — this avoids the race condition of play-then-seek
+                    await TrackPlayer.seekTo(targetSec);
+
+                    // Poll until seek lands (max 3s), then play
+                    const pollStart = Date.now();
+                    const waitForSeek = async (): Promise<void> => {
+                        while (Date.now() - pollStart < 3000) {
+                            const pos = await TrackPlayer.getPosition();
+                            if (Math.abs(pos - targetSec) <= 3) break; // Within 3s is close enough
+                            await new Promise(r => setTimeout(r, 200));
+                        }
+                    };
+                    await waitForSeek();
+
                     await TrackPlayer.play();
                     setIsPlaying(true);
-
-                    // Robust restoration: Seek multiple times with increasing delays
-                    const seekAttempts = [300, 800, 1500, 3000];
-                    seekAttempts.forEach(delay => {
-                        setTimeout(async () => {
-                            const currentPos = await TrackPlayer.getPosition();
-                            // If we're still at the beginning and the target is far ahead
-                            if (Math.abs(currentPos - searchSec) > 5) {
-                                console.log(`[PlayerContext] Attempting seek to ${searchSec} (current: ${currentPos}) after ${delay}ms`);
-                                await TrackPlayer.seekTo(searchSec);
-                            }
-                        }, delay);
-                    });
-
-                    initialRestorePositionRef.current = 0; // Consume
                     return;
                 }
 

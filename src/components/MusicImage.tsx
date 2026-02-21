@@ -7,16 +7,16 @@ import { useTheme } from '../hooks/ThemeContext';
 import { importService } from '../services/ImportService';
 
 const GRADIENTS: [string, string][] = [
-    ['#4f46e5', '#9333ea'], // Indigo -> Purple
-    ['#be123c', '#e11d48'], // Rose
-    ['#0e7490', '#0891b2'], // Cyan
-    ['#15803d', '#16a34a'], // Green
-    ['#b45309', '#d97706'], // Amber
-    ['#4338ca', '#6366f1'], // Indigo
-    ['#7e22ce', '#a855f7'], // Purple
-    ['#0369a1', '#0ea5e9'], // Sky
-    ['#c2410c', '#f97316'], // Orange
-    ['#1d4ed8', '#3b82f6']  // Blue
+    ['#1e1b4b', '#312e81'], // Deep Indigo
+    ['#1a1a1a', '#262626'], // Dark Grey
+    ['#2d0606', '#450a0a'], // Deep Red
+    ['#062d1a', '#0a452a'], // Deep Green
+    ['#1e1b4b', '#312e81'], // Deep Indigo
+    ['#1a1a1a', '#262626'], // Dark Grey
+    ['#2d0606', '#450a0a'], // Deep Red
+    ['#062d1a', '#0a452a'], // Deep Green
+    ['#2e1065', '#4c1d95'], // Deep Purple
+    ['#0c4a6e', '#075985']  // Deep Sky
 ];
 
 const getDesignProps = (id?: string) => {
@@ -199,34 +199,38 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     />
-                    {/* Abstract Decorative Elements */}
+
+                    {/* Consistent Decorative Circles (matching HistoryCardDesign) */}
                     <View style={{
                         position: 'absolute',
-                        width: '150%',
-                        height: '150%',
+                        width: '50%',
+                        height: '50%',
                         borderRadius: 100,
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        top: '-20%',
-                        left: '-20%',
-                        transform: [{ rotate: `${design.rotation}deg` }]
+                        backgroundColor: 'rgba(255,255,255,0.08)',
+                        top: '-12%',
+                        right: '-12%',
                     }} />
                     <View style={{
                         position: 'absolute',
-                        width: '80%',
-                        height: '80%',
+                        width: '35%',
+                        height: '35%',
                         borderRadius: 40,
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        bottom: '-10%',
-                        right: '-10%',
-                        transform: [{ rotate: `${-design.rotation / 2}deg` }]
+                        backgroundColor: 'rgba(255,255,255,0.04)',
+                        bottom: '-5%',
+                        left: '-5%',
                     }} />
 
                     {iconSize > 0 && (
                         <Ionicons
                             name={iconName as any}
-                            size={Math.max(5, iconSize * 0.5)}
+                            size={Math.max(5, iconSize * 0.75)}
                             color="#fff"
-                            style={{ opacity: 0.5 }}
+                            style={{
+                                zIndex: 1,
+                                textShadowColor: 'rgba(0,0,0,0.5)',
+                                textShadowOffset: { width: 0, height: 2 },
+                                textShadowRadius: 6
+                            }}
                         />
                     )}
                 </>

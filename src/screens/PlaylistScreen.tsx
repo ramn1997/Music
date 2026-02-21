@@ -262,13 +262,13 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             case 'Artists': return ['#7c2d12', '#9a3412'];
             case 'Genres': return ['#064e3b', '#065f46'];
             case 'most_played':
-            case 'most': return ['#2e1065', '#5b21b6'];
-            case 'liked': return ['#881337', '#be123c'];
+            case 'most': return ['#2e1065', '#4c1d95']; // Deep Purple
+            case 'liked': return ['#450a0a', '#7f1d1d']; // Deep Red
             case 'recently_played':
-            case 'recently': return ['#422006', '#854d0e'];
-            case 'recently_added': return ['#172554', '#1d4ed8'];
+            case 'recently': return ['#1a140a', '#2b2112']; // Deep Amber/Brown
+            case 'recently_added': return ['#0a0f1f', '#161d33']; // Deep Navy
             case 'never_played':
-            case 'never': return ['#020617', '#334155'];
+            case 'never': return ['#0a0a0a', '#1a1a1a']; // Black/Dark Grey
             default: {
                 const hash = playlistId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
                 const userColors: [string, string][] = [
@@ -543,199 +543,135 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             }
                             ListHeaderComponent={
                                 <View style={styles.playlistHeader}>
-                                    {(type === 'artist' || type === 'album') && (
+                                    {/* Unified Left-Aligned Header */}
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
                                         <View
                                             style={[
                                                 styles.playlistArtCard,
-                                                (type === 'artist') && { borderRadius: 90 },
+                                                (type === 'artist') && { borderRadius: 50 },
                                                 type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
-                                                { overflow: 'hidden' }
+                                                { overflow: 'hidden', width: 100, height: 100, marginBottom: 0, marginRight: 20 }
                                             ]}
                                         >
                                             {(type === 'artist') ? (
-                                                <>
-                                                    <View style={StyleSheet.absoluteFill}>
-                                                        <MusicImage
-                                                            uri={deezerArtistImage || artistInfo?.image || undefined}
-                                                            id={name}
-                                                            style={StyleSheet.absoluteFill}
-                                                            blurRadius={10}
-                                                        />
-                                                        <LinearGradient
-                                                            colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
-                                                            style={StyleSheet.absoluteFill}
-                                                        />
-                                                    </View>
-                                                    <ArtistProfileImage
-                                                        uri={deezerArtistImage || artistInfo?.image || undefined}
-                                                        name={name}
-                                                        primaryColor={theme.primary}
-                                                        cardColor={theme.card}
-                                                    />
-                                                </>
+                                                <MusicImage
+                                                    uri={deezerArtistImage || artistInfo?.image || undefined}
+                                                    id={name}
+                                                    style={StyleSheet.absoluteFill}
+                                                    iconSize={60}
+                                                />
+                                            ) : (type === 'album') ? (
+                                                <MusicImage
+                                                    uri={displaySongs[0]?.coverImage}
+                                                    id={displaySongs[0]?.id}
+                                                    assetUri={displaySongs[0]?.uri}
+                                                    style={{ width: '100%', height: '100%' }}
+                                                    containerStyle={{ width: '100%', height: '100%' }}
+                                                    iconSize={60}
+                                                />
                                             ) : (
-                                                <>
-                                                    {type === 'album' && (
-                                                        <View style={StyleSheet.absoluteFill}>
-                                                            <Image
-                                                                source={{ uri: displaySongs[0]?.coverImage || undefined }}
-                                                                style={StyleSheet.absoluteFill}
-                                                                resizeMode="cover"
-                                                            />
-                                                            <BlurView intensity={30} style={StyleSheet.absoluteFill} tint="dark" />
-                                                            <LinearGradient
-                                                                colors={['transparent', 'rgba(0,0,0,0.5)']}
-                                                                style={StyleSheet.absoluteFill}
-                                                            />
-                                                        </View>
-                                                    )}
-
-                                                    <View style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                                                        {(type === 'album') && displaySongs[0]?.coverImage ? (
-                                                            <MusicImage
-                                                                uri={displaySongs[0].coverImage}
-                                                                id={displaySongs[0].id}
-                                                                assetUri={displaySongs[0].uri}
-                                                                style={{ width: '100%', height: '100%' }}
-                                                                containerStyle={{ width: '100%', height: '100%' }}
-                                                                iconSize={100}
-                                                            />
-                                                        ) : (
-                                                            <Ionicons
-                                                                name={'disc'}
-                                                                size={100}
-                                                                color="white"
-                                                            />
-                                                        )}
+                                                <View style={StyleSheet.absoluteFill}>
+                                                    <LinearGradient
+                                                        colors={gradientColors as [string, string]}
+                                                        style={StyleSheet.absoluteFill}
+                                                        start={{ x: 0, y: 0 }}
+                                                        end={{ x: 1, y: 1 }}
+                                                    />
+                                                    <View style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                                                    <View style={{ position: 'absolute', bottom: -5, left: -5, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)' }} />
+                                                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                                                        <Ionicons
+                                                            name={
+                                                                id === 'liked' ? 'heart' :
+                                                                    (id === 'most_played' || type === 'most_played') ? 'refresh' :
+                                                                        type === 'never_played' ? 'close-circle' :
+                                                                            type === 'recently_added' ? 'add-circle' :
+                                                                                type === 'recently_played' ? 'time' :
+                                                                                    type === 'year' ? 'calendar' :
+                                                                                        'musical-notes'
+                                                            }
+                                                            size={50}
+                                                            color="white"
+                                                            style={{
+                                                                textShadowColor: 'rgba(0,0,0,0.3)',
+                                                                textShadowOffset: { width: 0, height: 2 },
+                                                                textShadowRadius: 4
+                                                            }}
+                                                        />
                                                     </View>
-                                                </>
+                                                </View>
                                             )}
                                         </View>
-                                    )}
 
-                                    {(type !== 'artist' && type !== 'album') ? (
-                                        <View
-                                            style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginBottom: 20 }}
-                                        >
-                                            <View style={{
-                                                width: 50,
-                                                height: 50,
-                                                borderRadius: 12,
-                                                overflow: 'hidden',
-                                                marginRight: 15,
-                                                justifyContent: 'center',
-                                                alignItems: 'center',
-                                                backgroundColor: theme.card
-                                            }}>
-                                                <LinearGradient
-                                                    colors={gradientColors as [string, string]}
-                                                    style={StyleSheet.absoluteFill}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 1 }}
+                                        <View style={{ flex: 1 }}>
+                                            {isEditing ? (
+                                                <TextInput
+                                                    value={editName}
+                                                    onChangeText={setEditName}
+                                                    onSubmitEditing={handleRename}
+                                                    onBlur={() => setIsEditing(false)}
+                                                    autoFocus
+                                                    style={[
+                                                        styles.playlistName,
+                                                        {
+                                                            color: theme.text,
+                                                            fontSize: 24,
+                                                            marginBottom: 4,
+                                                            textAlign: 'left',
+                                                            paddingHorizontal: 0,
+                                                            borderBottomWidth: 1,
+                                                            borderBottomColor: theme.primary,
+                                                            paddingVertical: 0
+                                                        }
+                                                    ]}
                                                 />
-                                                {/* Decorative Circles matching PlaylistsScreen */}
-                                                <View style={{ position: 'absolute', top: -10, right: -10, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                                                <View style={{ position: 'absolute', bottom: -5, left: -5, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                            ) : (
+                                                <TouchableOpacity
+                                                    disabled={type !== 'playlist' || id === 'liked'}
+                                                    onLongPress={() => {
+                                                        if (type === 'playlist' && id !== 'liked') {
+                                                            setEditName(displayName);
+                                                            setIsEditing(true);
+                                                        }
+                                                    }}
+                                                    delayLongPress={200}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <Text style={[
+                                                        styles.playlistName,
+                                                        {
+                                                            color: theme.text,
+                                                            fontSize: 26,
+                                                            marginBottom: 4,
+                                                            textAlign: 'left',
+                                                            paddingHorizontal: 0
+                                                        }
+                                                    ]}>{displayName}</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
 
-                                                <Ionicons
-                                                    name={
-                                                        id === 'liked' ? 'heart' :
-                                                            (id === 'most_played' || type === 'most_played') ? 'refresh' :
-                                                                type === 'never_played' ? 'ban' :
-                                                                    type === 'recently_added' ? 'time' :
-                                                                        type === 'recently_played' ? 'play' :
-                                                                            type === 'year' ? 'calendar' :
-                                                                                'musical-notes'
-                                                    }
-                                                    size={28}
-                                                    color="white"
-                                                />
-                                            </View>
-                                            <View>
-                                                {isEditing ? (
-                                                    <TextInput
-                                                        value={editName}
-                                                        onChangeText={setEditName}
-                                                        onSubmitEditing={handleRename}
-                                                        onBlur={() => setIsEditing(false)}
-                                                        autoFocus
-                                                        style={[
-                                                            styles.playlistName,
-                                                            {
-                                                                color: theme.text,
-                                                                fontSize: 24,
-                                                                marginBottom: 2,
-                                                                textAlign: 'left',
-                                                                paddingHorizontal: 0,
-                                                                minWidth: 150,
-                                                                borderBottomWidth: 1,
-                                                                borderBottomColor: theme.primary,
-                                                                paddingVertical: 0
-                                                            }
-                                                        ]}
-                                                    />
-                                                ) : (
-                                                    <TouchableOpacity
-                                                        disabled={type !== 'playlist' || id === 'liked'}
-                                                        onLongPress={() => {
-                                                            if (type === 'playlist' && id !== 'liked') {
-                                                                setEditName(displayName);
-                                                                setIsEditing(true);
-                                                            }
-                                                        }}
-                                                        delayLongPress={200}
-                                                        activeOpacity={0.7}
-                                                    >
-                                                        <Text style={[
-                                                            styles.playlistName,
-                                                            {
-                                                                color: theme.text,
-                                                                fontSize: 24,
-                                                                marginBottom: 2,
-                                                                textAlign: 'left',
-                                                                paddingHorizontal: 0
-                                                            }
-                                                        ]}>{displayName}</Text>
-                                                    </TouchableOpacity>
-                                                )}
-                                                <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
-                                            </View>
-
-                                        </View>
-                                    ) : (
-                                        <>
-                                            <Text style={[
-                                                styles.playlistName,
-                                                {
-                                                    color: theme.text,
-                                                    fontSize: type === 'artist' ? 32 : 28,
-                                                    letterSpacing: type === 'artist' ? 0.5 : 0
-                                                }
-                                            ]}>{name}</Text>
-
-                                            {/* Artist Info Section */}
+                                            {/* Artist Bio Snippet */}
                                             {type === 'artist' && artistInfo?.listeners && (
-                                                <Text style={{ color: theme.textSecondary, fontSize: 12, marginBottom: 4, textAlign: 'center' }}>
-                                                    {parseInt(artistInfo.listeners).toLocaleString()} listeners on Last.fm
+                                                <Text style={{ color: theme.textSecondary, fontSize: 11, marginTop: 4 }} numberOfLines={1}>
+                                                    {parseInt(artistInfo.listeners).toLocaleString()} listeners
                                                 </Text>
                                             )}
+                                        </View>
+                                    </View>
 
-                                            <Text style={[styles.playlistCount, { color: theme.textSecondary, textAlign: 'center' }]}>{displaySongs.length} Songs</Text>
-                                        </>
-                                    )}
-
-                                    {/* Artist Bio */}
+                                    {/* Artist Bio Full (Optional context) */}
                                     {type === 'artist' && artistInfo?.bio && (
                                         <Text
                                             style={{
                                                 color: theme.textSecondary,
                                                 fontSize: 13,
-                                                textAlign: 'center',
-                                                marginTop: 10,
-                                                marginHorizontal: 20,
-                                                lineHeight: 18
+                                                textAlign: 'left',
+                                                marginTop: 15,
+                                                lineHeight: 18,
+                                                width: '100%'
                                             }}
-                                            numberOfLines={4}
+                                            numberOfLines={3}
                                         >
                                             {artistInfo.bio}
                                         </Text>
@@ -749,7 +685,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                 }
                                             }}
                                         >
-                                            <Ionicons name="play" size={20} color={theme.background} />
+                                            <Ionicons name="play" size={16} color={theme.background} />
                                             <Text style={[styles.playAllText, { color: theme.background }]}>Play All</Text>
                                         </TouchableOpacity>
 
@@ -763,7 +699,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                 }
                                             }}
                                         >
-                                            <Ionicons name="shuffle" size={22} color={theme.primary} />
+                                            <Ionicons name="shuffle" size={18} color={theme.primary} />
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
@@ -968,8 +904,9 @@ const styles = StyleSheet.create({
         paddingBottom: 150,
     },
     playlistHeader: {
-        alignItems: 'center',
+        alignItems: 'flex-start',
         paddingVertical: 20,
+        paddingHorizontal: 20,
     },
     playlistArtCard: {
         width: 180,
@@ -998,16 +935,16 @@ const styles = StyleSheet.create({
     playAllButton: {
         flexDirection: 'row',
         backgroundColor: colors.primary,
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        borderRadius: 25,
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 20,
         alignItems: 'center',
         gap: 8,
     },
     playAllText: {
         color: colors.background,
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: 13,
     },
     songItem: {
         flexDirection: 'row',
@@ -1127,13 +1064,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginHorizontal: 20,
         marginVertical: 10,
-        paddingHorizontal: 15,
-        height: 40,
-        borderRadius: 20,
+        paddingHorizontal: 12,
+        height: 34,
+        borderRadius: 17,
     },
     searchInput: {
         flex: 1,
-        fontSize: 14,
+        fontSize: 13,
     },
     pillsContainer: {
         flexDirection: 'row',
@@ -1150,9 +1087,9 @@ const styles = StyleSheet.create({
         fontWeight: '600'
     },
     deleteButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1
