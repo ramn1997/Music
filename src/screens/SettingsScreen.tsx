@@ -15,7 +15,6 @@ export const SettingsScreen = () => {
     const [styleExpanded, setStyleExpanded] = useState(false);
     const navigation = useNavigation<any>();
     const { fetchMusic, loading, scanForFolders, loadSongsFromFolders, refreshMetadata, savedFolders } = useMusicLibrary();
-    const { gaplessEnabled, toggleGapless } = usePlayerContext();
 
     // Folder Picker State
     const [folderModalVisible, setFolderModalVisible] = useState(false);
@@ -75,7 +74,7 @@ export const SettingsScreen = () => {
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.section}>
                     <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>App Theme</Text>
                     <TouchableOpacity
@@ -96,7 +95,7 @@ export const SettingsScreen = () => {
 
                     {themeExpanded && (
                         <View style={[styles.dropdownContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                            {(['green', 'purple', 'blue', 'glass', 'black'] as const).map((t) => (
+                            {(['green', 'purple', 'blue', 'glass', 'black', 'light'] as const).map((t) => (
                                 <TouchableOpacity
                                     key={t}
                                     style={[
@@ -170,24 +169,7 @@ export const SettingsScreen = () => {
                     )}
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Playback</Text>
-                    <View style={[styles.row, { backgroundColor: theme.card }]}>
-                        <View style={[styles.rowIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                            <Ionicons name="flash-outline" size={20} color={theme.text} />
-                        </View>
-                        <View style={styles.rowContent}>
-                            <Text style={[styles.rowTitle, { color: theme.text }]}>Gapless Playback</Text>
-                            <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Preload next song for seamless transitions</Text>
-                        </View>
-                        <Switch
-                            value={gaplessEnabled}
-                            onValueChange={toggleGapless}
-                            trackColor={{ false: theme.cardBorder, true: theme.primary }}
-                            thumbColor={'#fff'}
-                        />
-                    </View>
-                </View>
+
 
                 <View style={styles.section}>
                     <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Media Library</Text>
@@ -227,7 +209,10 @@ export const SettingsScreen = () => {
 
                 <View style={styles.section}>
                     <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>App Info</Text>
-                    <View style={[styles.row, { backgroundColor: theme.card }]}>
+                    <TouchableOpacity
+                        style={[styles.row, { backgroundColor: theme.card }]}
+                        onPress={() => navigation.navigate('About')}
+                    >
                         <View style={[styles.rowIcon, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                             <Ionicons name="information-circle" size={20} color={theme.text} />
                         </View>
@@ -236,7 +221,7 @@ export const SettingsScreen = () => {
                             <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Version 1.1.0</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                    </View>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
 

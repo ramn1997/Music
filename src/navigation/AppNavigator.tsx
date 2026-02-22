@@ -4,7 +4,9 @@ import { TabNavigator } from './TabNavigator';
 import { PlayerScreen } from '../screens/PlayerScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { EqualizerScreen } from '../screens/EqualizerScreen';
+import { AboutScreen } from '../screens/AboutScreen';
 import { RootStackParamList } from '../types/navigation';
+import { useTheme } from '../hooks/ThemeContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -14,6 +16,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 export const AppNavigator = () => {
     const { loading } = useMusicLibrary();
+    const { theme } = useTheme();
 
     const isHiding = React.useRef(false);
     React.useEffect(() => {
@@ -32,7 +35,7 @@ export const AppNavigator = () => {
             <Stack.Navigator
                 screenOptions={{
                     headerShown: false,
-                    contentStyle: { backgroundColor: '#000' },
+                    contentStyle: { backgroundColor: theme.background },
                     animation: 'slide_from_right'
                 }}
             >
@@ -53,6 +56,7 @@ export const AppNavigator = () => {
                         animation: 'slide_from_right'
                     }}
                 />
+                <Stack.Screen name="About" component={AboutScreen} />
             </Stack.Navigator>
             {/* 
                MiniPlayer is placed here to validly overlay on top of the Stacks (except Modal usually covers everything).

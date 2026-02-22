@@ -197,10 +197,10 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    backgroundColor: theme.card,
                     borderRadius: 20,
-                    paddingHorizontal: 12,
-                    height: 38
+                    paddingHorizontal: 15,
+                    height: 40
                 }}>
                     <Ionicons name="search" size={16} color={theme.textSecondary} />
                     <TextInput

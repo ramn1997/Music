@@ -51,11 +51,6 @@ export const PlaylistsScreen = () => {
 
     const displayPlaylists = [
         {
-            id: 'create_action',
-            name: 'Create New Playlist',
-            isAction: true
-        },
-        {
             id: 'liked',
             name: 'Liked Songs',
             count: likedSongs.length,
@@ -96,41 +91,10 @@ export const PlaylistsScreen = () => {
         }
     };
 
-    const itemWidth = (require('react-native').Dimensions.get('window').width - 40 - 20) / 3;
+    const { width } = require('react-native').Dimensions.get('window');
+    const itemWidth = (width - 30 - 24) / 3; // 30 = horizontal padding (15*2), 24 = gap (12*2)
 
     const renderItem = React.useCallback(({ item }: { item: any }) => {
-        if (item.isAction) {
-            return (
-                <View style={{ width: itemWidth, marginBottom: 15 }}>
-                    <TouchableOpacity
-                        activeOpacity={0.8}
-                        onPress={() => setModalVisible(true)}
-                    >
-                        <View style={[
-                            styles.cardContainer,
-                            {
-                                height: 95,
-                                width: '100%',
-                                borderRadius: 16,
-                                overflow: 'hidden',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                backgroundColor: 'rgba(255,255,255,0.03)',
-                                borderWidth: 1,
-                                borderStyle: 'dashed',
-                                borderColor: 'rgba(255,255,255,0.2)'
-                            }
-                        ]}>
-                            <Ionicons name="add" size={30} color={theme.primary} />
-                            <Text style={[styles.cardTitle, { color: theme.textSecondary, fontSize: 10, marginTop: 4 }]}>
-                                {item.name}
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            );
-        }
-
         return (
             <View
                 style={{
@@ -199,6 +163,12 @@ export const PlaylistsScreen = () => {
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Playlists</Text>
+                    <TouchableOpacity
+                        onPress={() => setModalVisible(true)}
+                        style={[styles.createHeaderButton, { backgroundColor: theme.primary }]}
+                    >
+                        <Ionicons name="add" size={24} color={theme.textOnPrimary} />
+                    </TouchableOpacity>
                 </View>
 
                 <FlatList
@@ -245,10 +215,10 @@ export const PlaylistsScreen = () => {
 
                             <View style={styles.modalButtons}>
                                 <TouchableOpacity
-                                    style={[styles.modalButton, { backgroundColor: '#18181b' }]}
+                                    style={[styles.modalButton, { backgroundColor: theme.primary, borderColor: 'transparent' }]}
                                     onPress={handleAddPlaylist}
                                 >
-                                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Create</Text>
+                                    <Text style={{ color: theme.textOnPrimary, fontWeight: 'bold' }}>Create</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -298,6 +268,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginVertical: 20,
         paddingHorizontal: 20,
+    },
+    createHeaderButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
     },
     headerLeft: {
         flexDirection: 'row',

@@ -7,7 +7,7 @@ import { SearchNavigator } from './SearchNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
     useAnimatedStyle,
@@ -64,34 +64,49 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
             activeOpacity={0.7}
             style={styles.tabItemInactive}
         >
-            <View style={styles.inactiveCircle}>
+            <View style={[styles.inactiveCircle, { backgroundColor: theme.card }]}>
                 <Ionicons
                     name={iconName() as any}
                     size={24}
-                    color="rgba(255,255,255,0.5)"
+                    color={theme.background === '#ffffff' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.5)"}
                 />
             </View>
         </TouchableOpacity>
     );
 };
 
+import { BlurView } from 'expo-blur';
+
 const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) => {
-    // Determine a solid background color based on the theme
-    // If the theme is dark/black, we'll use a slightly lighter grey/black for contrast
-    // If it's a light theme, we'll use white.
-    const isDark = theme.background === '#050505' || theme.background === '#000000';
-    const solidBg = isDark ? '#121212' : '#ffffff';
+    const isLight = theme.background === '#ffffff';
 
     return (
         <View style={styles.tabBarWrapper}>
             <View style={[
                 styles.tabBarContainer,
                 {
-                    backgroundColor: '#000',
+                    backgroundColor: 'transparent',
                     paddingBottom: Math.max(insets.bottom, 10),
-                    height: 60 + Math.max(insets.bottom, 10)
+                    height: 75 + Math.max(insets.bottom, 10),
+                    overflow: 'hidden' // Required for border radius
                 }
             ]}>
+                <BlurView
+                    intensity={Platform.OS === 'ios' ? 40 : 80}
+                    tint={isLight ? 'light' : 'dark'}
+                    style={StyleSheet.absoluteFill}
+                />
+                {/* Semi-transparent overlay to better match theme background */}
+                <View
+                    style={[
+                        StyleSheet.absoluteFill,
+                        {
+                            backgroundColor: isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
+                            // For OLED black theme, we might want it slightly darker
+                            ...(theme.background === '#000000' && { backgroundColor: 'rgba(0,0,0,0.8)' })
+                        }
+                    ]}
+                />
                 <View style={styles.tabBarInner}>
                     {state.routes.map((route: any, index: number) => {
                         const { options } = descriptors[route.key];
@@ -233,7 +248,7 @@ const styles = StyleSheet.create({
         color: '#000',
         fontWeight: 'bold',
         marginLeft: 6,
-        fontSize: 13, // Slightly smaller to fit 'Favorites' and 'Playlists' perfectly
+        fontSize: 13,
     },
     tabItemInactive: {
         flex: 1,
@@ -244,7 +259,6 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: '#111',
         justifyContent: 'center',
         alignItems: 'center',
     },

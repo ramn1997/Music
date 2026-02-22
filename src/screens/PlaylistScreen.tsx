@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,6 +25,15 @@ import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { SongSelectionModal } from '../components/SongSelectionModal';
 import { MusicImage } from '../components/MusicImage';
 import { useArtistImage } from '../hooks/useArtistImage';
+
+// Safe import for ImagePicker
+let ImagePicker: any;
+try {
+    ImagePicker = require('expo-image-picker');
+} catch (e) {
+    console.warn('[PlaylistScreen] expo-image-picker not found');
+}
+import * as FileSystem from 'expo-file-system/legacy';
 const FlashListAny = FlashList as any;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Playlist'>;
@@ -163,9 +172,11 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const { id, name } = route.params;
     const type = route.params.type as any;
     const { songs, loading } = useLocalMusic();
-    const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked, favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite } = useMusicLibrary();
+    const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked, favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite, artistMetadata, updateArtistMetadata } = useMusicLibrary();
     const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
     const { theme } = useTheme();
+
+    const artistCustomMeta = type === 'artist' ? artistMetadata[name] : null;
 
     // Artist info from internet
     const [artistInfo, setArtistInfo] = useState<{
@@ -224,21 +235,101 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             }
                         }
                     }
-                } catch (error) {
-                    console.log('Could not fetch artist info (offline or API error)');
-                    setArtistInfo(null);
+                } catch (e) {
+                    console.warn('[PlaylistScreen] Failed to fetch info', e);
                 } finally {
                     setLoadingArtistInfo(false);
                 }
             };
-
             fetchArtistInfo();
         }
     }, [type, name]);
 
+    const handleEditArtistImage = async () => {
+        if (!ImagePicker || !ImagePicker.launchImageLibraryAsync) {
+            Alert.alert('Error', 'Image picker not available.');
+            return;
+        }
+
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const pickedUri = result.assets[0].uri;
+                const fileName = `artist_custom_${name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${Date.now()}.jpg`;
+                const dest = `${FileSystem.documentDirectory}${fileName}`;
+
+                await FileSystem.copyAsync({
+                    from: pickedUri,
+                    to: dest
+                });
+
+                await updateArtistMetadata(name, { coverImage: dest });
+            }
+        } catch (e) {
+            console.error('[PlaylistScreen] Failed to pick artist image', e);
+            Alert.alert('Error', 'Failed to pick image');
+        } finally {
+            setShowArtistArtOptions(false);
+        }
+    };
+
+    const handleSearchArtistImage = async () => {
+        setIsSearchingArt(true);
+        setStatusMessage('Searching online...');
+        try {
+            const response = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(name)}&limit=1`);
+            if (response.ok) {
+                const json = await response.json();
+                if (json.data && json.data.length > 0) {
+                    const artist = json.data[0];
+                    const imageUrl = artist.picture_xl || artist.picture_big;
+                    if (imageUrl) {
+                        await updateArtistMetadata(name, { coverImage: imageUrl });
+                        setStatusMessage('Success! Image updated.');
+                    } else {
+                        setStatusMessage('Image not found.');
+                    }
+                } else {
+                    setStatusMessage('Artist not found online.');
+                }
+            } else {
+                setStatusMessage('Service unavailable.');
+            }
+        } catch (e) {
+            console.error('[PlaylistScreen] Artist image search failed', e);
+            setStatusMessage('Search failed.');
+        } finally {
+            setIsSearchingArt(false);
+            // Clear message after 3 seconds
+            setTimeout(() => setStatusMessage(null), 3000);
+            // Automatically close modal after success
+            if (statusMessage === 'Success! Image updated.') {
+                setTimeout(() => setShowArtistArtOptions(false), 1500);
+            }
+        }
+    };
+
+    const handleResetArtistImage = async () => {
+        await updateArtistMetadata(name, { coverImage: undefined });
+        setStatusMessage('Restored to default.');
+        setTimeout(() => {
+            setStatusMessage(null);
+            setShowArtistArtOptions(false);
+        }, 1500);
+    };
+
     // Modal State
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+    const [showArtistArtOptions, setShowArtistArtOptions] = useState(false);
+    const [isSearchingArt, setIsSearchingArt] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [editModalVisible, setEditModalVisible] = useState(false);
 
     const [sortOrder, setSortOrder] = useState<'recent' | 'asc' | 'desc'>('recent');
@@ -554,12 +645,31 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                             ]}
                                         >
                                             {(type === 'artist') ? (
-                                                <MusicImage
-                                                    uri={deezerArtistImage || artistInfo?.image || undefined}
-                                                    id={name}
+                                                <TouchableOpacity
+                                                    activeOpacity={0.8}
+                                                    onPress={() => setShowArtistArtOptions(true)}
                                                     style={StyleSheet.absoluteFill}
-                                                    iconSize={80}
-                                                />
+                                                >
+                                                    <MusicImage
+                                                        uri={artistCustomMeta?.coverImage || deezerArtistImage || artistInfo?.image || undefined}
+                                                        id={name}
+                                                        style={StyleSheet.absoluteFill}
+                                                        iconSize={80}
+                                                        iconName="person"
+                                                    />
+                                                    <View style={{
+                                                        position: 'absolute',
+                                                        bottom: 0,
+                                                        left: 0,
+                                                        right: 0,
+                                                        height: 28,
+                                                        backgroundColor: 'rgba(0,0,0,0.5)',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>EDIT</Text>
+                                                    </View>
+                                                </TouchableOpacity>
                                             ) : (type === 'album') ? (
                                                 <MusicImage
                                                     uri={displaySongs[0]?.coverImage}
@@ -781,7 +891,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                         type === 'album' ? () => toggleFavoriteAlbum(name) :
                                                             type === 'genre' ? () => toggleFavoriteGenre(name) : undefined
                                         }
-                                        onDelete={type === 'playlist' ? () => {
+                                        onDelete={(type === 'playlist' && id !== 'liked') ? () => {
                                             // Wait a bit for menu to close before showing modal
                                             setTimeout(() => {
                                                 setDeleteModalVisible(true);
@@ -864,6 +974,71 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                         else navigation.navigate('Home');
                     }}
                 />
+
+                {/* Artist Image Options Modal */}
+                <Modal
+                    visible={showArtistArtOptions}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowArtistArtOptions(false)}
+                >
+                    <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() => setShowArtistArtOptions(false)}
+                    >
+                        <View style={[styles.optionsContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                            <View style={[styles.optionsHeader, { borderBottomColor: theme.cardBorder }]}>
+                                <Text style={[styles.optionsTitle, { color: theme.text }]}>Artist Image</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.optionItem}
+                                onPress={handleEditArtistImage}
+                            >
+                                <Ionicons name="image-outline" size={22} color={theme.primary} />
+                                <Text style={[styles.optionText, { color: theme.text }]}>Pick from Gallery</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.optionItem}
+                                onPress={handleSearchArtistImage}
+                                disabled={isSearchingArt}
+                            >
+                                {isSearchingArt ? (
+                                    <ActivityIndicator size="small" color={theme.primary} />
+                                ) : (
+                                    <Ionicons name="search-outline" size={22} color={theme.primary} />
+                                )}
+                                <Text style={[styles.optionText, { color: theme.text }]}>Search Online</Text>
+                            </TouchableOpacity>
+
+                            {statusMessage && (
+                                <View style={{ paddingVertical: 10, alignItems: 'center' }}>
+                                    <Text style={[styles.statusText, { color: theme.primary }]}>{statusMessage}</Text>
+                                </View>
+                            )}
+
+                            {(artistCustomMeta?.coverImage) && (
+                                <TouchableOpacity
+                                    style={styles.optionItem}
+                                    onPress={handleResetArtistImage}
+                                >
+                                    <Ionicons name="refresh-outline" size={22} color={theme.textSecondary} />
+                                    <Text style={[styles.optionText, { color: theme.textSecondary }]}>Reset to Default</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            <TouchableOpacity
+                                style={[styles.optionItem, { marginTop: 10 }]}
+                                onPress={() => setShowArtistArtOptions(false)}
+                            >
+                                <Text style={[styles.optionText, { color: theme.textSecondary, width: '100%', textAlign: 'center' }]}>Cancel</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </Modal>
+
             </View>
             <SongSelectionModal
                 visible={isAddSongsModalVisible}
@@ -1108,5 +1283,45 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1
+    },
+    optionsContainer: {
+        position: 'absolute',
+        bottom: '30%',
+        left: '10%',
+        right: '10%',
+        borderRadius: 24,
+        padding: 20,
+        borderWidth: 1,
+        elevation: 10,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    optionsHeader: {
+        paddingBottom: 15,
+        marginBottom: 10,
+        borderBottomWidth: 1,
+    },
+    optionsTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
+    optionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        gap: 15
+    },
+    optionText: {
+        fontSize: 16,
+        fontWeight: '500'
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     }
 });

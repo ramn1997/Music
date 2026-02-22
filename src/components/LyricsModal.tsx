@@ -77,6 +77,14 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
         setPlainLyrics(null);
 
         try {
+            // 0. Use saved lyrics if available
+            if (song.lyrics) {
+                console.log('[LyricsModal] Using saved lyrics from song metadata');
+                setPlainLyrics(song.lyrics);
+                setLoading(false);
+                return;
+            }
+
             const cacheKey = `lyrics_${song.id}`;
             const cachedData = await AsyncStorage.getItem(cacheKey);
 

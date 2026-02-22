@@ -316,7 +316,7 @@ const TopSongItem = ({ song, isPlaying, onPress, appTheme }: { song: Song, isPla
             <View style={styles.topSongInfo}>
                 <Text style={[styles.topSongTitle, { color: appTheme.text }]} numberOfLines={1}>{song.title}</Text>
                 <Text style={[styles.topSongSubtitle, { color: appTheme.textSecondary }]} numberOfLines={1}>
-                    {song.playCount ? `${song.playCount.toLocaleString()} Played` : song.artist}
+                    {song.artist}
                 </Text>
             </View>
             <TouchableOpacity style={styles.topSongMenuBtn}>
@@ -326,7 +326,7 @@ const TopSongItem = ({ song, isPlaying, onPress, appTheme }: { song: Song, isPla
     );
 };
 
-const TopArtistCard = ({ artist, appTheme, onPress }: any) => {
+const TopArtistCard = ({ artist, appTheme, onPress, customImage }: any) => {
     if (!artist) return null;
     const artistImage = useArtistImage(artist.name);
 
@@ -334,7 +334,7 @@ const TopArtistCard = ({ artist, appTheme, onPress }: any) => {
         <TouchableOpacity style={styles.topArtistCard} onPress={onPress}>
             <View style={styles.topArtistImageContainer}>
                 <MusicImage
-                    uri={artistImage || artist.coverImage}
+                    uri={customImage || artistImage || artist.coverImage}
                     id={artist.name || 'unknown_artist'}
                     style={StyleSheet.absoluteFill}
                     iconSize={40}
@@ -366,7 +366,8 @@ export const HomeScreen = () => {
         recentlyPlayed,
         recentlyAdded,
         neverPlayed,
-        favoriteGenres
+        favoriteGenres,
+        artistMetadata
     } = useMusicLibrary();
     const { playSongInPlaylist, currentSong, isPlaying } = usePlayerContext();
     const [activeTab, setActiveTab] = useState('Overview');
@@ -623,6 +624,7 @@ export const HomeScreen = () => {
                                         key={artist.name}
                                         artist={artist}
                                         appTheme={appTheme}
+                                        customImage={artistMetadata[artist.name]?.coverImage}
                                         onPress={() => navigation.navigate('Playlist', { id: artist.name, name: artist.name, type: 'artist' })}
                                     />
                                 );

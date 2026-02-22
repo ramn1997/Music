@@ -37,7 +37,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         currentIndex,
         playSongInPlaylist,
         playlistName,
-        isShuffle,
+        isShuffleOn,
         toggleShuffle,
         repeatMode,
         toggleRepeat,
@@ -48,7 +48,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
     const position = rawPosition * 1000;
     const duration = rawDuration * 1000;
 
-    const { theme, playerStyle } = useTheme();
+    const { theme, themeType, playerStyle } = useTheme();
 
     const getArtStyle = () => {
         const size = width - 100;
@@ -486,7 +486,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                         <View style={styles.controlsContainer}>
                             <TouchableOpacity onPress={handleShufflePress}>
                                 <ReAnimated.View style={animeShuffle}>
-                                    <Ionicons name="shuffle" size={24} color={isShuffle ? theme.primary : colors.textSecondary} />
+                                    <Ionicons name="shuffle" size={24} color={isShuffleOn ? theme.primary : theme.textSecondary} />
                                 </ReAnimated.View>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -534,7 +534,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                 style={[
                     styles.bottomSheet,
                     {
-                        backgroundColor: '#000',
+                        backgroundColor: theme.background === '#ffffff' ? '#f5f5f5' : (theme.background === '#000000' ? '#121212' : theme.card),
                         height: SHEET_MAX_HEIGHT,
                         transform: [{ translateY: translateY }],
                         bottom: -SHEET_MAX_HEIGHT + SHEET_MIN_HEIGHT + 60
@@ -572,7 +572,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                             }, 500);
                         }}
                         renderItem={({ item, index }) => (
-                            <View style={[styles.queueItem, index === currentIndex && { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                            <View style={[styles.queueItem, index === currentIndex && { backgroundColor: theme.primary + '20' }]}>
                                 <TouchableOpacity
                                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
                                     onPress={() => { playSongInPlaylist(playlist, index, playlistName); closeSheet(); }}
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     artistName: { fontSize: 12, opacity: 0.8, marginBottom: 2 },
     albumName: { fontSize: 15, fontWeight: '600' },
     progressContainer: { paddingHorizontal: 30, marginBottom: 10 },
-    progressBarBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, marginBottom: 10, position: 'relative' },
+    progressBarBg: { height: 6, backgroundColor: 'rgba(150,150,150,0.2)', borderRadius: 3, marginBottom: 10, position: 'relative' },
     progressBarFill: { height: '100%', borderRadius: 3 },
     progressKnob: { width: 14, height: 14, borderRadius: 7, position: 'absolute', top: -4, marginLeft: -7 },
     timeContainer: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
     repeatOneBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: colors.primary, borderRadius: 6, width: 12, height: 12, justifyContent: 'center', alignItems: 'center' },
     bottomSheet: { position: 'absolute', left: 0, right: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, elevation: 10 },
     sheetHeader: { alignItems: 'center', paddingVertical: 10 },
-    dragHandle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2 },
+    dragHandle: { width: 40, height: 4, backgroundColor: 'rgba(150,150,150,0.4)', borderRadius: 2 },
     queueItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderRadius: 12, paddingHorizontal: 10, marginBottom: 5 },
     queueArtwork: { width: 48, height: 48, borderRadius: 8 },
     queueTitle: { fontSize: 15, fontWeight: '600' },

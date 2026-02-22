@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Safe import for ImagePicker to prevent crash if native module is missing
@@ -33,8 +33,12 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     const [artist, setArtist] = useState('');
     const [album, setAlbum] = useState('');
     const [year, setYear] = useState('');
+    const [lyrics, setLyrics] = useState('');
     const [coverImage, setCoverImage] = useState<string | null>(null);
     const [isArtModified, setIsArtModified] = useState(false);
+    const [isLyricsLoading, setIsLyricsLoading] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     useEffect(() => {
         if (song) {
@@ -42,6 +46,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             setArtist(song.artist || '');
             setAlbum(song.album || '');
             setYear(song.year || '');
+            setLyrics(song.lyrics || '');
             setCoverImage(song.coverImage || null);
             setIsArtModified(false);
         }
@@ -99,6 +104,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             artist: artist.trim() || song.artist,
             album: album.trim() || song.album,
             year: year.trim() || song.year,
+            lyrics: lyrics.trim() || undefined,
         };
 
         if (isArtModified) {
@@ -110,32 +116,126 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     };
 
     const handleScanTags = async () => {
+        if (!song) return;
+        setIsScanning(true);
+        setStatusMessage('Scanning local tags...');
+
         try {
             const { metadataService } = require('../services/MetadataService');
-            console.log('[EditSongModal] Scanning tags for:', song.title);
 
-            // Force fetch to bypass cache
-            const meta = await metadataService.fetchMetadata(song.uri, song.id, true);
-            console.log('[EditSongModal] Scan result:', meta);
+            // 1. Local Scan
+            const localMeta = await metadataService.fetchMetadata(song.uri, song.id, true);
+            const localArt = await metadataService.fetchArtwork(song.uri);
 
-            // Also try to fetch artwork
-            const art = await metadataService.fetchArtwork(song.uri);
-            if (art) {
-                setCoverImage(art);
+            let currentTitle = localMeta.title || title || song.title;
+            let currentArtist = localMeta.artist || artist || song.artist;
+
+            if (localMeta.title) setTitle(localMeta.title);
+            if (localMeta.artist) setArtist(localMeta.artist);
+            if (localMeta.album) setAlbum(localMeta.album);
+            if (localArt) {
+                setCoverImage(localArt);
                 setIsArtModified(true);
-                console.log('[EditSongModal] Found artwork:', art);
             }
 
-            let hasUpdates = false;
-            if (meta.title) { setTitle(meta.title); hasUpdates = true; }
-            if (meta.artist) { setArtist(meta.artist); hasUpdates = true; }
-            if (meta.album) { setAlbum(meta.album); hasUpdates = true; }
+            // 2. Internet Scan (iTunes API for better metadata & high-res art)
+            setStatusMessage('Searching internet...');
+            const searchTerm = encodeURIComponent(`${currentTitle} ${currentArtist}`);
+            const response = await fetch(`https://itunes.apple.com/search?term=${searchTerm}&entity=song&limit=1`);
 
-            if (!hasUpdates) {
-                console.log('[EditSongModal] No better metadata found in tags');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    const result = data.results[0];
+
+                    // Update metadata if found
+                    if (result.trackName) setTitle(result.trackName);
+                    if (result.artistName) setArtist(result.artistName);
+                    if (result.collectionName) setAlbum(result.collectionName);
+                    if (result.releaseDate) setYear(new Date(result.releaseDate).getFullYear().toString());
+
+                    // High-res artwork (convert 100x100 to 600x600)
+                    if (result.artworkUrl100) {
+                        const highResArt = result.artworkUrl100.replace('100x100bb', '600x600bb');
+                        setCoverImage(highResArt);
+                        setIsArtModified(true);
+                    }
+
+                    setStatusMessage('Match found!');
+                } else {
+                    setStatusMessage('No internet match found.');
+                }
+            } else {
+                setStatusMessage('Internet search failed.');
             }
         } catch (e) {
-            console.warn('Scan failed', e);
+            console.error('[EditSongModal] Scan failed', e);
+            setStatusMessage('Scan encountered an error.');
+        } finally {
+            setIsScanning(false);
+            // Clear message after 3 seconds
+            setTimeout(() => setStatusMessage(null), 3000);
+        }
+    };
+
+    const handleSearchLyrics = async () => {
+        if (!song) return;
+        setIsLyricsLoading(true);
+
+        const fetchWithTimeout = (url: string, timeout = 5000) => {
+            return Promise.race([
+                fetch(url),
+                new Promise<Response>((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout')), timeout)
+                )
+            ]);
+        };
+
+        try {
+            const cleanArtist = artist.trim() || song.artist;
+            const cleanTitle = title.trim() || song.title;
+
+            console.log('[EditSongModal] Searching lyrics for:', cleanArtist, '-', cleanTitle);
+
+            // 1. Try LRCLIB
+            try {
+                const response = await fetchWithTimeout(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(cleanTitle)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.plainLyrics) {
+                        setLyrics(data.plainLyrics);
+                        setIsLyricsLoading(false);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('[EditSongModal] LRCLIB search failed or timed out:', e instanceof Error ? e.message : String(e));
+            }
+
+            // 2. Fallback to OVH
+            try {
+                const ovhResponse = await fetchWithTimeout(`https://api.lyrics.ovh/v1/${encodeURIComponent(cleanArtist)}/${encodeURIComponent(cleanTitle)}`);
+                if (ovhResponse.ok) {
+                    const ovhData = await ovhResponse.json();
+                    if (ovhData.lyrics) {
+                        setLyrics(ovhData.lyrics);
+                        setIsLyricsLoading(false);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('[EditSongModal] OVH search failed or timed out:', e instanceof Error ? e.message : String(e));
+            }
+
+            setStatusMessage('Lyrics not found.');
+
+        } catch (e) {
+            console.error('[EditSongModal] Global search error:', e);
+            setStatusMessage('Network error occurred.');
+        } finally {
+            setIsLyricsLoading(false);
+            // Clear message after 3 seconds
+            setTimeout(() => setStatusMessage(null), 3000);
         }
     };
 
@@ -197,10 +297,17 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                             <View style={styles.artActions}>
                                 <TouchableOpacity
                                     onPress={handleScanTags}
+                                    disabled={isScanning}
                                     style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
                                 >
-                                    <Ionicons name="scan-outline" size={16} color={theme.primary} />
-                                    <Text style={[styles.actionButtonText, { color: theme.primary }]}>SCAN TAGS</Text>
+                                    {isScanning ? (
+                                        <ActivityIndicator size="small" color={theme.primary} />
+                                    ) : (
+                                        <Ionicons name="scan-outline" size={16} color={theme.primary} />
+                                    )}
+                                    <Text style={[styles.actionButtonText, { color: theme.primary }]}>
+                                        {isScanning ? 'SCANNING...' : 'SCAN TAGS'}
+                                    </Text>
                                 </TouchableOpacity>
 
                                 {isArtModified && (
@@ -213,6 +320,11 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                                     </TouchableOpacity>
                                 )}
                             </View>
+                            {statusMessage && (
+                                <Text style={[styles.statusText, { color: theme.primary }]}>
+                                    {statusMessage}
+                                </Text>
+                            )}
                         </View>
 
                         {/* Form Fields */}
@@ -236,6 +348,46 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                                 />
                             </View>
                         ))}
+
+                        {/* Lyrics Field */}
+                        <View style={styles.fieldContainer}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 0 }]}>Lyrics</Text>
+                                <TouchableOpacity
+                                    onPress={handleSearchLyrics}
+                                    disabled={isLyricsLoading}
+                                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                                >
+                                    {isLyricsLoading ? (
+                                        <ActivityIndicator size="small" color={theme.primary} />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="search" size={12} color={theme.primary} style={{ marginRight: 4 }} />
+                                            <Text style={{ color: theme.primary, fontSize: 11, fontWeight: 'bold' }}>SEARCH</Text>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    {
+                                        color: theme.text,
+                                        backgroundColor: theme.card,
+                                        borderColor: theme.cardBorder,
+                                        height: 150,
+                                        textAlignVertical: 'top',
+                                        paddingTop: 10
+                                    }
+                                ]}
+                                value={lyrics}
+                                onChangeText={setLyrics}
+                                placeholder="Paste or search lyrics..."
+                                placeholderTextColor={theme.textSecondary}
+                                multiline={true}
+                                numberOfLines={8}
+                            />
+                        </View>
                         <View style={styles.bottomSpacing} />
                     </ScrollView>
                 </View>
@@ -370,5 +522,12 @@ const styles = StyleSheet.create({
     },
     bottomSpacing: {
         height: 60,
+    },
+    statusText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        marginTop: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     }
 });

@@ -25,8 +25,10 @@ export const ScreenContainer = ({ children, variant = 'default', style }: Screen
     const { theme } = useTheme();
     let gradientColors = theme.gradient;
 
+    // For player variant, we keep the theme gradient but can tweak it if needed
+    // Removed hardcoded black to support light theme in player
     if (variant === 'player') {
-        gradientColors = ['#000000', '#000000'];
+        // Use theme gradient
     }
 
     const isFocused = useIsFocused();

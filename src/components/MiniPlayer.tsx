@@ -22,8 +22,8 @@ export const MiniPlayer = () => {
         state ? state.routes[state.index].name : null
     );
 
-    // Only hide mini player when on the full Player screen, Settings screen, or if no song exists
-    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Settings';
+    // Only hide mini player when on the full Player screen, Settings screen, About screen, or if no song exists
+    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Settings' || currentRouteName === 'About';
     if (!currentSong || isHiddenScreen) return null;
 
     // List of screens that DO NOT have a bottom tab bar
@@ -31,7 +31,7 @@ export const MiniPlayer = () => {
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
     // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.
-    const tabBarHeight = 60 + Math.max(insets.bottom, 10);
+    const tabBarHeight = 75 + Math.max(insets.bottom, 10);
     const bottomOffset = hasTabBar ? (tabBarHeight + 5) : (insets.bottom + 10);
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/ThemeContext';
 import { MusicImage } from './MusicImage';
 import { MarqueeText } from './MarqueeText';
+import { useMusicLibrary } from '../hooks/MusicLibraryContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useArtistImage } from '../hooks/useArtistImage';
 
@@ -40,8 +41,9 @@ interface ArtistListItemProps {
 
 export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListItemProps) => {
     const { theme } = useTheme();
+    const { artistMetadata } = useMusicLibrary() || { artistMetadata: {} };
     const fetchedImage = useArtistImage(item.name);
-    const displayImage = fetchedImage || item.coverImage;
+    const displayImage = artistMetadata[item.name]?.coverImage || fetchedImage || item.coverImage;
 
     const isGrid3 = layoutMode === 'grid3';
     const isList = layoutMode === 'list';
@@ -53,7 +55,7 @@ export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListIte
                     <View style={styles.row}>
                         <View style={[styles.listIconPlaceholder, { backgroundColor: 'transparent' }]}>
                             <MusicImage
-                                uri={fetchedImage || undefined}
+                                uri={displayImage}
                                 id={item.id}
                                 style={{ width: 45, height: 45, borderRadius: 22.5 }}
                                 iconSize={20}
@@ -90,7 +92,7 @@ export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListIte
                             ]}
                         >
                             <MusicImage
-                                uri={fetchedImage || undefined}
+                                uri={displayImage}
                                 id={item.id}
                                 style={{ width: '100%', height: '100%' }}
                                 containerStyle={{

@@ -31,6 +31,7 @@ export type Song = {
     addedToPlaylistAt?: number; // For playlists
     scanStatus?: string;
     folder?: string;
+    lyrics?: string;
 };
 
 export type Playlist = {
@@ -40,6 +41,11 @@ export type Playlist = {
     createdAt: number;
     isSpecial?: boolean; // For "Favorites", "Recently Played"
     isFavorite?: boolean; // User marked as favorite
+};
+
+export type ArtistMetadata = {
+    coverImage?: string;
+    bio?: string;
 };
 
 interface MusicLibraryContextType {
@@ -82,6 +88,8 @@ interface MusicLibraryContextType {
     neverPlayed: Song[];
     favoriteSpecialPlaylists: string[];
     toggleSpecialPlaylistFavorite: (id: string) => Promise<void>;
+    artistMetadata: Record<string, ArtistMetadata>;
+    updateArtistMetadata: (artistName: string, updates: Partial<ArtistMetadata>) => Promise<void>;
 }
 
 const MusicLibraryContext = createContext<MusicLibraryContextType | null>(null);
@@ -135,6 +143,21 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
     const [recentlyAdded, setRecentlyAdded] = useState<Song[]>([]);
     const [neverPlayed, setNeverPlayed] = useState<Song[]>([]);
     const calculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const [artistMetadata, _setArtistMetadata] = useState<Record<string, ArtistMetadata>>({});
+    const artistMetadataRef = useRef<Record<string, ArtistMetadata>>({});
+    const setArtistMetadata = useCallback((val: Record<string, ArtistMetadata> | ((prev: Record<string, ArtistMetadata>) => Record<string, ArtistMetadata>)) => {
+        if (typeof val === 'function') {
+            _setArtistMetadata(prev => {
+                const next = val(prev);
+                artistMetadataRef.current = next;
+                return next;
+            });
+        } else {
+            artistMetadataRef.current = val;
+            _setArtistMetadata(val);
+        }
+    }, []);
 
     const cancelImport = useCallback(() => {
         importService.cancel();
@@ -194,6 +217,23 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
             await AsyncStorage.setItem('custom_song_metadata', JSON.stringify(newCustom));
         } catch (e) {
             console.error('Failed to save custom metadata', e);
+        }
+    };
+
+    const updateArtistMetadata = async (artistName: string, updates: Partial<ArtistMetadata>) => {
+        if (!artistName || !updates || typeof updates !== 'object') return;
+
+        const currentMetadata = artistMetadataRef.current || {};
+        const newMetadata = {
+            ...currentMetadata,
+            [artistName]: { ...(currentMetadata[artistName] || {}), ...updates }
+        };
+        setArtistMetadata(newMetadata);
+
+        try {
+            await AsyncStorage.setItem('artist_metadata', JSON.stringify(newMetadata));
+        } catch (e) {
+            console.error('Failed to save artist metadata', e);
         }
     };
 
@@ -761,7 +801,8 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     cachedTop,
                     cachedRecent,
                     cachedAdded,
-                    cachedNever
+                    cachedNever,
+                    savedArtistMeta
                 ] = await Promise.all([
                     AsyncStorage.getItem('custom_song_metadata'),
                     AsyncStorage.getItem('song_metadata'),
@@ -775,7 +816,8 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     AsyncStorage.getItem('cached_top_artists'),
                     AsyncStorage.getItem('cached_recently_played'),
                     AsyncStorage.getItem('cached_recently_added'),
-                    AsyncStorage.getItem('cached_never_played')
+                    AsyncStorage.getItem('cached_never_played'),
+                    AsyncStorage.getItem('artist_metadata')
                 ]);
 
                 // Safe parsing helpers
@@ -799,6 +841,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                 if (savedFavAlbums) setFavoriteAlbums(safeParse(savedFavAlbums, []));
                 if (savedFavGenres) setFavoriteGenres(safeParse(savedFavGenres, []));
                 if (savedFavSpecial) setFavoriteSpecialPlaylists(safeParse(savedFavSpecial, []));
+                if (savedArtistMeta) setArtistMetadata(safeParse(savedArtistMeta, {}));
 
                 // Instant UI lists
                 if (cachedTop) setTopArtists(safeParse(cachedTop, []));
@@ -894,7 +937,9 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         recentlyAdded,
         neverPlayed,
         favoriteSpecialPlaylists,
-        toggleSpecialPlaylistFavorite
+        toggleSpecialPlaylistFavorite,
+        artistMetadata,
+        updateArtistMetadata
     }), [
         songs, loading, hasPermission, fetchMusic, scanForFolders, loadSongsFromFolders,
         refreshMetadata,
@@ -905,7 +950,8 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata,
         importProgress, cancelImport, refreshSongMetadata,
         topArtists, recentlyPlayed, recentlyAdded, neverPlayed,
-        favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite
+        favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite,
+        artistMetadata, updateArtistMetadata
     ]);
 
 

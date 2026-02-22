@@ -37,7 +37,6 @@ interface PlayerContextType {
     removeFromQueue: (index: number) => void;
     toggleShuffle: () => void;
     toggleRepeat: () => void;
-    isShuffle: boolean;
     isShuffleOn: boolean;
     repeatMode: 'off' | 'one' | 'all';
     playPause: () => void;
@@ -158,7 +157,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const [isPlaying, setIsPlaying] = useState(false); // Restore local state
 
     const [isShuffleOn, setIsShuffleOn] = useState(false);
-    const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
+    const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('all'); // Default to 'all' to ensure lockscreen Prev/Next buttons show even for single-song queues
     const [playlistName, setPlaylistName] = useState<string>('');
     const [gaplessEnabled, setGaplessEnabled] = useState(true);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
@@ -225,12 +224,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const positionRef = useRef(0);
     const durationRef = useRef(0);
     const appStateRef = useRef(AppState.currentState);
-    const initialRestorePositionRef = useRef(0); // Backup for restoration fail
     const playlistRef = useRef<Song[]>([]);
     const librarySongsRef = useRef<Song[]>([]);
     const isMountedRef = useRef(true);
     const currentTrackRef = useRef<Song | null>(null);
-    // Refs to always call the LATEST version of these functions (avoids stale closures in widget/event listeners)
+    const lastScrobbledTrackId = useRef<string | null>(null);
     const playPauseRef = useRef<() => void>(() => { });
     const nextTrackRef = useRef<() => void>(() => { });
     const prevTrackRef = useRef<() => void>(() => { });
@@ -487,8 +485,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     const newIndex = playlistRef.current.findIndex(s => String(s.id) === String(song?.id));
                     setCurrentIndex(newIndex !== -1 ? newIndex : (index ?? -1));
 
-                    // Add to recently played/increment play count
-                    incrementPlayCount(String(song.id));
+                    // Add to recently played (immediate for UI)
+                    // Play count increment moved to Progress listener for threshold (15s)
+                    console.log('[PlayerContext] New track detected, waiting for 15s threshold...');
                 } else {
                     // 4. Last Resort: Use Track Metadata directly (prevents blank UI)
                     console.warn('[PlayerContext] Song not found in app state. Using raw track data.');
@@ -527,6 +526,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         if (event.position > 0) {
             positionRef.current = event.position * 1000;
             durationRef.current = event.duration * 1000;
+
+            // SCROBBLING LOGIC: Increment play count after 15 seconds of actual play
+            const currentId = currentTrackRef.current?.id;
+
+            // If position is low, reset the scrobble lock (handles song restart/repeat)
+            if (event.position < 1) {
+                lastScrobbledTrackId.current = null;
+            }
+
+            if (currentId && lastScrobbledTrackId.current !== currentId && event.position >= 15) {
+                console.log('[PlayerContext] Play threshold met (15s). Incrementing play count for:', currentId);
+                incrementPlayCount(String(currentId));
+                lastScrobbledTrackId.current = currentId;
+            }
         }
     });
 
@@ -606,6 +619,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             });
             console.log('[PlayerContext] TrackPlayer options updated');
 
+            // Set repeat mode natively so the playback engine keeps Next/Prev buttons enabled on lockscreen
+            await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+            console.log('[PlayerContext] Set TrackPlayer initial RepeatMode.Queue');
+
             if (isMountedRef.current) {
                 setIsPlayerReady(true);
                 console.log('[PlayerContext] isPlayerReady set to true');
@@ -646,6 +663,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                         setCurrentIndex(state.currentIndex ?? -1);
                         setPlaylistName(state.playlistName || '');
                         if (state.gaplessEnabled !== undefined) setGaplessEnabled(state.gaplessEnabled);
+                        if (state.repeatMode !== undefined) {
+                            setRepeatMode(state.repeatMode);
+                            if (state.repeatMode === 'one') await TrackPlayer.setRepeatMode(RepeatMode.Track);
+                            else if (state.repeatMode === 'all') await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+                            else await TrackPlayer.setRepeatMode(RepeatMode.Off);
+                        }
 
                         // Seed the queue but don't play
                         if (state.playlist && state.playlist.length > 0) {
@@ -655,22 +678,14 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                             await TrackPlayer.add(tracks);
 
                             if (state.currentIndex >= 0 && state.currentIndex < tracks.length) {
-                                await TrackPlayer.skip(state.currentIndex);
-
                                 // Store position for restoration on first play
+                                let initialPos = 0;
                                 if (state.position > 0) {
-                                    initialRestorePositionRef.current = state.position;
+                                    initialPos = state.position / 1000;
                                     positionRef.current = state.position;
-                                    console.log(`[PlayerContext] Restored position ref: ${state.position / 1000}s`);
-
-                                    // Attempt initial seek so the player UI shows correct progress
-                                    // Give it a tiny bit of time after skip
-                                    setTimeout(async () => {
-                                        try {
-                                            await TrackPlayer.seekTo(state.position / 1000);
-                                        } catch (e) { }
-                                    }, 500);
+                                    console.log(`[PlayerContext] Restored position ref: ${initialPos}s`);
                                 }
+                                await TrackPlayer.skip(state.currentIndex, initialPos);
                             }
                         }
                     }
@@ -706,11 +721,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             // Use the most accurate position we have (player > ref > backup)
             let pos = (playerPos > 0) ? playerPos : (positionRef.current / 1000);
 
-            // Final safety check: if we're at 0 but we have a restoration point, use that
-            if (pos <= 0 && initialRestorePositionRef.current > 0) {
-                pos = initialRestorePositionRef.current / 1000;
-            }
-
             console.log(`[PlayerContext] Persistence: saving at ${pos.toFixed(2)}s (Source: ${playerPos > 0 ? 'Engine' : 'Memory'})`);
 
             const dur = await TrackPlayer.getDuration();
@@ -720,6 +730,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 currentIndex,
                 playlistName,
                 gaplessEnabled,
+                repeatMode,
                 position: pos * 1000,
                 duration: dur > 0 ? dur * 1000 : undefined
             };
@@ -810,44 +821,17 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 }
 
                 const queue = await TrackPlayer.getQueue();
+
                 if (queue.length === 0 && currentTrack) {
                     // Queue was empty, need to re-initialize
                     await TrackPlayer.add([songToTrack(currentTrack)]);
 
-                    // Seek to saved position if we have one (use backup if ref was overwritten)
-                    const savedPosition = (initialRestorePositionRef.current > 0 ? initialRestorePositionRef.current : positionRef.current) / 1000;
-
-                    if (savedPosition > 0) {
-                        console.log('[PlayerContext] Seeking to saved position (empty queue):', savedPosition);
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                        await TrackPlayer.seekTo(savedPosition);
+                    let initialPos = 0;
+                    if (positionRef.current > 0) {
+                        initialPos = positionRef.current / 1000;
                     }
-                    initialRestorePositionRef.current = 0; // Consume
-                } else if (initialRestorePositionRef.current > 0) {
-                    const targetSec = initialRestorePositionRef.current / 1000;
-                    initialRestorePositionRef.current = 0; // Consume immediately to prevent re-entry
-                    console.log('[PlayerContext] Restoring position seek-first:', targetSec);
-
-                    // Seek first, then play — this avoids the race condition of play-then-seek
-                    await TrackPlayer.seekTo(targetSec);
-
-                    // Verification & Retry logic
-                    let verified = false;
-                    for (let i = 0; i < 5; i++) {
-                        await new Promise(r => setTimeout(r, 200));
-                        const pos = await TrackPlayer.getPosition();
-                        if (Math.abs(pos - targetSec) <= 1.5) {
-                            verified = true;
-                            break;
-                        }
-                        console.log(`[PlayerContext] Seek verification failed (pos: ${pos}), retrying seek...`);
-                        await TrackPlayer.seekTo(targetSec);
-                    }
-
-                    console.log(`[PlayerContext] Seek verification ${verified ? 'SUCCEEDED' : 'FAILED'}`);
-                    await TrackPlayer.play();
-                    setIsPlaying(true);
-                    return;
+                    console.log(`[PlayerContext] Re-initialized queue, setting position to: ${initialPos}`);
+                    await TrackPlayer.skip(0, initialPos);
                 }
 
                 // If the song has ended or is very close to the end, restart it before playing
@@ -993,7 +977,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         currentTrack,
         currentSong: currentTrack,
         isPlaying,
-        isShuffle: isShuffleOn,
         isShuffleOn,
         repeatMode,
         playlist,
@@ -1051,7 +1034,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             await TrackPlayer.add(songs.map(songToTrack));
             setPlaylist(songs);
             setPlaylistName(name || '');
-            initialRestorePositionRef.current = 0; // Clear restoration if user manually starts new song
             if (songs.length > index) {
                 setCurrentIndex(index);
                 setCurrentTrack(songs[index]);

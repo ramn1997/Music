@@ -11,7 +11,7 @@ import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJa
 import { PlayerProvider } from './src/hooks/PlayerContext';
 import { MusicLibraryProvider } from './src/hooks/MusicLibraryContext';
 
-import { ThemeProvider } from './src/hooks/ThemeContext';
+import { ThemeProvider, useTheme } from './src/hooks/ThemeContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React from 'react';
 import * as SplashScreen from 'expo-splash-screen';
@@ -24,6 +24,16 @@ SplashScreen.preventAutoHideAsync().catch(() => { });
 if (Text.defaultProps == null) Text.defaultProps = {};
 // @ts-ignore
 Text.defaultProps.style = { fontFamily: 'PlusJakartaSans_400Regular' };
+
+const AppContent = () => {
+    const { themeType } = useTheme();
+    return (
+        <View style={styles.container}>
+            <StatusBar style={themeType === 'light' ? 'dark' : 'light'} />
+            <AppNavigator />
+        </View>
+    );
+};
 
 export default function App() {
     const [fontsLoaded] = useFonts({
@@ -44,10 +54,7 @@ export default function App() {
                     <MusicLibraryProvider>
                         <PlayerProvider>
                             <NavigationContainer>
-                                <View style={styles.container}>
-                                    <StatusBar style="light" />
-                                    <AppNavigator />
-                                </View>
+                                <AppContent />
                             </NavigationContainer>
                         </PlayerProvider>
                     </MusicLibraryProvider>

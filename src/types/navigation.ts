@@ -15,6 +15,7 @@ export type RootStackParamList = {
     Playlists: undefined;
     PlaylistsMain: undefined;
     Favorites: undefined;
+    About: undefined;
 };
 
 declare global {

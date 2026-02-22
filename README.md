@@ -1,43 +1,48 @@
-# Music App
+# Music
 
-A comprehensive and feature-rich music player application built with React Native and Expo. This app allows you to manage and play your local music library with an intuitive and beautiful interface.
+A premium, comprehensive, and feature-rich music player application built with React Native and Expo. Designed for audiophiles who value aesthetics, performance, and complete control over their local library.
 
-## Features
+## ✨ New in v1.1.0
 
--   **Music Library Management**: Automatically scans and organizes your local music files with background metadata enhancement.
--   **Advanced Performance**: Efficient caching and background calculations for instant loading of Top Artists and Recently Played lists.
--   **Navigation**: Browse by Songs, Albums, Artists, Genres, and Playlists via a sleek bottom navigation bar with modernized icons.
--   **Smart Playlists**:
-    -   **Favorites**: Quickly access your favorite tracks.
-    -   **Recently Played**: Instant access to your listening history.
-    -   **Recently Added**: See the latest additions to your library.
-    -   **Never Played**: Discover tracks you haven't heard yet.
--   **Advanced Player**:
-    -   Full playback controls (Play, Pause, Next, Previous, Seek).
-    -   Background playback support.
-    -   Shuffle and Repeat modes.
-    -   Interactive player screen with high-quality album art display.
--   **Customization**: Premium "Dark-Blackish" themes (Deep Emerald, Midnight Purple, True Black) for a sophisticated look.
--   **Playlist Management**: Create, edit, rename and delete custom playlists directly in the app.
--   **Search**: fast and efficient search functionality to find songs, albums, or artists.
--   **Equalizer**: Customize your audio experience (if supported).
--   **Settings**: Configure app preferences.
--   **Modern UI**: Premium and responsive design with smooth animations and glassmorphism elements.
+-   **Artist Image Customization**: Personalize your library by picking artist images from your gallery, searching the web (Deezer API), or resetting to defaults.
+-   **Deep Meta-Scan**: Enhanced metadata engine that fetches high-resolution (600x600px) artwork and detailed song info from the iTunes API.
+-   **Lyrics Integration**: Search for and save synchronized or static lyrics using LRCLIB and OVH fallback. Edit lyrics manually for perfect accuracy.
+-   **About Screen**: A dedicated section to explore the app's premium features and current version.
+-   **Improved UI/UX**: 
+    *   Hidden scrollbars in settings for a cleaner look.
+    *   Intelligent MiniPlayer that auto-hides on Detail screens (Settings, Player, About).
+    *   Optimized "Top Songs" view.
+    *   Enhanced Search bar visibility across all themes.
 
-## Tech Stack
+## 🚀 Features
 
--   **Framework**: [React Native](https://reactnative.dev/)
--   **Platform**: [Expo](https://expo.dev/)
+-   **Music Library Management**: Automatically scans and organizes local music by Artists, Albums, and Genres.
+-   **Smart Library Engine**: High-performance background metadata enhancement and instant loading for heavy collections.
+-   **Listening History**: 
+    *   **Most Played**: Automatically generated based on your play counts.
+    *   **Recently Played**: Quick access to your latest tracks.
+    *   **Recently Added**: See your newest music at a glance.
+    *   **Never Played**: Re-discover forgotten gems in your library.
+-   **Premium Theming**: Choose from stunning themes including **Glassmorphism**, **Deep Blue**, **Purple**, **Emerald**, and **True Black**.
+-   **Advanced Operations**:
+    *   Batch scan and fix metadata issues.
+    *   Create and manage custom playlists.
+    *   Deep folder scanning for Internal and External SD Card storage.
+-   **Native Experience**: High-quality audio playback with `react-native-track-player`, supporting notifications and lock-screen controls.
+
+## 🛠 Tech Stack
+
+-   **Framework**: [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/)
 -   **Language**: [TypeScript](https://www.typescriptlang.org/)
--   **Navigation**: [React Navigation](https://reactnavigation.org/)
--   **State/Data Management**:
-    -   `expo-sqlite` for local database storage.
-    -   `expo-media-library` for accessing device media files.
--   **Audio Playback**: `react-native-track-player` / `expo-av`
--   **UI Components**: Custom components with `react-native-reanimated` for animations.
--   **Icons**: `@expo/vector-icons`
+-   **Animations**: `react-native-reanimated` for smooth, high-fidelity transitions.
+-   **Image Processing**: `expo-image-picker` and custom caching logic.
+-   **APIs**:
+    *   **iTunes Search API**: Metadata & Art.
+    *   **Deezer API**: Artist Imagery.
+    *   **LRCLIB / OVH**: Lyrics search.
+-   **Storage**: `AsyncStorage` for user preferences and metadata persistence.
 
-## Installation
+## 📦 Installation
 
 1.  **Clone the repository**:
     ```bash
@@ -48,25 +53,19 @@ A comprehensive and feature-rich music player application built with React Nativ
 2.  **Install dependencies**:
     ```bash
     npm install
-    # or
-    yarn install
     ```
 
 3.  **Run the application**:
     ```bash
     npx expo start
     ```
-    -   Scan the QR code with the Expo Go app on your Android or iOS device.
-    -   Or press `a` to run on an Android emulator, `i` for iOS simulator.
+    -   Scan the QR code with the Expo Go app.
+    -   Press `a` for Android or `i` for iOS.
 
-## Development
-
-This project uses `patch-package` to handle any necessary patches to node modules. Ensure `postinstall` scripts run after installation.
-
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+## 📄 License
 
 [MIT](LICENSE)
