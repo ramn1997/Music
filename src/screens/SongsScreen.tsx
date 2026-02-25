@@ -30,6 +30,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
     const { playlists, addToPlaylist, updateSongMetadata } = useMusicLibrary();
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -38,6 +39,13 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const [songsToAddToPlaylist, setSongsToAddToPlaylist] = useState<Song[]>([]);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const flatListRef = React.useRef<any>(null);
+
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 150); // fast debounce to preserve responsiveness without killing thread
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
     // Multi-select state
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -58,15 +66,24 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     };
 
     const filteredSongs = React.useMemo(() => {
-        const activeSongs = songs.filter(song =>
-            song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            song.artist.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        return activeSongs.sort((a, b) => {
-            const comparison = a.title.localeCompare(b.title);
+        let result = songs;
+        if (debouncedQuery) {
+            const query = debouncedQuery.toLowerCase();
+            result = songs.filter(song =>
+                (song.title && song.title.toLowerCase().includes(query)) ||
+                (song.artist && song.artist.toLowerCase().includes(query))
+            );
+        }
+
+        return [...result].sort((a, b) => {
+            const titleA = (a.title || '').toLowerCase();
+            const titleB = (b.title || '').toLowerCase();
+            let comparison = 0;
+            if (titleA < titleB) comparison = -1;
+            else if (titleA > titleB) comparison = 1;
             return sortOrder === 'asc' ? comparison : -comparison;
         });
-    }, [songs, searchQuery, sortOrder]);
+    }, [songs, debouncedQuery, sortOrder]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
         const index = filteredSongs.findIndex(s => s.id === song.id);
@@ -143,7 +160,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         </>
                     ) : (
                         <>
-                            <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                                 <Ionicons name="arrow-back" size={24} color={theme.text} />
                             </TouchableOpacity>
                             <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>

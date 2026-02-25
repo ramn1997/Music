@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +12,7 @@ import { useProgress } from 'react-native-track-player';
 
 export const MiniPlayer = () => {
     const navigation = useNavigation<any>();
-    const { currentSong, isPlaying, playPause, nextTrack, prevTrack } = usePlayerContext();
+    const { currentSong, isPlaying, playPause, nextTrack, prevTrack, seek } = usePlayerContext();
     const { theme, themeType, playerStyle } = useTheme();
     const insets = useSafeAreaInsets();
     const { position, duration } = useProgress(1000); // 1s update for mini player is enough
@@ -21,6 +21,8 @@ export const MiniPlayer = () => {
     const currentRouteName = useNavigationState(state =>
         state ? state.routes[state.index].name : null
     );
+
+    const seekInterval = useRef<NodeJS.Timeout | null>(null);
 
     // Only hide mini player when on the full Player screen, Settings screen, About screen, or if no song exists
     const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Settings' || currentRouteName === 'About';
@@ -44,6 +46,31 @@ export const MiniPlayer = () => {
             case 'soft': return 12;
             case 'square': return 4;
             default: return 6;
+        }
+    };
+
+    const startSeeking = (direction: 'forward' | 'backward') => {
+        if (seekInterval.current) clearInterval(seekInterval.current);
+        let skipAmount = 2000;
+        let currentPosMs = position * 1000;
+        const durMs = duration * 1000;
+        const acceleration = 1.3;
+        const maxSkip = 30000;
+        currentPosMs = direction === 'forward' ? currentPosMs + 2000 : currentPosMs - 2000;
+        currentPosMs = Math.min(Math.max(currentPosMs, 0), durMs);
+        seek(currentPosMs);
+        seekInterval.current = setInterval(() => {
+            currentPosMs = direction === 'forward' ? currentPosMs + skipAmount : currentPosMs - skipAmount;
+            currentPosMs = Math.min(Math.max(currentPosMs, 0), durMs);
+            seek(currentPosMs);
+            skipAmount = Math.min(skipAmount * acceleration, maxSkip);
+        }, 150);
+    };
+
+    const stopSeeking = () => {
+        if (seekInterval.current) {
+            clearInterval(seekInterval.current);
+            seekInterval.current = null;
         }
     };
 
@@ -116,8 +143,14 @@ export const MiniPlayer = () => {
 
                         {/* Controls */}
                         <View style={styles.controls}>
-                            <TouchableOpacity onPress={(e) => { e.stopPropagation(); prevTrack(); }} style={styles.controlButton}>
-                                <Ionicons name="play-back" size={22} color="white" />
+                            <TouchableOpacity
+                                onPress={(e) => { e.stopPropagation(); prevTrack(); }}
+                                onLongPress={(e) => { e.stopPropagation(); startSeeking('backward'); }}
+                                onPressOut={(e) => { e.stopPropagation(); stopSeeking(); }}
+                                delayLongPress={300}
+                                style={styles.controlButton}
+                            >
+                                <Ionicons name="play-skip-back" size={22} color="white" />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={(e) => { e.stopPropagation(); playPause(); }} style={styles.controlButton}>
                                 <Ionicons
@@ -126,8 +159,14 @@ export const MiniPlayer = () => {
                                     color="white"
                                 />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={(e) => { e.stopPropagation(); nextTrack(); }} style={styles.controlButton}>
-                                <Ionicons name="play-forward" size={22} color="white" />
+                            <TouchableOpacity
+                                onPress={(e) => { e.stopPropagation(); nextTrack(); }}
+                                onLongPress={(e) => { e.stopPropagation(); startSeeking('forward'); }}
+                                onPressOut={(e) => { e.stopPropagation(); stopSeeking(); }}
+                                delayLongPress={300}
+                                style={styles.controlButton}
+                            >
+                                <Ionicons name="play-skip-forward" size={22} color="white" />
                             </TouchableOpacity>
                         </View>
                     </View>

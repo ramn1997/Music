@@ -378,7 +378,15 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [selectedSong, setSelectedSong] = useState<Song | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
     const [isEditing, setIsEditing] = useState(false);
+
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 150);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
     const [editName, setEditName] = useState(displayName);
     const [isAddSongsModalVisible, setIsAddSongsModalVisible] = useState(false);
 
@@ -441,8 +449,8 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         }
 
         // Apply Search Query Filtering
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase().trim();
+        if (debouncedQuery.trim()) {
+            const query = debouncedQuery.toLowerCase().trim();
             filtered = filtered.filter(s =>
                 s.title.toLowerCase().includes(query) ||
                 (s.artist && s.artist.toLowerCase().includes(query)) ||
@@ -466,18 +474,30 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                 return (b.dateAdded || 0) - (a.dateAdded || 0);
             });
         } else if (sortOrder === 'asc') {
-            filtered.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+            filtered.sort((a, b) => {
+                const titleA = a.title.toLowerCase();
+                const titleB = b.title.toLowerCase();
+                return titleA < titleB ? -1 : (titleA > titleB ? 1 : 0);
+            });
         } else if (sortOrder === 'desc') {
-            filtered.sort((a, b) => b.title.toLowerCase().localeCompare(a.title.toLowerCase()));
+            filtered.sort((a, b) => {
+                const titleA = a.title.toLowerCase();
+                const titleB = b.title.toLowerCase();
+                return titleA < titleB ? 1 : (titleA > titleB ? -1 : 0);
+            });
         } else {
             // Fallback default sort (A-Z) if not special and not recent
             if (!['most_played', 'recently_played', 'recently_added', 'never_played'].includes(type || '') && id !== 'liked' && type !== 'playlist') {
-                filtered.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+                filtered.sort((a, b) => {
+                    const titleA = a.title.toLowerCase();
+                    const titleB = b.title.toLowerCase();
+                    return titleA < titleB ? -1 : (titleA > titleB ? 1 : 0);
+                });
             }
         }
 
         return filtered;
-    }, [songs, type, name, id, likedSongs, playlists, sortOrder, searchQuery]);
+    }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
         const index = displaySongs.findIndex(s => s.id === song.id);
@@ -565,7 +585,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         <ScreenContainer variant="default">
             <View style={{ flex: 1 }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
 

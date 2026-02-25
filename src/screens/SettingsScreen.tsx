@@ -197,8 +197,8 @@ export const SettingsScreen = () => {
                             <Ionicons name="refresh-circle" size={20} color={theme.primary} />
                         </View>
                         <View style={styles.rowContent}>
-                            <Text style={[styles.rowTitle, { color: theme.text }]}>Fix Metadata Issues</Text>
-                            <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Force a deep scan of all music</Text>
+                            <Text style={[styles.rowTitle, { color: theme.text }]}>Scan for New Music</Text>
+                            <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Find recently added songs from folders</Text>
                         </View>
                         <Ionicons name="sparkles" size={20} color={theme.primary} />
                     </TouchableOpacity>

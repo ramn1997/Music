@@ -113,6 +113,7 @@ class DatabaseService {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 `;
 
+                let i = 0;
                 for (const s of songs) {
                     await db.runAsync(query, [
                         this.sanitize(s.id),
@@ -132,6 +133,12 @@ class DatabaseService {
                         this.sanitize(s.scanStatus),
                         this.sanitize(s.folder)
                     ]);
+
+                    i++;
+                    if (i % 100 === 0) {
+                        // Yield to main thread for large imports
+                        await new Promise(r => setTimeout(r, 0));
+                    }
                 }
             });
             console.log(`[DatabaseService] Successfully upserted ${songs.length} songs.`);

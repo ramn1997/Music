@@ -159,7 +159,7 @@ export const PlaylistsScreen = () => {
         <ScreenContainer variant="default">
             <View style={{ flex: 1 }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Playlists</Text>
@@ -167,7 +167,8 @@ export const PlaylistsScreen = () => {
                         onPress={() => setModalVisible(true)}
                         style={[styles.createHeaderButton, { backgroundColor: theme.primary }]}
                     >
-                        <Ionicons name="add" size={24} color={theme.textOnPrimary} />
+                        <Ionicons name="add" size={20} color={theme.textOnPrimary} />
+                        <Text style={{ color: theme.textOnPrimary, fontWeight: 'bold', marginLeft: 4 }}>New</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -270,8 +271,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     createHeaderButton: {
-        width: 36,
+        flexDirection: 'row',
         height: 36,
+        paddingHorizontal: 16,
         borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',

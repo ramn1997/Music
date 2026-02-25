@@ -614,6 +614,8 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                 setRecentlyPlayed(recent);
                 AsyncStorage.setItem('cached_recently_played', JSON.stringify(recent)).catch(() => { });
 
+                await new Promise(r => setTimeout(r, 10)); // Yield
+
                 // 2. Calculate Recently Added
                 const added = [...songs]
                     .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0))
@@ -621,12 +623,16 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                 setRecentlyAdded(added);
                 AsyncStorage.setItem('cached_recently_added', JSON.stringify(added)).catch(() => { });
 
+                await new Promise(r => setTimeout(r, 10)); // Yield
+
                 // 3. Calculate Never Played
                 const never = songs
                     .filter(s => !s.playCount || s.playCount === 0)
                     .slice(0, 50);
                 setNeverPlayed(never);
                 AsyncStorage.setItem('cached_never_played', JSON.stringify(never)).catch(() => { });
+
+                await new Promise(r => setTimeout(r, 10)); // Yield
 
                 // 4. Calculate Top Artists (Heavy)
                 const artistMap = new Map<string, {
@@ -645,6 +651,8 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     if (!data.coverImage && song.coverImage) data.coverImage = song.coverImage;
                     artistMap.set(artistName, data);
                 });
+
+                await new Promise(r => setTimeout(r, 10)); // Yield
 
                 const top = Array.from(artistMap.values())
                     .map(a => ({
@@ -763,11 +771,10 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
     const refreshMetadata = async () => {
         try {
-            await AsyncStorage.removeItem('song_data_cache');
-            await importService.clearCache();
-            await loadSongsFromFolders(savedFolders, false, true, true);
+            // Only scan for newly added tracks, don't wipe existing cache or force full deep scan.
+            await loadSongsFromFolders(savedFolders, false, true, false);
         } catch (e) {
-            console.error("Failed to refresh metadata", e);
+            console.error("Failed to scan for new music", e);
         }
     };
 

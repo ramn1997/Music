@@ -371,7 +371,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         <ScreenContainer variant="player">
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}>
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
                         <Ionicons name="chevron-down" size={30} color={theme.text} />
                     </TouchableOpacity>
                     <View style={{ alignItems: 'center' }}>

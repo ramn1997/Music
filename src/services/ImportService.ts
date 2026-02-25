@@ -196,7 +196,7 @@ class ImportService {
             coverImage: undefined,
             scanStatus: 'pending',
             folder: this.getRootFolder(asset.uri) || undefined,
-            dateAdded: asset.modificationTime * 1000,
+            dateAdded: anyAsset.creationTime || Date.now(),
             playCount: 0,
             lastPlayed: 0,
             playHistory: []
@@ -330,6 +330,9 @@ class ImportService {
                 });
 
                 await Promise.all(chunkPromises);
+
+                // Yield to the JS thread to prevent UI freezing
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
 
             // 3. Batch DB Update (Huge performance win)
@@ -351,6 +354,9 @@ class ImportService {
                 message: `Enhancing... ${processed}/${totalSongsToEnhance}`,
                 songsLoaded: totalSongsInDb
             });
+
+            // Yield longer between batches
+            await new Promise(resolve => setTimeout(resolve, 150));
         }
 
         this.isEnhancing = false;
@@ -537,7 +543,8 @@ class ImportService {
                         playCount: existing.playCount,
                         lastPlayed: existing.lastPlayed,
                         playHistory: existing.playHistory,
-                        albumId: existing.albumId // Keep enhanced albumId if any
+                        albumId: existing.albumId, // Keep enhanced albumId if any
+                        dateAdded: existing.dateAdded || fresh.dateAdded // Preserve original date added
                     };
                 }
                 return fresh;

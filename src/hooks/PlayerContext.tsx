@@ -2,7 +2,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect, useRef, useCallback } from 'react';
 import { Song, useMusicLibrary as useLibrary } from './MusicLibraryContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState, AppStateStatus, Platform, PermissionsAndroid, NativeModules, NativeEventEmitter } from 'react-native';
+import { AppState, AppStateStatus, Platform, PermissionsAndroid, NativeModules, NativeEventEmitter, Image } from 'react-native';
 import TrackPlayer, {
     Capability,
     Event,
@@ -130,9 +130,14 @@ const songToTrack = (song: Song): Track => {
 
     // 3. Fallback to placeholder if still no artwork
     if (!artwork) {
-        const placeholder = getPlaceholderArt(song.id);
-        // On Android, don't pass base64 to TrackPlayer as it's unsupported in notifications
-        artwork = (Platform.OS === 'android' && placeholder?.startsWith('data:')) ? undefined : (placeholder || undefined);
+        // TrackPlayer Android doesn't support base64 (data: URIs) in notifications natively.
+        // Also it responds much better to simply passing the direct `require()` output.
+        // By explicitly targeting the native android resources URI for the custom placeholder we securely bypass node bounds.
+        try {
+            artwork = 'android.resource://com.ram.musicapp/drawable/placeholder_art';
+        } catch (e) {
+            artwork = undefined;
+        }
     }
 
     return {
@@ -211,6 +216,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
+
+        // Priority 3: the designated placeholder
+        if (!widgetArtwork) {
+            widgetArtwork = 'android.resource://com.ram.musicapp/drawable/placeholder_art';
+        }
 
         WidgetModule.updateWidget(
             currentTrack?.title || 'No song playing',
@@ -323,8 +333,12 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                                         }
                                     }
                                     if (!artwork) {
-                                        const placeholder = getPlaceholderArt(updatedCurrent.id);
-                                        artwork = (Platform.OS === 'android' && placeholder?.startsWith('data:')) ? undefined : (placeholder || undefined);
+                                        // Provide a solid bundled fallback for empty tracks so the notification isn't naked
+                                        try {
+                                            artwork = 'android.resource://com.ram.musicapp/drawable/placeholder_art';
+                                        } catch (e) {
+                                            artwork = undefined;
+                                        }
                                     }
 
                                     await TrackPlayer.updateMetadataForTrack(activeIndex, {
@@ -680,9 +694,18 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                             if (state.currentIndex >= 0 && state.currentIndex < tracks.length) {
                                 // Store position for restoration on first play
                                 let initialPos = 0;
-                                if (state.position > 0) {
-                                    initialPos = state.position / 1000;
-                                    positionRef.current = state.position;
+                                let savedPos = state.position || 0;
+
+                                try {
+                                    const explicitPosStr = await AsyncStorage.getItem('player_position');
+                                    if (explicitPosStr) {
+                                        savedPos = parseFloat(explicitPosStr);
+                                    }
+                                } catch (e) { }
+
+                                if (savedPos > 0) {
+                                    initialPos = savedPos / 1000;
+                                    positionRef.current = savedPos;
                                     console.log(`[PlayerContext] Restored position ref: ${initialPos}s`);
                                 }
                                 await TrackPlayer.skip(state.currentIndex, initialPos);
@@ -735,6 +758,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 duration: dur > 0 ? dur * 1000 : undefined
             };
             await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+            await AsyncStorage.setItem('player_position', String(pos * 1000));
         } catch (e) {
             console.warn('[PlayerContext] Persistence failed:', e);
         }
@@ -751,7 +775,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
         if (isPlaying && isRestored) {
             interval = setInterval(async () => {
-                await saveStateShortcut();
+                try {
+                    // ONLY save position to prevent stringifying massive playlists every 10s
+                    let playerPos = 0;
+                    try { playerPos = await TrackPlayer.getPosition(); } catch (e) { }
+                    const pos = (playerPos > 0) ? playerPos : (positionRef.current / 1000);
+                    await AsyncStorage.setItem('player_position', String(pos * 1000));
+                } catch (e) { }
             }, 10000); // Save every 10 seconds
         }
 

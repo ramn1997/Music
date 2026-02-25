@@ -35,6 +35,14 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+
+    React.useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 150);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
     // Group songs by artist
     const artists = useMemo(() => {
@@ -54,8 +62,8 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         const artistList = Array.from(map.values());
 
         // Filter by search query
-        const filtered = searchQuery.trim()
-            ? artistList.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+        const filtered = debouncedQuery.trim()
+            ? artistList.filter(a => a.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
             : artistList;
 
         return filtered.sort((a, b) => {
@@ -63,9 +71,14 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             const bIsUnknown = b.name === 'Unknown Artist';
             if (aIsUnknown && !bIsUnknown) return -1;
             if (!aIsUnknown && bIsUnknown) return 1;
-            return a.name.localeCompare(b.name);
+
+            const nameA = a.name.toLowerCase();
+            const nameB = b.name.toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
         });
-    }, [songs, searchQuery]);
+    }, [songs, debouncedQuery]);
 
 
 
@@ -90,7 +103,7 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             {!isEmbedded && (
                 <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: 20 }]}>
                     <View style={styles.headerLeft}>
-                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Artists</Text>

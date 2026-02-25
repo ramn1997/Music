@@ -15,9 +15,25 @@ import { ThemeProvider, useTheme } from './src/hooks/ThemeContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import React from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Linking from 'expo-linking';
 
 // Hold the native splash screen until library is synced
 SplashScreen.preventAutoHideAsync().catch(() => { });
+
+const prefix = Linking.createURL('/');
+const linking: any = {
+    prefixes: [prefix, 'exp+musicapp://'],
+    config: {
+        screens: {
+            Home: {
+                screens: {
+                    Playlists: 'playlists',
+                    Favorites: 'liked'
+                }
+            }
+        }
+    }
+};
 
 // Apply global font
 // @ts-ignore
@@ -53,7 +69,7 @@ export default function App() {
                 <ThemeProvider>
                     <MusicLibraryProvider>
                         <PlayerProvider>
-                            <NavigationContainer>
+                            <NavigationContainer linking={linking}>
                                 <AppContent />
                             </NavigationContainer>
                         </PlayerProvider>

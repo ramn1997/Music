@@ -379,14 +379,8 @@ export const HomeScreen = () => {
             setActiveTab('Overview');
         });
 
-        // 2. Also reset when navigators focus this screen (e.g. going back or initial arrival)
-        const unsubscribeFocus = navigation.addListener('focus', () => {
-            setActiveTab('Overview');
-        });
-
         return () => {
-            unsubscribeTab();
-            unsubscribeFocus();
+            if (unsubscribeTab) unsubscribeTab();
         };
     }, [navigation]);
 
