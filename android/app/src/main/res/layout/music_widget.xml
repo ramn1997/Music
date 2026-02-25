@@ -86,7 +86,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_widget_playlist"
+                android:src="@android:drawable/ic_menu_agenda"
                 android:layout_marginStart="4dp"
                 android:contentDescription="Playlists" />
 
@@ -95,7 +95,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_widget_liked"
+                android:src="@android:drawable/star_on"
                 android:layout_marginStart="4dp"
                 android:contentDescription="Liked Songs" />
 

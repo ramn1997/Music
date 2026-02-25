@@ -132,9 +132,9 @@ const songToTrack = (song: Song): Track => {
     if (!artwork) {
         // TrackPlayer Android doesn't support base64 (data: URIs) in notifications natively.
         // Also it responds much better to simply passing the direct `require()` output.
-        // By explicitly targeting the native android resources URI for the custom placeholder we securely bypass node bounds.
+        // By casting to any, we bypass the stringent type, and the RN module resolves it securely.
         try {
-            artwork = 'android.resource://com.ram.musicapp/drawable/placeholder_art';
+            artwork = require('../../assets/discicon.png') as any;
         } catch (e) {
             artwork = undefined;
         }
@@ -335,7 +335,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                                     if (!artwork) {
                                         // Provide a solid bundled fallback for empty tracks so the notification isn't naked
                                         try {
-                                            artwork = 'android.resource://com.ram.musicapp/drawable/placeholder_art';
+                                            artwork = require('../../assets/discicon.png') as any;
                                         } catch (e) {
                                             artwork = undefined;
                                         }
