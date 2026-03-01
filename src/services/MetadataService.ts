@@ -61,28 +61,8 @@ class MetadataService {
                     picture: false
                 });
             } catch (innerError) {
-                // Fallback for Android Content URIs (or failed file access)
-                // If direct read failed (likely Scoped Storage on file://), try copying the CONTENT URI.
-                // We prefer the original 'uri' if it was content://, or lookupUri if that was content://
-                const sourceUri = uri.startsWith('content://') ? uri : (lookupUri.startsWith('content://') ? lookupUri : null);
-
-                if (sourceUri) {
-                    const tempFile = `${FileSystem.cacheDirectory}meta_resolve_${assetId || Date.now()}.mp3`;
-                    try {
-                        console.log(`[MetadataService] Fallback to copy for ${assetId}`);
-                        await FileSystem.copyAsync({ from: sourceUri, to: tempFile });
-                        metadata = await getMusicInfoAsync(tempFile, {
-                            title: true,
-                            artist: true,
-                            album: true,
-                            genre: true,
-                            picture: false
-                        });
-                        await FileSystem.deleteAsync(tempFile, { idempotent: true });
-                    } catch (copyError) {
-                        console.warn('[MetadataService] Fallback copy failed', copyError);
-                    }
-                }
+                // If it fails on Android, headers are likely corrupt or missing.
+                console.warn(`[MetadataService] Direct ID3 read failed for ${lookupUri}`);
             }
 
             const result: ScannedMetadata = {

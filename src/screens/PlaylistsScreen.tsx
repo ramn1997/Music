@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, FlatList } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+const FlashListAny = FlashList as any;
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '../components/GlassCard';
@@ -159,27 +161,23 @@ export const PlaylistsScreen = () => {
         <ScreenContainer variant="default">
             <View style={{ flex: 1 }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Playlists</Text>
                     <TouchableOpacity
                         onPress={() => setModalVisible(true)}
                         style={[styles.createHeaderButton, { backgroundColor: theme.primary }]}
                     >
-                        <Ionicons name="add" size={20} color={theme.textOnPrimary} />
-                        <Text style={{ color: theme.textOnPrimary, fontWeight: 'bold', marginLeft: 4 }}>New</Text>
+                        <Ionicons name="add" size={16} color={theme.textOnPrimary} />
+                        <Text style={{ color: theme.textOnPrimary, fontWeight: 'bold', marginLeft: 4, fontSize: 13 }}>New Playlist</Text>
                     </TouchableOpacity>
                 </View>
 
-                <FlatList
+                <FlashListAny
                     data={displayPlaylists}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
                     numColumns={3}
-                    columnWrapperStyle={styles.columnWrapper}
+                    estimatedItemSize={120}
                     contentContainerStyle={styles.listContent}
-                    style={{ flex: 1 }}
                     ListEmptyComponent={
                         <View style={{ padding: 50, alignItems: 'center' }}>
                             <Text style={{ color: theme.textSecondary }}>No playlists found</Text>
@@ -272,9 +270,9 @@ const styles = StyleSheet.create({
     },
     createHeaderButton: {
         flexDirection: 'row',
-        height: 36,
-        paddingHorizontal: 16,
-        borderRadius: 18,
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 4,

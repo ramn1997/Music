@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, PanResponder, FlatList, Animated, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, PanResponder, Animated, Modal, Platform } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+const FlashListAny = FlashList as any;
 import ReAnimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, Easing } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,150 +21,23 @@ import { LyricsModal } from '../components/LyricsModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
 import { MarqueeText } from '../components/MarqueeText';
 import { useProgress } from 'react-native-track-player';
+import TrackPlayer from 'react-native-track-player';
 import { Song } from '../hooks/useLocalMusic';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
 const { width, height: screenHeight } = Dimensions.get('window');
 
-export const PlayerScreen = ({ route, navigation }: Props) => {
-    const {
-        currentSong,
-        isPlaying,
-        playPause,
-        nextTrack,
-        prevTrack,
-        seek,
-        playlist,
-        currentIndex,
-        playSongInPlaylist,
-        playlistName,
-        isShuffleOn,
-        toggleShuffle,
-        repeatMode,
-        toggleRepeat,
-        removeFromQueue,
-    } = usePlayerContext();
-
-    const { position: rawPosition, duration: rawDuration } = useProgress(250); // Faster updates for the full player
+const ProgressBar = React.memo(({ seek, isPlaying, theme }: { seek: (pos: number) => void, isPlaying: boolean, theme: any }) => {
+    const { position: rawPosition, duration: rawDuration } = useProgress(250);
     const position = rawPosition * 1000;
     const duration = rawDuration * 1000;
-
-    const { theme, themeType, playerStyle } = useTheme();
-
-    const getArtStyle = () => {
-        const size = width - 100;
-        let borderRadius = 24;
-
-        switch (playerStyle) {
-            case 'circle': borderRadius = size / 2; break;
-
-            case 'square': borderRadius = 12; break;
-            case 'sharp': borderRadius = 0; break;
-            case 'soft': borderRadius = 48; break;
-            case 'squircle': borderRadius = size / 4; break;
-            case 'rounded': default: borderRadius = 24; break;
-        }
-
-        return {
-            width: size,
-            height: size,
-            borderRadius
-        };
-    };
-
-    const dynamicArtStyle = getArtStyle();
-    const { toggleLike, isLiked, playlists, addToPlaylist, updateSongMetadata } = useMusicLibrary();
     const [barLayout, setBarLayout] = useState({ x: 0, width: 0 });
     const [isSeeking, setIsSeeking] = useState(false);
     const [seekPosition, setSeekPosition] = useState(0);
-    const [editModalVisible, setEditModalVisible] = useState(false);
-    const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
-    const likeScale = useRef(new Animated.Value(1)).current;
-
-    const shuffleScale = useSharedValue(1);
-    const repeatScale = useSharedValue(1);
-    const playPauseScale = useSharedValue(1);
-    const prevScale = useSharedValue(1);
-    const nextScale = useSharedValue(1);
-    const likeShine = useSharedValue(0);
-    const songTransition = useSharedValue(1);
-    const slideDirection = useSharedValue(0); // 1 for right-to-left (next), -1 for left-to-right (prev)
-
-    useEffect(() => {
-        // Trigger animation whenever currentSong changes
-        songTransition.value = 0;
-        songTransition.value = withTiming(1, {
-            duration: 250,
-            easing: Easing.out(Easing.back(0.5))
-        });
-    }, [currentSong?.id]);
-
-    const contentTransitionStyle = useAnimatedStyle(() => ({
-        opacity: songTransition.value,
-        transform: [
-            { translateX: 100 * (1 - songTransition.value) * (slideDirection.value || 1) }
-        ] as any
-    }));
-
-    const likeShineStyle = useAnimatedStyle(() => ({
-        opacity: likeShine.value,
-        transform: [
-            { scale: withTiming(likeShine.value * 2.5, { duration: 400 }) },
-            { rotate: `${likeShine.value * 45}deg` }
-        ] as any
-    }));
-
-    const handleNext = () => {
-        slideDirection.value = 1;
-        nextTrack();
-    };
-
-    const handlePrev = () => {
-        slideDirection.value = -1;
-        prevTrack();
-    };
-
-    const [selectedQueueItem, setSelectedQueueItem] = useState<{ song: Song, index: number } | null>(null);
-    const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
-    const [optionsModalVisible, setOptionsModalVisible] = useState(false);
-    const [queueOptionsVisible, setQueueOptionsVisible] = useState(false);
-    const [activeModalSong, setActiveModalSong] = useState<Song | null>(null);
-
-    const queueListRef = useRef<FlatList>(null);
-
-    const liked = currentSong ? isLiked(currentSong.id) : false;
-
-    const toggleOptions = () => setOptionsModalVisible(true);
-
-    const handleLike = () => {
-        if (!currentSong) return;
-
-        // Trigger shine effect
-        likeShine.value = 0;
-        likeShine.value = withSequence(
-            withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }),
-            withTiming(0, { duration: 400, easing: Easing.in(Easing.quad) })
-        );
-
-        Animated.sequence([
-            Animated.spring(likeScale, { toValue: 1.4, friction: 3, useNativeDriver: true }),
-            Animated.spring(likeScale, { toValue: 1, friction: 3, useNativeDriver: true })
-        ]).start();
-        toggleLike(currentSong);
-    };
-
-    const handleAddToPlaylist = async (playlistId: string) => {
-        const targetSong = activeModalSong || currentSong;
-        if (targetSong) {
-            await addToPlaylist(playlistId, targetSong);
-            setPlaylistModalVisible(false);
-        }
-    };
 
     const barLayoutRef = useRef(barLayout);
     const durationRef = useRef(duration);
-
     useEffect(() => { barLayoutRef.current = barLayout; }, [barLayout]);
     useEffect(() => { durationRef.current = duration; }, [duration]);
 
@@ -225,20 +100,185 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
     const currentPosition = isSeeking ? seekPosition : position;
     const progress = duration > 0 ? currentPosition / duration : 0;
 
+    const formatTime = (millis: number) => {
+        if (!millis && millis !== 0) return "0:00";
+        const minutes = Math.floor(millis / 60000);
+        const seconds = ((millis % 60000) / 1000).toFixed(0);
+        return `${minutes}:${Number(seconds) < 10 ? '0' : ''}${seconds}`;
+    };
+
+    return (
+        <View style={styles.progressContainer}>
+            <View
+                onLayout={(e) => setBarLayout({ x: e.nativeEvent.layout.x, width: e.nativeEvent.layout.width })}
+                style={styles.progressBarBg}
+            >
+                <View style={[styles.progressBarFill, { width: `${progress * 100}%`, overflow: 'hidden' }]}>
+                    <ReAnimated.View style={[{ width: '200%', height: '100%', flexDirection: 'row' }, waveStyle]}>
+                        <LinearGradient
+                            colors={[theme.primary, theme.secondary, theme.primary]}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 1, y: 0.5 }}
+                            style={{ flex: 1 }}
+                        />
+                    </ReAnimated.View>
+                </View>
+                <View style={[styles.progressKnob, { left: `${progress * 100}%`, backgroundColor: theme.text }]} />
+                <View style={StyleSheet.absoluteFill} {...panHandlers} />
+            </View>
+            <View style={styles.timeContainer}>
+                <Text style={[styles.timeText, { color: theme.textSecondary }]}>{formatTime(currentPosition)}</Text>
+                <Text style={[styles.timeText, { color: theme.textSecondary }]}>{formatTime(duration)}</Text>
+            </View>
+        </View>
+    );
+});
+
+export const PlayerScreen = ({ route, navigation }: Props) => {
+    const {
+        currentSong,
+        isPlaying,
+        playPause,
+        nextTrack,
+        prevTrack,
+        seek,
+        playlist,
+        currentIndex,
+        playSongInPlaylist,
+        playlistName,
+        isShuffleOn,
+        toggleShuffle,
+        repeatMode,
+        toggleRepeat,
+        removeFromQueue,
+    } = usePlayerContext();
+
+    const { theme, themeType, playerStyle } = useTheme();
+
+    const getArtStyle = () => {
+        const size = width - 100;
+        let borderRadius = 24;
+
+        switch (playerStyle) {
+            case 'circle': borderRadius = size / 2; break;
+
+            case 'square': borderRadius = 12; break;
+            case 'sharp': borderRadius = 0; break;
+            case 'soft': borderRadius = 48; break;
+            case 'squircle': borderRadius = size / 4; break;
+            case 'rounded': default: borderRadius = 24; break;
+        }
+
+        return {
+            width: size,
+            height: size,
+            borderRadius
+        };
+    };
+
+    const dynamicArtStyle = getArtStyle();
+    const { toggleLike, isLiked, playlists, addToPlaylist, updateSongMetadata } = useMusicLibrary();
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [lyricsModalVisible, setLyricsModalVisible] = useState(false);
+    const likeScale = useRef(new Animated.Value(1)).current;
+
+    const shuffleScale = useSharedValue(1);
+    const repeatScale = useSharedValue(1);
+    const playPauseScale = useSharedValue(1);
+    const prevScale = useSharedValue(1);
+    const nextScale = useSharedValue(1);
+    const likeShine = useSharedValue(0);
+    const songTransition = useSharedValue(1);
+    const slideDirection = useSharedValue(0); // 1 for right-to-left (next), -1 for left-to-right (prev)
+
+    useEffect(() => {
+        // Trigger animation whenever currentSong changes
+        songTransition.value = 0;
+        songTransition.value = withTiming(1, {
+            duration: 250,
+            easing: Easing.out(Easing.back(0.5))
+        });
+    }, [currentSong?.id]);
+
+    const contentTransitionStyle = useAnimatedStyle(() => ({
+        opacity: songTransition.value,
+        transform: [
+            { translateX: 100 * (1 - songTransition.value) * (slideDirection.value || 1) }
+        ] as any
+    }));
+
+    const likeShineStyle = useAnimatedStyle(() => ({
+        opacity: likeShine.value,
+        transform: [
+            { scale: withTiming(likeShine.value * 2.5, { duration: 400 }) },
+            { rotate: `${likeShine.value * 45}deg` }
+        ] as any
+    }));
+
+    const handleNext = () => {
+        slideDirection.value = 1;
+        nextTrack();
+    };
+
+    const handlePrev = () => {
+        slideDirection.value = -1;
+        prevTrack();
+    };
+
+    const [selectedQueueItem, setSelectedQueueItem] = useState<{ song: Song, index: number } | null>(null);
+    const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+    const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+    const [queueOptionsVisible, setQueueOptionsVisible] = useState(false);
+    const [activeModalSong, setActiveModalSong] = useState<Song | null>(null);
+
+    const queueListRef = useRef<any>(null);
+
+    const liked = currentSong ? isLiked(currentSong.id) : false;
+
+    const toggleOptions = () => setOptionsModalVisible(true);
+
+    const handleLike = () => {
+        if (!currentSong) return;
+
+        // Trigger shine effect
+        likeShine.value = 0;
+        likeShine.value = withSequence(
+            withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }),
+            withTiming(0, { duration: 400, easing: Easing.in(Easing.quad) })
+        );
+
+        Animated.sequence([
+            Animated.spring(likeScale, { toValue: 1.4, friction: 3, useNativeDriver: true }),
+            Animated.spring(likeScale, { toValue: 1, friction: 3, useNativeDriver: true })
+        ]).start();
+        toggleLike(currentSong);
+    };
+
+    const handleAddToPlaylist = async (playlistId: string) => {
+        const targetSong = activeModalSong || currentSong;
+        if (targetSong) {
+            await addToPlaylist(playlistId, targetSong);
+            setPlaylistModalVisible(false);
+        }
+    };
+
     const seekInterval = useRef<NodeJS.Timeout | null>(null);
 
-    const startSeeking = (direction: 'forward' | 'backward') => {
+    const startSeeking = async (direction: 'forward' | 'backward') => {
         if (seekInterval.current) clearInterval(seekInterval.current);
+        const currentProgress = await TrackPlayer.getProgress();
+
         let skipAmount = 2000;
-        let currentPos = position;
+        let currentPos = currentProgress.position * 1000;
+        const dur = currentProgress.duration * 1000;
         const acceleration = 1.3;
         const maxSkip = 30000;
         currentPos = direction === 'forward' ? currentPos + 2000 : currentPos - 2000;
-        currentPos = Math.min(Math.max(currentPos, 0), duration);
+        currentPos = Math.min(Math.max(currentPos, 0), dur);
         seek(currentPos);
         seekInterval.current = setInterval(() => {
             currentPos = direction === 'forward' ? currentPos + skipAmount : currentPos - skipAmount;
-            currentPos = Math.min(Math.max(currentPos, 0), duration);
+            currentPos = Math.min(Math.max(currentPos, 0), dur);
             seek(currentPos);
             skipAmount = Math.min(skipAmount * acceleration, maxSkip);
         }, 150);
@@ -251,20 +291,11 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         }
     };
 
-    const formatTime = (millis: number) => {
-        if (!millis && millis !== 0) return "0:00";
-        const minutes = Math.floor(millis / 60000);
-        const seconds = ((millis % 60000) / 1000).toFixed(0);
-        return `${minutes}:${Number(seconds) < 10 ? '0' : ''}${seconds}`;
-    };
-
-    const incrementPlayCount = useMusicLibrary()?.incrementPlayCount;
     const lastTrackedSongId = useRef<string | null>(null);
 
     useEffect(() => {
         if (currentSong && currentSong.id !== lastTrackedSongId.current) {
             lastTrackedSongId.current = currentSong.id;
-            if (incrementPlayCount) incrementPlayCount(currentSong.id);
         }
     }, [currentSong?.id]);
 
@@ -431,57 +462,24 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                                 <TouchableOpacity
                                     onPress={() => setLyricsModalVisible(true)}
-                                    style={[styles.lyricsPillButton, { backgroundColor: theme.card }]}
+                                    style={[styles.lyricsPillButton, { backgroundColor: 'transparent' }]}
                                 >
-                                    <Ionicons name="document-text-outline" size={16} color={theme.primary} />
-                                    <Text style={[styles.lyricsPillText, { color: theme.text }]}>Lyrics</Text>
+                                    <Ionicons name="document-text-outline" size={16} color={theme.textSecondary} />
+                                    <Text style={[styles.lyricsPillText, { color: theme.textSecondary }]}>Lyrics</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={handleLike} style={[styles.iconButton, { backgroundColor: theme.card }]}>
-                                    <ReAnimated.View style={[
-                                        {
-                                            position: 'absolute',
-                                            width: 40,
-                                            height: 40,
-                                            borderRadius: 20,
-                                            backgroundColor: liked ? '#ef4444' : theme.primary,
-                                            zIndex: -1
-                                        },
-                                        likeShineStyle
-                                    ]} />
+                                <TouchableOpacity onPress={handleLike} style={[styles.iconButton, { backgroundColor: 'transparent' }]}>
                                     <Animated.View style={{ transform: [{ scale: likeScale }] }}>
                                         <Ionicons
                                             name={liked ? "heart" : "heart-outline"}
                                             size={28}
-                                            color={liked ? '#ef4444' : theme.primary}
+                                            color={liked ? '#ef4444' : theme.textSecondary}
                                         />
                                     </Animated.View>
                                 </TouchableOpacity>
                             </View>
                         </ReAnimated.View>
 
-                        <View style={styles.progressContainer}>
-                            <View
-                                onLayout={(e) => setBarLayout({ x: e.nativeEvent.layout.x, width: e.nativeEvent.layout.width })}
-                                style={styles.progressBarBg}
-                            >
-                                <View style={[styles.progressBarFill, { width: `${progress * 100}%`, overflow: 'hidden' }]}>
-                                    <ReAnimated.View style={[{ width: '200%', height: '100%', flexDirection: 'row' }, waveStyle]}>
-                                        <LinearGradient
-                                            colors={[theme.primary, theme.secondary, theme.primary]}
-                                            start={{ x: 0, y: 0.5 }}
-                                            end={{ x: 1, y: 0.5 }}
-                                            style={{ flex: 1 }}
-                                        />
-                                    </ReAnimated.View>
-                                </View>
-                                <View style={[styles.progressKnob, { left: `${progress * 100}%`, backgroundColor: theme.text }]} />
-                                <View style={StyleSheet.absoluteFill} {...panHandlers} />
-                            </View>
-                            <View style={styles.timeContainer}>
-                                <Text style={[styles.timeText, { color: theme.textSecondary }]}>{formatTime(currentPosition)}</Text>
-                                <Text style={[styles.timeText, { color: theme.textSecondary }]}>{formatTime(duration)}</Text>
-                            </View>
-                        </View>
+                        <ProgressBar seek={seek} isPlaying={isPlaying} theme={theme} />
 
                         <View style={styles.controlsContainer}>
                             <TouchableOpacity onPress={handleShufflePress}>
@@ -534,7 +532,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                 style={[
                     styles.bottomSheet,
                     {
-                        backgroundColor: theme.background === '#ffffff' ? '#f5f5f5' : (theme.background === '#000000' ? '#121212' : theme.card),
+                        backgroundColor: theme.background,
                         height: SHEET_MAX_HEIGHT,
                         transform: [{ translateY: translateY }],
                         bottom: -SHEET_MAX_HEIGHT + SHEET_MIN_HEIGHT + 60
@@ -556,22 +554,13 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                     </View>
                 </View>
                 <Animated.View style={{ flex: 1, opacity: listOpacity }}>
-                    <FlatList
+                    <FlashListAny
                         ref={queueListRef}
                         data={playlist}
-                        keyExtractor={(item, index) => `${item.id}-${index}`}
+                        keyExtractor={(item: any, index: number) => `${item.id}-${index}`}
+                        estimatedItemSize={73}
                         showsVerticalScrollIndicator={false}
-                        getItemLayout={(_, index) => ({
-                            length: 73,
-                            offset: 73 * index,
-                            index,
-                        })}
-                        onScrollToIndexFailed={(info) => {
-                            setTimeout(() => {
-                                queueListRef.current?.scrollToIndex({ index: info.index, animated: true });
-                            }, 500);
-                        }}
-                        renderItem={({ item, index }) => (
+                        renderItem={({ item, index }: { item: any, index: number }) => (
                             <View style={[styles.queueItem, index === currentIndex && { backgroundColor: theme.primary + '20' }]}>
                                 <TouchableOpacity
                                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
@@ -620,10 +609,11 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                             <Text style={[styles.modalTitle, { color: theme.text }]}>Add to Playlist</Text>
                             <TouchableOpacity onPress={() => setPlaylistModalVisible(false)}><Ionicons name="close" size={24} color={theme.text} /></TouchableOpacity>
                         </View>
-                        <FlatList
+                        <FlashListAny
                             data={playlists.filter(p => !p.isSpecial && p.id !== 'liked')}
-                            keyExtractor={item => item.id}
-                            renderItem={({ item }) => (
+                            keyExtractor={(item: any) => item.id}
+                            estimatedItemSize={70}
+                            renderItem={({ item }: { item: any }) => (
                                 <TouchableOpacity style={[styles.playlistItem, { borderBottomColor: theme.cardBorder }]} onPress={() => handleAddToPlaylist(item.id)}>
                                     <View style={[styles.playlistIcon, { backgroundColor: theme.card }]}><Ionicons name="musical-notes" size={24} color={theme.primary} /></View>
                                     <View style={{ flex: 1 }}><Text style={[styles.playlistName, { color: theme.text }]}>{item.name}</Text><Text style={[styles.songCount, { color: theme.textSecondary }]}>{item.songs.length} songs</Text></View>

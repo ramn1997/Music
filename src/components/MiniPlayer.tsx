@@ -85,7 +85,6 @@ export const MiniPlayer = () => {
                 onPress={() => navigation.navigate('Player')}
                 style={[styles.pillContainer, {
                     overflow: 'hidden',
-                    borderColor: theme.cardBorder,
                     backgroundColor: theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card
                 }]}
             >
@@ -189,8 +188,6 @@ const styles = StyleSheet.create({
         height: 60,
         borderRadius: 30, // Make it pill shape
         overflow: 'hidden',
-        borderWidth: 1, // Full border instead of top/bottom
-        borderColor: 'rgba(255,255,255,0.15)',
         backgroundColor: '#121212', // Solid dark fallback for visibility
         shadowColor: "#000",
         shadowOffset: {

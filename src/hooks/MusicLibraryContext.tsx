@@ -287,6 +287,9 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [refreshSongMetadata]);
 
+    const updateBufferRef = useRef<{ [id: string]: Song }>({});
+    const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     // Load songs from specific folders (Import flow)
     const loadSongsFromFolders = async (folderNames: string[] | null, saveToStorage = true, showProgress = true, forceDeepScan = false, isQuiet = false) => {
         if (!isQuiet) setLoading(true);
@@ -347,25 +350,38 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     }
                 },
                 onSongsUpdate: (batch) => {
-                    const convertedBatch = batch.map(s => ({
-                        ...s,
-                        scanStatus: s.scanStatus as string | undefined
-                    })) as Song[];
-
-                    const mergedBatch = mergeSongData(convertedBatch, customMetadataRef.current, songMetadataRef.current);
-
-                    // Efficiently update only the songs in this batch within the main state
-                    setSongs(prevSongs => {
-                        const batchMap = new Map(mergedBatch.map(b => [b.id, b]));
-                        return prevSongs.map(s => batchMap.get(s.id) || s);
+                    batch.forEach(b => {
+                        updateBufferRef.current[b.id] = { ...b, scanStatus: b.scanStatus as string | undefined } as Song;
                     });
 
-                    // Also sync with liked songs if any were enhanced
-                    setLikedSongs(prevLiked => {
-                        const batchMap = new Map(mergedBatch.map(b => [b.id, b]));
-                        if (!prevLiked.some(l => batchMap.has(l.id))) return prevLiked;
-                        return prevLiked.map(s => batchMap.get(s.id) || s);
-                    });
+                    if (!updateTimeoutRef.current) {
+                        updateTimeoutRef.current = setTimeout(() => {
+                            const currentBuffer = updateBufferRef.current;
+                            updateBufferRef.current = {};
+                            updateTimeoutRef.current = null;
+
+                            const bufferArray = Object.values(currentBuffer);
+                            if (bufferArray.length === 0) return;
+
+                            const mergedBatch = mergeSongData(bufferArray, customMetadataRef.current, songMetadataRef.current);
+                            const batchMap = new Map(mergedBatch.map(b => [b.id, b]));
+
+                            setSongs(prevSongs => prevSongs.map(s => batchMap.get(s.id) || s));
+
+                            setLikedSongs(prevLiked => {
+                                let hasChanges = false;
+                                const next = prevLiked.map(s => {
+                                    const updated = batchMap.get(s.id);
+                                    if (updated) {
+                                        hasChanges = true;
+                                        return updated;
+                                    }
+                                    return s;
+                                });
+                                return hasChanges ? next : prevLiked;
+                            });
+                        }, 2500); // Flush updates every 2.5s to prevent freezing
+                    }
                 },
                 onComplete: (finalSongs) => {
                     const convertedSongs = finalSongs.map(s => ({
@@ -594,22 +610,36 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
     // Data loading is now consolidated in initLibrary (CORE initialization)
 
 
+    const isCalculatingStats = useRef(false);
+
     // Background calculation for heavy stats
     // 2. STATISTICS - Heavy background task
     useEffect(() => {
         if (songs.length === 0) return;
-        if (loading && songs.length > 300) return; // Skip during heavy import
+        if (loading) return; // Skip entirely during import/loading
 
         if (calculationTimeoutRef.current) clearTimeout(calculationTimeoutRef.current);
 
         calculationTimeoutRef.current = setTimeout(() => {
+            if (isCalculatingStats.current) return;
+            isCalculatingStats.current = true;
+
             const calculateStats = async () => {
                 const start = Date.now();
                 // 1. Calculate Recently Played
-                const recent = songs
-                    .filter(s => s.lastPlayed && s.lastPlayed > 0)
-                    .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
-                    .slice(0, 30);
+                let recent = songs
+                    .filter(s => {
+                        const meta = songMetadataRef.current[s.id];
+                        return meta && meta.lastPlayed > 0;
+                    })
+                    .sort((a, b) => {
+                        const metaA = songMetadataRef.current[a.id];
+                        const metaB = songMetadataRef.current[b.id];
+                        return (metaB?.lastPlayed || 0) - (metaA?.lastPlayed || 0);
+                    })
+                    .slice(0, 50);
+
+                recent = mergeSongData(recent, customMetadataRef.current, songMetadataRef.current);
 
                 setRecentlyPlayed(recent);
                 AsyncStorage.setItem('cached_recently_played', JSON.stringify(recent)).catch(() => { });
@@ -617,18 +647,25 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                 await new Promise(r => setTimeout(r, 10)); // Yield
 
                 // 2. Calculate Recently Added
-                const added = [...songs]
+                let added = [...songs]
                     .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0))
                     .slice(0, 50);
+
+                added = mergeSongData(added, customMetadataRef.current, songMetadataRef.current);
                 setRecentlyAdded(added);
                 AsyncStorage.setItem('cached_recently_added', JSON.stringify(added)).catch(() => { });
 
                 await new Promise(r => setTimeout(r, 10)); // Yield
 
                 // 3. Calculate Never Played
-                const never = songs
-                    .filter(s => !s.playCount || s.playCount === 0)
+                let never = songs
+                    .filter(s => {
+                        const meta = songMetadataRef.current[s.id];
+                        return !meta || meta.playCount === 0;
+                    })
                     .slice(0, 50);
+
+                never = mergeSongData(never, customMetadataRef.current, songMetadataRef.current);
                 setNeverPlayed(never);
                 AsyncStorage.setItem('cached_never_played', JSON.stringify(never)).catch(() => { });
 
@@ -644,9 +681,12 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
                 songs.forEach(song => {
                     if (!song) return;
+                    const meta = songMetadataRef.current[song.id];
+                    const playCount = meta?.playCount || 0;
+
                     const artistName = song.artist || 'Unknown Artist';
                     const data = artistMap.get(artistName) || { name: artistName, totalPlays: 0, songCount: 0 };
-                    data.totalPlays += (song.playCount || 0);
+                    data.totalPlays += playCount;
                     data.songCount += 1;
                     if (!data.coverImage && song.coverImage) data.coverImage = song.coverImage;
                     artistMap.set(artistName, data);
@@ -671,8 +711,10 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                 console.log(`[MusicLibrary] Background stats took ${Date.now() - start}ms`);
             };
 
-            calculateStats();
-        }, loading ? 5000 : 300);
+            calculateStats().finally(() => {
+                isCalculatingStats.current = false;
+            });
+        }, 15000);
 
         return () => {
             if (calculationTimeoutRef.current) clearTimeout(calculationTimeoutRef.current);
@@ -694,12 +736,28 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         const newMetadata = { ...currentStats, [songId]: updatedMeta };
         setSongMetadata(newMetadata);
 
-        setSongs(prevSongs => prevSongs.map(s => {
-            if (s.id === songId) {
-                return { ...s, ...updatedMeta };
-            }
-            return s;
-        }));
+        // DO NOT mutate the main `songs` array for background play ticks! 
+        // Calling setSongs here forces every screen in the app to re-evaluate 
+        // complex useMemo filters and sorting, crippling background performance.
+
+        // Manually trigger stats calculation to update Recently Played in background
+        if (calculationTimeoutRef.current) clearTimeout(calculationTimeoutRef.current);
+        calculationTimeoutRef.current = setTimeout(() => {
+            let recent = songs
+                .filter(s => {
+                    const meta = songMetadataRef.current[s.id];
+                    return meta && meta.lastPlayed > 0;
+                })
+                .sort((a, b) => {
+                    const metaA = songMetadataRef.current[a.id];
+                    const metaB = songMetadataRef.current[b.id];
+                    return (metaB?.lastPlayed || 0) - (metaA?.lastPlayed || 0);
+                })
+                .slice(0, 30);
+
+            recent = mergeSongData(recent, customMetadataRef.current, songMetadataRef.current);
+            setRecentlyPlayed(recent);
+        }, 3000);
 
         try {
             await AsyncStorage.setItem('song_metadata', JSON.stringify(newMetadata));
@@ -733,7 +791,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     sortBy: [MediaLibrary.SortBy.modificationTime]
                 });
 
-                allAssets = [...allAssets, ...media.assets];
+                allAssets.push(...media.assets);
                 hasNextPage = media.hasNextPage;
                 after = media.endCursor;
                 pageCount++;

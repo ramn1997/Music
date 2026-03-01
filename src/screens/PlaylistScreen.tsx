@@ -172,7 +172,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const { id, name } = route.params;
     const type = route.params.type as any;
     const { songs, loading } = useLocalMusic();
-    const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked, favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite, artistMetadata, updateArtistMetadata } = useMusicLibrary();
+    const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked, favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite, artistMetadata, updateArtistMetadata, recentlyPlayed, recentlyAdded, neverPlayed } = useMusicLibrary();
     const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
     const { theme } = useTheme();
 
@@ -411,6 +411,8 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         }
     }, [id, addSongsToLiked, addToPlaylist]);
 
+    const displaySongsRef = React.useRef<Song[]>([]);
+
     const displaySongs = useMemo(() => {
         let filtered = [...songs];
 
@@ -433,28 +435,24 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             });
             filtered.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
         } else if (type === 'recently_played') {
-            filtered = filtered.filter(s => s.lastPlayed).sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
+            filtered = [...recentlyPlayed];
         } else if (type === 'recently_added' || (id === 'recently_added')) {
-            filtered.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+            filtered = [...recentlyAdded];
         } else if (type === 'never_played') {
-            // Songs not played in the last week (or never played)
-            const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-            filtered = filtered.filter(s => !s.lastPlayed || s.lastPlayed < oneWeekAgo);
-            // Sort by date added (newest 'ignored' songs first)
-            filtered.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+            filtered = [...neverPlayed];
         } else if (type === 'playlist') {
             const pl = playlists.find(p => p.id === id);
             if (pl) filtered = [...pl.songs];
             else filtered = [];
         }
 
-        // Apply Search Query Filtering
-        if (debouncedQuery.trim()) {
-            const query = debouncedQuery.toLowerCase().trim();
+        // Apply search query filter if it exists
+        if (debouncedQuery) {
+            const lowerQuery = debouncedQuery.toLowerCase();
             filtered = filtered.filter(s =>
-                s.title.toLowerCase().includes(query) ||
-                (s.artist && s.artist.toLowerCase().includes(query)) ||
-                (s.album && s.album.toLowerCase().includes(query))
+                s.title?.toLowerCase().includes(lowerQuery) ||
+                s.artist?.toLowerCase().includes(lowerQuery) ||
+                s.album?.toLowerCase().includes(lowerQuery)
             );
         }
 
@@ -496,16 +494,17 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             }
         }
 
+        displaySongsRef.current = filtered;
         return filtered;
-    }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery]);
+    }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery, recentlyPlayed, recentlyAdded, neverPlayed]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
-        const index = displaySongs.findIndex(s => s.id === song.id);
+        const index = displaySongsRef.current.findIndex(s => s.id === song.id);
         if (index !== -1) {
-            playSongInPlaylist(displaySongs, index, name);
+            playSongInPlaylist(displaySongsRef.current, index, name);
             navigation.navigate('Player', { trackIndex: index });
         }
-    }, [displaySongs, name, playSongInPlaylist, navigation]);
+    }, [name, playSongInPlaylist, navigation]);
 
 
     const onOpenOptions = React.useCallback((item: Song) => {

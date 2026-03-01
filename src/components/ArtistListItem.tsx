@@ -131,6 +131,13 @@ export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListIte
             )}
         </View>
     );
+}, (prev, next) => {
+    return (
+        prev.item.id === next.item.id &&
+        prev.item.count === next.item.count &&
+        prev.item.coverImage === next.item.coverImage &&
+        prev.layoutMode === next.layoutMode
+    );
 });
 
 const styles = StyleSheet.create({

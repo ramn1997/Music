@@ -80,15 +80,20 @@ class MusicWidget : AppWidgetProvider() {
 
                     if (bitmap != null) {
                         views.setImageViewBitmap(R.id.widget_artwork, bitmap)
+                        views.setImageViewBitmap(R.id.widget_bg_image, bitmap)
                         views.setViewVisibility(R.id.widget_artwork, View.VISIBLE)
+                        views.setViewVisibility(R.id.widget_bg_image, View.VISIBLE)
                     } else {
                         views.setImageViewResource(R.id.widget_artwork, R.drawable.placeholder_art)
+                        views.setImageViewResource(R.id.widget_bg_image, android.R.color.transparent)
                     }
                 } catch (e: Exception) {
                     views.setImageViewResource(R.id.widget_artwork, R.drawable.placeholder_art)
+                    views.setImageViewResource(R.id.widget_bg_image, android.R.color.transparent)
                 }
             } else {
                 views.setImageViewResource(R.id.widget_artwork, R.drawable.placeholder_art)
+                views.setImageViewResource(R.id.widget_bg_image, android.R.color.transparent)
             }
 
             // Set up Click Listeners
@@ -102,17 +107,7 @@ class MusicWidget : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_title, pendingIntent)
             views.setOnClickPendingIntent(R.id.widget_artwork, pendingIntent)
 
-            // Playlists Button mapping
-            val playlistsIntent = Intent(Intent.ACTION_VIEW, Uri.parse("exp+musicapp://playlists"))
-            playlistsIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            val playlistsPendingIntent = PendingIntent.getActivity(context, 1, playlistsIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            views.setOnClickPendingIntent(R.id.widget_playlists, playlistsPendingIntent)
 
-            // Liked Button mapping
-            val likedIntent = Intent(Intent.ACTION_VIEW, Uri.parse("exp+musicapp://liked"))
-            likedIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            val likedPendingIntent = PendingIntent.getActivity(context, 2, likedIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            views.setOnClickPendingIntent(R.id.widget_liked, likedPendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }

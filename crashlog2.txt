@@ -1,0 +1,329 @@
+﻿--------- beginning of crash
+02-26 01:22:30.213 13573 13675 F libc    : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 13675 (mqt_v_js), pid 13573 (om.ram.musicapp)
+02-26 01:22:31.089 13871 13871 F DEBUG   : Process name is com.ram.musicapp, not key_process
+02-26 01:22:31.089 13871 13871 F DEBUG   : keyProcess: 0
+02-26 01:22:31.089 13871 13871 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+02-26 01:22:31.089 13871 13871 F DEBUG   : Build fingerprint: 'OnePlus/CPH2401/OP557AL1:14/UKQ1.230924.001/S.2202806-3:user/release-keys'
+02-26 01:22:31.089 13871 13871 F DEBUG   : Revision: '0'
+02-26 01:22:31.089 13871 13871 F DEBUG   : ABI: 'arm64'
+02-26 01:22:31.089 13871 13871 F DEBUG   : Timestamp: 2026-02-26 01:22:30.384272024+0530
+02-26 01:22:31.089 13871 13871 F DEBUG   : Process uptime: 3s
+02-26 01:22:31.089 13871 13871 F DEBUG   : Cmdline: com.ram.musicapp
+02-26 01:22:31.089 13871 13871 F DEBUG   : pid: 13573, tid: 13675, name: mqt_v_js  >>> com.ram.musicapp <<<
+02-26 01:22:31.089 13871 13871 F DEBUG   : uid: 12082
+02-26 01:22:31.089 13871 13871 F DEBUG   : signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+02-26 01:22:31.089 13871 13871 F DEBUG   : Abort message: 'terminating due to uncaught exception of type facebook::jni::JniException: com.facebook.react.common.JavascriptException: [runtime not ready]: Error: Cannot make a deep link into a standalone app with no custom scheme defined, stack:
+02-26 01:22:31.089 13871 13871 F DEBUG   : resolveScheme@1:1788799
+02-26 01:22:31.089 13871 13871 F DEBUG   : createURL@1:1784768
+02-26 01:22:31.089 13871 13871 F DEBUG   : anonymous@1:1240447
+02-26 01:22:31.089 13871 13871 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:22:31.089 13871 13871 F DEBUG   : guardedLoadModule@1:47479
+02-26 01:22:31.089 13871 13871 F DEBUG   : metroRequire@1:46989
+02-26 01:22:31.089 13871 13871 F DEBUG   : anonymous@1:100490
+02-26 01:22:31.089 13871 13871 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:22:31.089 13871 13871 F DEBUG   : guardedLoadModule@1:47435
+02-26 01:22:31.089 13871 13871 F DEBUG   : metroRequire@1:46989
+02-26 01:22:31.089 13871 13871 F DEBUG   : global@1:46445
+02-26 01:22:31.089 13871 13871 F DEBUG   : 
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at com.facebook.react.modules.core.ExceptionsManagerModule.reportException(ExceptionsManagerModule.kt:52)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at com.facebook.react.runtime.ReactInstance$ReactJsExceptionHandlerImpl.reportJsException(ReactInstance.kt:281)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at com.facebook.jni.NativeRunnable.run(Native Method)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at android.os.Handler.handleCallback(Handler.java:958)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at android.os.Handler.dispatchMessage(Handler.java:99)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage(MessageQueueThreadHandler.kt:21)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at android.os.Looper.loopOnce(Looper.java:257)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at android.os.Looper.loop(Looper.java:368)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.startNewBackgroundThread$lambda$1(MessageQueueThreadImpl.kt:175)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.$r8$lambda$ldnZnqelhYFctGaUKkOKYj5rxo4(Unknown Source:0)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+02-26 01:22:31.089 13871 13871 F DEBUG   : 	at java.lang.Thread.run(Thread.java:1563)'
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x0  0000000000000000  x1  000000000000356b  x2  0000000000000006  x3  0000007792dd3df0
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x4  646277641f736766  x5  646277641f736766  x6  646277641f736766  x7  7f7f7f7f7f7f7f7f
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x8  00000000000000f0  x9  00000078c9cf6cd8  x10 0000000000000001  x11 00000078c9d7d820
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x12 000000001a44cfbc  x13 000015a0f2f6cc47  x14 000c71e2a2224ced  x15 000000004cec4ec5
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x16 00000078c9ded080  x17 00000078c9dc62e0  x18 00000077921e6000  x19 00000000000000ac
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x20 00000000000000b2  x21 0000000000003505  x22 000000000000356b  x23 00000000ffffffff
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x24 0000007792dd4020  x25 000000000000000b  x26 000000779635cf0a  x27 0000007796359d65
+02-26 01:22:31.089 13871 13871 F DEBUG   :     x28 0000007796354461  x29 0000007792dd3e70
+02-26 01:22:31.089 13871 13871 F DEBUG   :     lr  00000078c9d6dd14  sp  0000007792dd3dd0  pc  00000078c9d6dd44  pst 0000000000001000
+02-26 01:22:31.089 13871 13871 F DEBUG   : 33 total frames
+02-26 01:22:31.089 13871 13871 F DEBUG   : backtrace:
+02-26 01:22:31.089 13871 13871 F DEBUG   :       #00 pc 000000000009dd44  /apex/com.android.runtime/lib64/bionic/libc.so (abort+180) (BuildId: a87e89fc2c0a5753053f536add4d7ae1)
+02-26 01:22:31.089 13871 13871 F DEBUG   :       #01 pc 00000000000a0210  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:22:31.089 13871 13871 F DEBUG   :       #02 pc 000000000009eeb0  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:22:31.089 13871 13871 F DEBUG   :       #03 pc 000000000009f374  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:22:31.089 13871 13871 F DEBUG   :       #04 pc 000000000009f314  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libc++_shared.so (offset 0x168c000) (std::terminate()+56) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #05 pc 000000000025d584  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #06 pc 0000000000489594  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #07 pc 00000000002b90c4  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleErrorWithCppPipeline(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+7440) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #08 pc 00000000002b7068  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleError(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+1680) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #09 pc 000000000026c630  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #10 pc 00000000000aaa24  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #11 pc 00000000000aa760  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #12 pc 00000000000b2cd8  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #13 pc 00000000000c50c8  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #14 pc 00000000000c4a28  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #15 pc 00000000000f4554  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #16 pc 00000000000a0260  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #17 pc 00000000000a5e40  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #18 pc 00000000000a0060  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #19 pc 0000000000268024  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #20 pc 000000000041d4c0  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::Task::execute(facebook::jsi::Runtime&, bool)+312) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #21 pc 000000000041b654  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::executeTask(facebook::jsi::Runtime&, facebook::react::Task&, bool) const+60) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #22 pc 000000000041bf64  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoopTick(facebook::jsi::Runtime&, facebook::react::Task&)+124) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #23 pc 000000000041bc74  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoop(facebook::jsi::Runtime&)+88) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #24 pc 0000000000265d80  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #25 pc 000000000045e930  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #26 pc 0000000000017dd0  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::MethodWrapper<void (facebook::jni::JNativeRunnable::*)(), &(facebook::jni::JNativeRunnable::run()), facebook::jni::JNativeRunnable, void>::dispatch(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>)+72) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #27 pc 0000000000017d10  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::FunctionWrapper<void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>), facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*, void>::call(_JNIEnv*, _jobject*, void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>))+60) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #28 pc 00000000012f4e10  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (art_jni_trampoline+176)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #29 pc 0000000000bcda8c  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (android.os.Handler.dispatchMessage+140)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #30 pc 0000000000669700  /apex/com.android.art/lib64/libart.so (nterp_helper+4016) (BuildId: be34fbe63ff357beb403f9cb39923ea7)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #31 pc 00000000017c0bf2  /data/app/~~sr_frOmm12NHi_VcWdyPDQ==/com.ram.musicapp-6_s7VnB7u1cuwT18AWTbSw==/oat/arm64/base.vdex (com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage+10)
+02-26 01:22:31.090 13871 13871 F DEBUG   :       #32 pc b940041acb0f0211  <unknown>
+02-26 01:47:40.030 13756 13798 F libc    : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 13798 (mqt_v_js), pid 13756 (om.ram.musicapp)
+02-26 01:47:40.949 14012 14012 F DEBUG   : Process name is com.ram.musicapp, not key_process
+02-26 01:47:40.949 14012 14012 F DEBUG   : keyProcess: 0
+02-26 01:47:40.949 14012 14012 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+02-26 01:47:40.949 14012 14012 F DEBUG   : Build fingerprint: 'OnePlus/CPH2401/OP557AL1:14/UKQ1.230924.001/S.2202806-3:user/release-keys'
+02-26 01:47:40.949 14012 14012 F DEBUG   : Revision: '0'
+02-26 01:47:40.949 14012 14012 F DEBUG   : ABI: 'arm64'
+02-26 01:47:40.949 14012 14012 F DEBUG   : Timestamp: 2026-02-26 01:47:40.204757037+0530
+02-26 01:47:40.949 14012 14012 F DEBUG   : Process uptime: 2s
+02-26 01:47:40.949 14012 14012 F DEBUG   : Cmdline: com.ram.musicapp
+02-26 01:47:40.949 14012 14012 F DEBUG   : pid: 13756, tid: 13798, name: mqt_v_js  >>> com.ram.musicapp <<<
+02-26 01:47:40.949 14012 14012 F DEBUG   : uid: 12082
+02-26 01:47:40.949 14012 14012 F DEBUG   : signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+02-26 01:47:40.949 14012 14012 F DEBUG   : Abort message: 'terminating due to uncaught exception of type facebook::jni::JniException: com.facebook.react.common.JavascriptException: [runtime not ready]: Error: Cannot make a deep link into a standalone app with no custom scheme defined, stack:
+02-26 01:47:40.949 14012 14012 F DEBUG   : resolveScheme@1:1788848
+02-26 01:47:40.949 14012 14012 F DEBUG   : createURL@1:1784817
+02-26 01:47:40.949 14012 14012 F DEBUG   : anonymous@1:1240447
+02-26 01:47:40.949 14012 14012 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:47:40.949 14012 14012 F DEBUG   : guardedLoadModule@1:47479
+02-26 01:47:40.949 14012 14012 F DEBUG   : metroRequire@1:46989
+02-26 01:47:40.949 14012 14012 F DEBUG   : anonymous@1:100490
+02-26 01:47:40.949 14012 14012 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:47:40.949 14012 14012 F DEBUG   : guardedLoadModule@1:47435
+02-26 01:47:40.949 14012 14012 F DEBUG   : metroRequire@1:46989
+02-26 01:47:40.949 14012 14012 F DEBUG   : global@1:46445
+02-26 01:47:40.949 14012 14012 F DEBUG   : 
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at com.facebook.react.modules.core.ExceptionsManagerModule.reportException(ExceptionsManagerModule.kt:52)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at com.facebook.react.runtime.ReactInstance$ReactJsExceptionHandlerImpl.reportJsException(ReactInstance.kt:281)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at com.facebook.jni.NativeRunnable.run(Native Method)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at android.os.Handler.handleCallback(Handler.java:958)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at android.os.Handler.dispatchMessage(Handler.java:99)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage(MessageQueueThreadHandler.kt:21)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at android.os.Looper.loopOnce(Looper.java:257)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at android.os.Looper.loop(Looper.java:368)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.startNewBackgroundThread$lambda$1(MessageQueueThreadImpl.kt:175)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.$r8$lambda$ldnZnqelhYFctGaUKkOKYj5rxo4(Unknown Source:0)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+02-26 01:47:40.949 14012 14012 F DEBUG   : 	at java.lang.Thread.run(Thread.java:1563)'
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x0  0000000000000000  x1  00000000000035e6  x2  0000000000000006  x3  0000007795c13df0
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x4  646277641f736766  x5  646277641f736766  x6  646277641f736766  x7  7f7f7f7f7f7f7f7f
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x8  00000000000000f0  x9  00000078c9cf6cd8  x10 0000000000000001  x11 00000078c9d7d820
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x12 000000001a4dbec8  x13 000015a584dc590f  x14 00017a44fc2043ad  x15 000000004cec4ec5
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x16 00000078c9ded080  x17 00000078c9dc62e0  x18 00000077931ae000  x19 00000000000000ac
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x20 00000000000000b2  x21 00000000000035bc  x22 00000000000035e6  x23 00000000ffffffff
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x24 0000007795c14020  x25 000000000000000b  x26 0000007797f8cf0a  x27 0000007797f89d65
+02-26 01:47:40.949 14012 14012 F DEBUG   :     x28 0000007797f84461  x29 0000007795c13e70
+02-26 01:47:40.949 14012 14012 F DEBUG   :     lr  00000078c9d6dd14  sp  0000007795c13dd0  pc  00000078c9d6dd44  pst 0000000000001000
+02-26 01:47:40.949 14012 14012 F DEBUG   : 33 total frames
+02-26 01:47:40.949 14012 14012 F DEBUG   : backtrace:
+02-26 01:47:40.949 14012 14012 F DEBUG   :       #00 pc 000000000009dd44  /apex/com.android.runtime/lib64/bionic/libc.so (abort+180) (BuildId: a87e89fc2c0a5753053f536add4d7ae1)
+02-26 01:47:40.949 14012 14012 F DEBUG   :       #01 pc 00000000000a0210  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:47:40.949 14012 14012 F DEBUG   :       #02 pc 000000000009eeb0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:47:40.949 14012 14012 F DEBUG   :       #03 pc 000000000009f374  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:47:40.949 14012 14012 F DEBUG   :       #04 pc 000000000009f314  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (std::terminate()+56) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:47:40.949 14012 14012 F DEBUG   :       #05 pc 000000000025d584  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #06 pc 0000000000489594  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #07 pc 00000000002b90c4  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleErrorWithCppPipeline(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+7440) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #08 pc 00000000002b7068  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleError(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+1680) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #09 pc 000000000026c630  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #10 pc 00000000000aaa24  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #11 pc 00000000000aa760  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #12 pc 00000000000b2cd8  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #13 pc 00000000000c50c8  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #14 pc 00000000000c4a28  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #15 pc 00000000000f4554  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #16 pc 00000000000a0260  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #17 pc 00000000000a5e40  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #18 pc 00000000000a0060  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #19 pc 0000000000268024  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #20 pc 000000000041d4c0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::Task::execute(facebook::jsi::Runtime&, bool)+312) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #21 pc 000000000041b654  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::executeTask(facebook::jsi::Runtime&, facebook::react::Task&, bool) const+60) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #22 pc 000000000041bf64  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoopTick(facebook::jsi::Runtime&, facebook::react::Task&)+124) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #23 pc 000000000041bc74  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoop(facebook::jsi::Runtime&)+88) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #24 pc 0000000000265d80  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #25 pc 000000000045e930  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #26 pc 0000000000017dd0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::MethodWrapper<void (facebook::jni::JNativeRunnable::*)(), &(facebook::jni::JNativeRunnable::run()), facebook::jni::JNativeRunnable, void>::dispatch(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>)+72) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #27 pc 0000000000017d10  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::FunctionWrapper<void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>), facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*, void>::call(_JNIEnv*, _jobject*, void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>))+60) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #28 pc 00000000012f4e10  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (art_jni_trampoline+176)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #29 pc 0000000000bcda8c  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (android.os.Handler.dispatchMessage+140)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #30 pc 0000000000669700  /apex/com.android.art/lib64/libart.so (nterp_helper+4016) (BuildId: be34fbe63ff357beb403f9cb39923ea7)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #31 pc 00000000017c0bf2  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/oat/arm64/base.vdex (com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage+10)
+02-26 01:47:40.950 14012 14012 F DEBUG   :       #32 pc b940041acb0f0211  <unknown>
+02-26 01:51:13.884 15425 15456 F libc    : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 15456 (mqt_v_js), pid 15425 (om.ram.musicapp)
+02-26 01:51:14.085 15493 15493 F DEBUG   : Process name is com.ram.musicapp, not key_process
+02-26 01:51:14.085 15493 15493 F DEBUG   : keyProcess: 0
+02-26 01:51:14.085 15493 15493 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+02-26 01:51:14.085 15493 15493 F DEBUG   : Build fingerprint: 'OnePlus/CPH2401/OP557AL1:14/UKQ1.230924.001/S.2202806-3:user/release-keys'
+02-26 01:51:14.085 15493 15493 F DEBUG   : Revision: '0'
+02-26 01:51:14.085 15493 15493 F DEBUG   : ABI: 'arm64'
+02-26 01:51:14.085 15493 15493 F DEBUG   : Timestamp: 2026-02-26 01:51:13.944514280+0530
+02-26 01:51:14.085 15493 15493 F DEBUG   : Process uptime: 1s
+02-26 01:51:14.085 15493 15493 F DEBUG   : Cmdline: com.ram.musicapp
+02-26 01:51:14.085 15493 15493 F DEBUG   : pid: 15425, tid: 15456, name: mqt_v_js  >>> com.ram.musicapp <<<
+02-26 01:51:14.085 15493 15493 F DEBUG   : uid: 12082
+02-26 01:51:14.085 15493 15493 F DEBUG   : signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+02-26 01:51:14.085 15493 15493 F DEBUG   : Abort message: 'terminating due to uncaught exception of type facebook::jni::JniException: com.facebook.react.common.JavascriptException: [runtime not ready]: Error: Cannot make a deep link into a standalone app with no custom scheme defined, stack:
+02-26 01:51:14.085 15493 15493 F DEBUG   : resolveScheme@1:1788848
+02-26 01:51:14.085 15493 15493 F DEBUG   : createURL@1:1784817
+02-26 01:51:14.085 15493 15493 F DEBUG   : anonymous@1:1240447
+02-26 01:51:14.085 15493 15493 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:51:14.085 15493 15493 F DEBUG   : guardedLoadModule@1:47479
+02-26 01:51:14.085 15493 15493 F DEBUG   : metroRequire@1:46989
+02-26 01:51:14.085 15493 15493 F DEBUG   : anonymous@1:100490
+02-26 01:51:14.085 15493 15493 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:51:14.085 15493 15493 F DEBUG   : guardedLoadModule@1:47435
+02-26 01:51:14.085 15493 15493 F DEBUG   : metroRequire@1:46989
+02-26 01:51:14.085 15493 15493 F DEBUG   : global@1:46445
+02-26 01:51:14.085 15493 15493 F DEBUG   : 
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at com.facebook.react.modules.core.ExceptionsManagerModule.reportException(ExceptionsManagerModule.kt:52)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at com.facebook.react.runtime.ReactInstance$ReactJsExceptionHandlerImpl.reportJsException(ReactInstance.kt:281)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at com.facebook.jni.NativeRunnable.run(Native Method)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at android.os.Handler.handleCallback(Handler.java:958)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at android.os.Handler.dispatchMessage(Handler.java:99)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage(MessageQueueThreadHandler.kt:21)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at android.os.Looper.loopOnce(Looper.java:257)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at android.os.Looper.loop(Looper.java:368)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.startNewBackgroundThread$lambda$1(MessageQueueThreadImpl.kt:175)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.$r8$lambda$ldnZnqelhYFctGaUKkOKYj5rxo4(Unknown Source:0)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+02-26 01:51:14.085 15493 15493 F DEBUG   : 	at java.lang.Thread.run(Thread.java:1563)'
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x0  0000000000000000  x1  0000000000003c60  x2  0000000000000006  x3  000000778ca23df0
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x4  646277641f736766  x5  646277641f736766  x6  646277641f736766  x7  7f7f7f7f7f7f7f7f
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x8  00000000000000f0  x9  00000078c9cf6cd8  x10 0000000000000001  x11 00000078c9d7d820
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x12 000000001a4f0a3e  x13 000015a62a91a354  x14 00347fcb08df72ad  x15 000000004cec4ec5
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x16 00000078c9ded080  x17 00000078c9dc62e0  x18 000000778c8d2000  x19 00000000000000ac
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x20 00000000000000b2  x21 0000000000003c41  x22 0000000000003c60  x23 00000000ffffffff
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x24 000000778ca24020  x25 000000000000000b  x26 0000007794b8cf0a  x27 0000007794b89d65
+02-26 01:51:14.085 15493 15493 F DEBUG   :     x28 0000007794b84461  x29 000000778ca23e70
+02-26 01:51:14.085 15493 15493 F DEBUG   :     lr  00000078c9d6dd14  sp  000000778ca23dd0  pc  00000078c9d6dd44  pst 0000000000001000
+02-26 01:51:14.085 15493 15493 F DEBUG   : 33 total frames
+02-26 01:51:14.085 15493 15493 F DEBUG   : backtrace:
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #00 pc 000000000009dd44  /apex/com.android.runtime/lib64/bionic/libc.so (abort+180) (BuildId: a87e89fc2c0a5753053f536add4d7ae1)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #01 pc 00000000000a0210  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #02 pc 000000000009eeb0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #03 pc 000000000009f374  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #04 pc 000000000009f314  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (std::terminate()+56) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #05 pc 000000000025d584  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #06 pc 0000000000489594  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #07 pc 00000000002b90c4  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleErrorWithCppPipeline(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+7440) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #08 pc 00000000002b7068  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleError(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+1680) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #09 pc 000000000026c630  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #10 pc 00000000000aaa24  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #11 pc 00000000000aa760  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #12 pc 00000000000b2cd8  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #13 pc 00000000000c50c8  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #14 pc 00000000000c4a28  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #15 pc 00000000000f4554  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #16 pc 00000000000a0260  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #17 pc 00000000000a5e40  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #18 pc 00000000000a0060  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #19 pc 0000000000268024  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #20 pc 000000000041d4c0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::Task::execute(facebook::jsi::Runtime&, bool)+312) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #21 pc 000000000041b654  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::executeTask(facebook::jsi::Runtime&, facebook::react::Task&, bool) const+60) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #22 pc 000000000041bf64  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoopTick(facebook::jsi::Runtime&, facebook::react::Task&)+124) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #23 pc 000000000041bc74  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoop(facebook::jsi::Runtime&)+88) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #24 pc 0000000000265d80  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #25 pc 000000000045e930  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #26 pc 0000000000017dd0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::MethodWrapper<void (facebook::jni::JNativeRunnable::*)(), &(facebook::jni::JNativeRunnable::run()), facebook::jni::JNativeRunnable, void>::dispatch(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>)+72) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #27 pc 0000000000017d10  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::FunctionWrapper<void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>), facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*, void>::call(_JNIEnv*, _jobject*, void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>))+60) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #28 pc 00000000012f4e10  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (art_jni_trampoline+176)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #29 pc 0000000000bcda8c  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (android.os.Handler.dispatchMessage+140)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #30 pc 0000000000669700  /apex/com.android.art/lib64/libart.so (nterp_helper+4016) (BuildId: be34fbe63ff357beb403f9cb39923ea7)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #31 pc 00000000017c0bf2  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/oat/arm64/base.vdex (com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage+10)
+02-26 01:51:14.085 15493 15493 F DEBUG   :       #32 pc b940041acb0f0211  <unknown>
+02-26 01:52:12.099 16175 16216 F libc    : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 16216 (mqt_v_js), pid 16175 (om.ram.musicapp)
+02-26 01:52:12.319 16253 16253 F DEBUG   : Process name is com.ram.musicapp, not key_process
+02-26 01:52:12.319 16253 16253 F DEBUG   : keyProcess: 0
+02-26 01:52:12.319 16253 16253 F DEBUG   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+02-26 01:52:12.319 16253 16253 F DEBUG   : Build fingerprint: 'OnePlus/CPH2401/OP557AL1:14/UKQ1.230924.001/S.2202806-3:user/release-keys'
+02-26 01:52:12.319 16253 16253 F DEBUG   : Revision: '0'
+02-26 01:52:12.319 16253 16253 F DEBUG   : ABI: 'arm64'
+02-26 01:52:12.319 16253 16253 F DEBUG   : Timestamp: 2026-02-26 01:52:12.176060207+0530
+02-26 01:52:12.319 16253 16253 F DEBUG   : Process uptime: 5s
+02-26 01:52:12.319 16253 16253 F DEBUG   : Cmdline: com.ram.musicapp
+02-26 01:52:12.319 16253 16253 F DEBUG   : pid: 16175, tid: 16216, name: mqt_v_js  >>> com.ram.musicapp <<<
+02-26 01:52:12.319 16253 16253 F DEBUG   : uid: 12082
+02-26 01:52:12.319 16253 16253 F DEBUG   : signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+02-26 01:52:12.319 16253 16253 F DEBUG   : Abort message: 'terminating due to uncaught exception of type facebook::jni::JniException: com.facebook.react.common.JavascriptException: [runtime not ready]: Error: Cannot make a deep link into a standalone app with no custom scheme defined, stack:
+02-26 01:52:12.319 16253 16253 F DEBUG   : resolveScheme@1:1788848
+02-26 01:52:12.319 16253 16253 F DEBUG   : createURL@1:1784817
+02-26 01:52:12.319 16253 16253 F DEBUG   : anonymous@1:1240447
+02-26 01:52:12.319 16253 16253 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:52:12.319 16253 16253 F DEBUG   : guardedLoadModule@1:47479
+02-26 01:52:12.319 16253 16253 F DEBUG   : metroRequire@1:46989
+02-26 01:52:12.319 16253 16253 F DEBUG   : anonymous@1:100490
+02-26 01:52:12.319 16253 16253 F DEBUG   : loadModuleImplementation@1:47956
+02-26 01:52:12.319 16253 16253 F DEBUG   : guardedLoadModule@1:47435
+02-26 01:52:12.319 16253 16253 F DEBUG   : metroRequire@1:46989
+02-26 01:52:12.319 16253 16253 F DEBUG   : global@1:46445
+02-26 01:52:12.319 16253 16253 F DEBUG   : 
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at com.facebook.react.modules.core.ExceptionsManagerModule.reportException(ExceptionsManagerModule.kt:52)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at com.facebook.react.runtime.ReactInstance$ReactJsExceptionHandlerImpl.reportJsException(ReactInstance.kt:281)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at com.facebook.jni.NativeRunnable.run(Native Method)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at android.os.Handler.handleCallback(Handler.java:958)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at android.os.Handler.dispatchMessage(Handler.java:99)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage(MessageQueueThreadHandler.kt:21)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at android.os.Looper.loopOnce(Looper.java:257)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at android.os.Looper.loop(Looper.java:368)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.startNewBackgroundThread$lambda$1(MessageQueueThreadImpl.kt:175)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion.$r8$lambda$ldnZnqelhYFctGaUKkOKYj5rxo4(Unknown Source:0)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at com.facebook.react.bridge.queue.MessageQueueThreadImpl$Companion$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+02-26 01:52:12.319 16253 16253 F DEBUG   : 	at java.lang.Thread.run(Thread.java:1563)'
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x0  0000000000000000  x1  0000000000003f58  x2  0000000000000006  x3  000000778cf83df0
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x4  646277641f736766  x5  646277641f736766  x6  646277641f736766  x7  7f7f7f7f7f7f7f7f
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x8  00000000000000f0  x9  00000078c9cf6cd8  x10 0000000000000001  x11 00000078c9d7d820
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x12 000000001a4f7202  x13 000015a657ad73fc  x14 000587de0c57b14d  x15 000000004cec4ec5
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x16 00000078c9ded080  x17 00000078c9dc62e0  x18 0000007788214000  x19 00000000000000ac
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x20 00000000000000b2  x21 0000000000003f2f  x22 0000000000003f58  x23 00000000ffffffff
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x24 000000778cf84020  x25 000000000000000b  x26 000000779177cf0a  x27 0000007791779d65
+02-26 01:52:12.319 16253 16253 F DEBUG   :     x28 0000007791774461  x29 000000778cf83e70
+02-26 01:52:12.319 16253 16253 F DEBUG   :     lr  00000078c9d6dd14  sp  000000778cf83dd0  pc  00000078c9d6dd44  pst 0000000000001000
+02-26 01:52:12.319 16253 16253 F DEBUG   : 33 total frames
+02-26 01:52:12.319 16253 16253 F DEBUG   : backtrace:
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #00 pc 000000000009dd44  /apex/com.android.runtime/lib64/bionic/libc.so (abort+180) (BuildId: a87e89fc2c0a5753053f536add4d7ae1)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #01 pc 00000000000a0210  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #02 pc 000000000009eeb0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #03 pc 000000000009f374  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #04 pc 000000000009f314  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libc++_shared.so (offset 0x168c000) (std::terminate()+56) (BuildId: 6783a7f3a0d9c67c55a74cadc441ed55aaa493da)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #05 pc 000000000025d584  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #06 pc 0000000000489594  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #07 pc 00000000002b90c4  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleErrorWithCppPipeline(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+7440) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #08 pc 00000000002b7068  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::JsErrorHandler::handleError(facebook::jsi::Runtime&, facebook::jsi::JSError&, bool, bool)+1680) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #09 pc 000000000026c630  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #10 pc 00000000000aaa24  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #11 pc 00000000000aa760  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #12 pc 00000000000b2cd8  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #13 pc 00000000000c50c8  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #14 pc 00000000000c4a28  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #15 pc 00000000000f4554  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #16 pc 00000000000a0260  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #17 pc 00000000000a5e40  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #18 pc 00000000000a0060  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libhermes.so (offset 0x1b70000) (BuildId: 3742cb807f54bf165f89bd93a20345afc069184d)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #19 pc 0000000000268024  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #20 pc 000000000041d4c0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::Task::execute(facebook::jsi::Runtime&, bool)+312) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #21 pc 000000000041b654  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::executeTask(facebook::jsi::Runtime&, facebook::react::Task&, bool) const+60) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #22 pc 000000000041bf64  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoopTick(facebook::jsi::Runtime&, facebook::react::Task&)+124) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #23 pc 000000000041bc74  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (facebook::react::RuntimeScheduler_Modern::runEventLoop(facebook::jsi::Runtime&)+88) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #24 pc 0000000000265d80  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #25 pc 000000000045e930  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libreactnative.so (offset 0x1f78000) (BuildId: daceecb3f8ffe4c2)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #26 pc 0000000000017dd0  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::MethodWrapper<void (facebook::jni::JNativeRunnable::*)(), &(facebook::jni::JNativeRunnable::run()), facebook::jni::JNativeRunnable, void>::dispatch(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>)+72) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #27 pc 0000000000017d10  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/base.apk!libfbjni.so (offset 0x1ae8000) (facebook::jni::detail::FunctionWrapper<void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>), facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*, void>::call(_JNIEnv*, _jobject*, void (*)(facebook::jni::alias_ref<facebook::jni::detail::JTypeFor<facebook::jni::HybridClass<facebook::jni::JNativeRunnable, facebook::jni::JRunnable>::JavaPart, facebook::jni::JRunnable, void>::_javaobject*>))+60) (BuildId: e438f6554af1d86b210a05412e96c4251e570157)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #28 pc 00000000012f4e10  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (art_jni_trampoline+176)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #29 pc 0000000000bcda8c  /data/misc/apexdata/com.android.art/dalvik-cache/arm64/boot.oat (android.os.Handler.dispatchMessage+140)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #30 pc 0000000000669700  /apex/com.android.art/lib64/libart.so (nterp_helper+4016) (BuildId: be34fbe63ff357beb403f9cb39923ea7)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #31 pc 00000000017c0bf2  /data/app/~~Wij1J_JEcBCW9EDxYYdXIg==/com.ram.musicapp-UE63JhnnqBQ3ws_c-RfvhQ==/oat/arm64/base.vdex (com.facebook.react.bridge.queue.MessageQueueThreadHandler.dispatchMessage+10)
+02-26 01:52:12.319 16253 16253 F DEBUG   :       #32 pc b940041acb0f0211  <unknown>

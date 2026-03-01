@@ -460,7 +460,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             } catch (e) {
                 // Ignore errors (e.g. player not set up yet)
             }
-        }, 1500); // Check every 1.5s
+        }, 5000); // Check every 5s
 
         return () => clearInterval(interval);
     }, []);
@@ -500,8 +500,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     setCurrentIndex(newIndex !== -1 ? newIndex : (index ?? -1));
 
                     // Add to recently played (immediate for UI)
-                    // Play count increment moved to Progress listener for threshold (15s)
-                    console.log('[PlayerContext] New track detected, waiting for 15s threshold...');
+                    if (currentTrackRef.current?.id !== song.id) {
+                        incrementPlayCount(String(song.id));
+                        lastScrobbledTrackId.current = String(song.id);
+                    }
                 } else {
                     // 4. Last Resort: Use Track Metadata directly (prevents blank UI)
                     console.warn('[PlayerContext] Song not found in app state. Using raw track data.');
@@ -540,20 +542,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         if (event.position > 0) {
             positionRef.current = event.position * 1000;
             durationRef.current = event.duration * 1000;
-
-            // SCROBBLING LOGIC: Increment play count after 15 seconds of actual play
-            const currentId = currentTrackRef.current?.id;
-
-            // If position is low, reset the scrobble lock (handles song restart/repeat)
-            if (event.position < 1) {
-                lastScrobbledTrackId.current = null;
-            }
-
-            if (currentId && lastScrobbledTrackId.current !== currentId && event.position >= 15) {
-                console.log('[PlayerContext] Play threshold met (15s). Incrementing play count for:', currentId);
-                incrementPlayCount(String(currentId));
-                lastScrobbledTrackId.current = currentId;
-            }
         }
     });
 
@@ -734,34 +722,55 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
     const saveStateShortcut = async () => {
         if (!isRestored || !currentTrack) return;
-        try {
-            // Get current position from player but fallback to ref if needed
-            let playerPos = 0;
+
+        // Defer execution to avoid blocking the JS thread during critical UI updates like track changes
+        setTimeout(async () => {
             try {
-                playerPos = await TrackPlayer.getPosition();
-            } catch (e) { }
+                // Get current position from player but fallback to ref if needed
+                let playerPos = 0;
+                try {
+                    playerPos = await TrackPlayer.getPosition();
+                } catch (e) { }
 
-            // Use the most accurate position we have (player > ref > backup)
-            let pos = (playerPos > 0) ? playerPos : (positionRef.current / 1000);
+                // Use the most accurate position we have (player > ref > backup)
+                let pos = (playerPos > 0) ? playerPos : (positionRef.current / 1000);
 
-            console.log(`[PlayerContext] Persistence: saving at ${pos.toFixed(2)}s (Source: ${playerPos > 0 ? 'Engine' : 'Memory'})`);
+                console.log(`[PlayerContext] Persistence: saving at ${pos.toFixed(2)}s (Source: ${playerPos > 0 ? 'Engine' : 'Memory'})`);
 
-            const dur = await TrackPlayer.getDuration();
-            const state = {
-                currentTrack,
-                playlist,
-                currentIndex,
-                playlistName,
-                gaplessEnabled,
-                repeatMode,
-                position: pos * 1000,
-                duration: dur > 0 ? dur * 1000 : undefined
-            };
-            await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
-            await AsyncStorage.setItem('player_position', String(pos * 1000));
-        } catch (e) {
-            console.warn('[PlayerContext] Persistence failed:', e);
-        }
+                const dur = await TrackPlayer.getDuration();
+
+                // Strip fat data from large playlists to keep stringify fast and storage lean
+                // Drop massive base64 data URIs so AsyncStorage stringify operation takes 5ms instead of 300ms
+                const compactPlaylist = playlist.map(s => ({
+                    id: s.id,
+                    uri: s.uri,
+                    title: s.title,
+                    artist: s.artist,
+                    albumId: s.albumId,
+                    coverImage: (s.coverImage && s.coverImage.length > 500) ? undefined : s.coverImage
+                }));
+
+                const compactCurrentTrack = {
+                    ...currentTrack,
+                    coverImage: (currentTrack.coverImage && currentTrack.coverImage.length > 500) ? undefined : currentTrack.coverImage
+                };
+
+                const state = {
+                    currentTrack: compactCurrentTrack,
+                    playlist: compactPlaylist,
+                    currentIndex,
+                    playlistName,
+                    gaplessEnabled,
+                    repeatMode,
+                    position: pos * 1000,
+                    duration: dur > 0 ? dur * 1000 : undefined
+                };
+                await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+                await AsyncStorage.setItem('player_position', String(pos * 1000));
+            } catch (e) {
+                console.warn('[PlayerContext] Persistence failed:', e);
+            }
+        }, 500); // Wait 500ms after track change so the UI animation stays smooth
     };
 
     // Save metadata on changes

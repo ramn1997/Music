@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+const FlashListAny = FlashList as any;
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
@@ -32,6 +34,92 @@ const CardDesign = () => (
         <View style={{ position: 'absolute', bottom: -10, left: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.05)' }} />
     </>
 );
+
+const MemoizedAlbumItem = React.memo(({ item, layoutMode, theme, onPress }: { item: any, layoutMode: string, theme: any, onPress: (item: any) => void }) => {
+    const isGrid3 = layoutMode === 'grid3';
+    return (
+        <View style={{ flex: layoutMode === 'list' ? 1 : (isGrid3 ? 1 / 3 : 1 / 2) }}>
+            {layoutMode === 'list' ? (
+                <TouchableOpacity
+                    style={styles.listItem}
+                    onPress={() => onPress(item)}
+                >
+                    <View style={styles.row}>
+                        <View style={[styles.listIconPlaceholder, { backgroundColor: 'transparent' }]}>
+                            <MusicImage uri={item.coverImage} iconSize={20} style={{ width: 45, height: 45, borderRadius: 8 }} containerStyle={{ width: 45, height: 45, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+                        </View>
+                        <View style={styles.info}>
+                            <MarqueeText text={item.name} style={[styles.title, { color: theme.text, textAlign: 'left', fontSize: 16 }]} />
+                            <MarqueeText text={item.artist} style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]} />
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                    </View>
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity
+                    style={[isGrid3 ? styles.gridItem3 : styles.gridItem2, { width: '100%', maxWidth: '100%' }]}
+                    onPress={() => onPress(item)}
+                    activeOpacity={0.7}
+                >
+                    <View style={{ width: '100%', alignItems: 'center' }}>
+                        <View
+                            style={[
+                                styles.card,
+                                {
+                                    backgroundColor: 'transparent',
+                                    borderWidth: 0,
+                                    padding: 0,
+                                    width: '100%',
+                                    aspectRatio: 1,
+                                    overflow: 'hidden',
+                                    marginBottom: 8
+                                }
+                            ]}
+                        >
+                            <MusicImage
+                                uri={item.coverImage}
+                                id={item.id}
+                                iconSize={isGrid3 ? 40 : 50}
+                                style={{ width: '100%', height: '100%' }}
+                                containerStyle={{ width: '100%', height: '100%', borderRadius: 20 }}
+                            />
+                        </View>
+                        <MarqueeText
+                            text={item.name}
+                            style={{
+                                color: theme.text,
+                                fontSize: isGrid3 ? 12 : 14,
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                width: '100%'
+                            }}
+                        />
+                        <Text
+                            numberOfLines={1}
+                            style={{
+                                marginTop: 2,
+                                color: theme.textSecondary,
+                                fontSize: isGrid3 ? 10 : 12,
+                                textAlign: 'center',
+                                width: '100%'
+                            }}
+                        >
+                            {item.artist}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}, (prev, next) => {
+    return (
+        prev.item.id === next.item.id &&
+        prev.item.count === next.item.count &&
+        prev.item.coverImage === next.item.coverImage &&
+        prev.layoutMode === next.layoutMode &&
+        prev.theme === next.theme
+    );
+});
 
 export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
@@ -99,86 +187,13 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         else setLayoutMode('grid3');
     };
 
-    const renderItem = React.useCallback(({ item, index }: { item: any, index: number }) => {
-        const isGrid3 = layoutMode === 'grid3';
+    const handlePress = React.useCallback((item: any) => {
+        navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'album' });
+    }, [navigation]);
 
-        return (
-            <View
-                style={{ flex: layoutMode === 'list' ? 1 : (isGrid3 ? 1 / 3 : 1 / 2) }}
-            >
-                {layoutMode === 'list' ? (
-                    <TouchableOpacity
-                        style={styles.listItem}
-                        onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'album' })}
-                    >
-                        <View style={styles.row}>
-                            <View style={[styles.listIconPlaceholder, { backgroundColor: 'transparent' }]}>
-                                <MusicImage uri={item.coverImage} iconSize={20} style={{ width: 45, height: 45, borderRadius: 8 }} containerStyle={{ width: 45, height: 45, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-                            </View>
-                            <View style={styles.info}>
-                                <MarqueeText text={item.name} style={[styles.title, { color: theme.text, textAlign: 'left', fontSize: 16 }]} />
-                                <MarqueeText text={item.artist} style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]} />
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                        </View>
-                    </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity
-                        style={[isGrid3 ? styles.gridItem3 : styles.gridItem2, { width: '100%', maxWidth: '100%' }]}
-                        onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'album' })}
-                        activeOpacity={0.7}
-                    >
-                        <View style={{ width: '100%', alignItems: 'center' }}>
-                            <View
-                                style={[
-                                    styles.card,
-                                    {
-                                        backgroundColor: 'transparent',
-                                        borderWidth: 0,
-                                        padding: 0,
-                                        width: '100%',
-                                        aspectRatio: 1,
-                                        overflow: 'hidden',
-                                        marginBottom: 8
-                                    }
-                                ]}
-                            >
-                                <MusicImage
-                                    uri={item.coverImage}
-                                    id={item.id}
-                                    iconSize={isGrid3 ? 40 : 50}
-                                    style={{ width: '100%', height: '100%' }}
-                                    containerStyle={{ width: '100%', height: '100%', borderRadius: 20 }}
-                                />
-                            </View>
-                            <MarqueeText
-                                text={item.name}
-                                style={{
-                                    color: theme.text,
-                                    fontSize: isGrid3 ? 12 : 14,
-                                    fontWeight: 'bold',
-                                    textAlign: 'center',
-                                    width: '100%'
-                                }}
-                            />
-                            <Text
-                                numberOfLines={1}
-                                style={{
-                                    marginTop: 2,
-                                    color: theme.textSecondary,
-                                    fontSize: isGrid3 ? 10 : 12,
-                                    textAlign: 'center',
-                                    width: '100%'
-                                }}
-                            >
-                                {item.artist}
-                            </Text>
-                        </View>
-                    </TouchableOpacity>
-                )}
-            </View>
-        );
-    }, [theme, navigation, layoutMode]);
+    const renderItem = React.useCallback(({ item }: { item: any }) => {
+        return <MemoizedAlbumItem item={item} layoutMode={layoutMode} theme={theme} onPress={handlePress} />;
+    }, [theme, layoutMode, handlePress]);
 
     const content = (
         <View style={{ flex: 1, position: 'relative' }}>
@@ -232,16 +247,15 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             </View>
 
             <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : 0 }}>
-                <FlatList
+                <FlashListAny
                     key={layoutMode}
-                    style={{ flex: 1 }} // Force FlatList to take available width
+                    style={{ flex: 1 }} // Force FlashList to take available width
                     data={albums}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
                     numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
-                    columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
+                    estimatedItemSize={150}
                     contentContainerStyle={styles.listContent}
-
                     ListEmptyComponent={
                         <View style={styles.center}>
                             <Text style={{ color: theme.textSecondary }}>No albums found.</Text>

@@ -20,9 +20,8 @@ import * as Linking from 'expo-linking';
 // Hold the native splash screen until library is synced
 SplashScreen.preventAutoHideAsync().catch(() => { });
 
-const prefix = Linking.createURL('/');
 const linking: any = {
-    prefixes: [prefix, 'exp+musicapp://'],
+    prefixes: ['exp+musicapp://'],
     config: {
         screens: {
             Home: {

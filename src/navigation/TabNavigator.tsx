@@ -21,10 +21,10 @@ import Animated, {
 const Tab = createBottomTabNavigator();
 
 const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
-    const scale = useSharedValue(isFocused ? 1 : 0.9);
+    const progress = useSharedValue(isFocused ? 1 : 0);
 
     useEffect(() => {
-        scale.value = withSpring(isFocused ? 1 : 0.9, { damping: 15 });
+        progress.value = withSpring(isFocused ? 1 : 0, { damping: 14, stiffness: 120 });
     }, [isFocused]);
 
     const iconName = () => {
@@ -35,43 +35,43 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
         return 'musical-notes';
     };
 
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
+    const containerStyle = useAnimatedStyle(() => ({
+        flex: 1 + (progress.value * 1.0), // Expands flex width up to 2x for active tab
     }));
 
-    if (isFocused) {
-        return (
-            <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.9}
-                style={styles.activePill}
-            >
-                <Animated.View style={[styles.activePillInner, { backgroundColor: theme.primary }, animatedStyle]}>
-                    <Ionicons
-                        name={iconName() as any}
-                        size={22}
-                        color={theme.textOnPrimary}
-                    />
-                    <Text style={[styles.activeText, { color: theme.textOnPrimary }]}>{label}</Text>
-                </Animated.View>
-            </TouchableOpacity>
-        );
-    }
+    const activeStyle = useAnimatedStyle(() => ({
+        opacity: progress.value,
+        transform: [{ scale: 0.8 + (progress.value * 0.2) }],
+        zIndex: isFocused ? 2 : 0
+    }));
+
+    const inactiveStyle = useAnimatedStyle(() => ({
+        opacity: 1 - progress.value,
+        transform: [{ scale: 1 - (progress.value * 0.2) }],
+        zIndex: !isFocused ? 2 : 0
+    }));
 
     return (
-        <TouchableOpacity
-            onPress={onPress}
-            activeOpacity={0.7}
-            style={styles.tabItemInactive}
-        >
-            <View style={[styles.inactiveCircle, { backgroundColor: theme.card }]}>
-                <Ionicons
-                    name={iconName() as any}
-                    size={24}
-                    color={theme.background === '#ffffff' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.5)"}
-                />
-            </View>
-        </TouchableOpacity>
+        <Animated.View style={[{ height: 48, justifyContent: 'center', alignItems: 'center' }, containerStyle]}>
+            <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }]}>
+
+                {/* Active Pill Layout */}
+                <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, activeStyle]} pointerEvents="none">
+                    <View style={[styles.activePillInner, { backgroundColor: theme.primary }]}>
+                        <Ionicons name={iconName() as any} size={22} color={theme.textOnPrimary} />
+                        <Text style={[styles.activeText, { color: theme.textOnPrimary }]} numberOfLines={1}>{label}</Text>
+                    </View>
+                </Animated.View>
+
+                {/* Inactive Circle Layout */}
+                <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, inactiveStyle]} pointerEvents="none">
+                    <View style={[styles.inactiveCircle, { backgroundColor: theme.card }]}>
+                        <Ionicons name={iconName() as any} size={24} color={theme.background === '#ffffff' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.7)"} />
+                    </View>
+                </Animated.View>
+
+            </TouchableOpacity>
+        </Animated.View>
     );
 };
 
@@ -81,14 +81,15 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
     const isLight = theme.background === '#ffffff';
 
     return (
-        <View style={styles.tabBarWrapper}>
+        <View style={[styles.tabBarWrapper, { bottom: Math.max(insets.bottom, 16) }]}>
             <View style={[
                 styles.tabBarContainer,
                 {
                     backgroundColor: 'transparent',
-                    paddingBottom: Math.max(insets.bottom, 10),
-                    height: 75 + Math.max(insets.bottom, 10),
-                    overflow: 'hidden' // Required for border radius
+                    height: 70,
+                    overflow: 'hidden', // Required for border radius
+                    borderWidth: 1,
+                    borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)')
                 }
             ]}>
                 <BlurView
@@ -208,21 +209,19 @@ export const TabNavigator = () => {
 const styles = StyleSheet.create({
     tabBarWrapper: {
         position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        left: 8,
+        right: 8,
         zIndex: 100,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 10,
     },
     tabBarContainer: {
         width: '100%',
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
+        borderRadius: 35,
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -5 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 10,
     },
     tabBarInner: {
         flexDirection: 'row',

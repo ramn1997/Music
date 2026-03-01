@@ -86,6 +86,17 @@ export const SongItem = React.memo(({ item, index, isCurrent, theme, onPress, on
             </TouchableOpacity>
         </TouchableOpacity>
     );
+}, (prevProps, nextProps) => {
+    return (
+        prevProps.item.id === nextProps.item.id &&
+        prevProps.item.title === nextProps.item.title &&
+        prevProps.item.artist === nextProps.item.artist &&
+        prevProps.item.coverImage === nextProps.item.coverImage &&
+        prevProps.isCurrent === nextProps.isCurrent &&
+        prevProps.isSelectionMode === nextProps.isSelectionMode &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.theme === nextProps.theme
+    );
 });
 
 const styles = StyleSheet.create({

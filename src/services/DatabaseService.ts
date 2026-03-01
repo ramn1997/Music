@@ -113,32 +113,43 @@ class DatabaseService {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 `;
 
-                let i = 0;
-                for (const s of songs) {
-                    await db.runAsync(query, [
-                        this.sanitize(s.id),
-                        this.sanitize(s.filename),
-                        this.sanitize(s.uri),
-                        this.sanitize(s.duration),
-                        this.sanitize(s.title),
-                        this.sanitize(s.artist),
-                        this.sanitize(s.album),
-                        this.sanitize(s.genre),
-                        this.sanitize(s.year),
-                        this.sanitize(s.albumId),
-                        this.sanitize(s.coverImage),
-                        this.sanitize(s.dateAdded),
-                        this.sanitize(s.playCount),
-                        this.sanitize(s.lastPlayed),
-                        this.sanitize(s.scanStatus),
-                        this.sanitize(s.folder)
-                    ]);
+                // Use Prepared Statements to avoid slow reparsing for thousands of songs
+                const statement = await db.prepareAsync(query);
 
-                    i++;
-                    if (i % 100 === 0) {
-                        // Yield to main thread for large imports
-                        await new Promise(r => setTimeout(r, 0));
+                try {
+                    let i = 0;
+                    for (const s of songs) {
+                        try {
+                            await statement.executeAsync([
+                                this.sanitize(s.id),
+                                this.sanitize(s.filename),
+                                this.sanitize(s.uri),
+                                this.sanitize(s.duration),
+                                this.sanitize(s.title),
+                                this.sanitize(s.artist),
+                                this.sanitize(s.album),
+                                this.sanitize(s.genre),
+                                this.sanitize(s.year),
+                                this.sanitize(s.albumId),
+                                this.sanitize(s.coverImage),
+                                this.sanitize(s.dateAdded),
+                                this.sanitize(s.playCount),
+                                this.sanitize(s.lastPlayed),
+                                this.sanitize(s.scanStatus),
+                                this.sanitize(s.folder)
+                            ]);
+                        } catch (itemErr) {
+                            console.warn(`[DatabaseService] Failed to insert song ${s.id}`, itemErr);
+                        }
+
+                        i++;
+                        if (i % 250 === 0) {
+                            // Yield to main thread for large imports to prevent UI freeze
+                            await new Promise(r => setTimeout(r, 0));
+                        }
                     }
+                } finally {
+                    await statement.finalizeAsync();
                 }
             });
             console.log(`[DatabaseService] Successfully upserted ${songs.length} songs.`);

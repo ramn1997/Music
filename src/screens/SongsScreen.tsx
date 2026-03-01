@@ -27,7 +27,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { songs, loading } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
-    const { theme } = useTheme();
+    const { theme, themeType } = useTheme();
     const { playlists, addToPlaylist, updateSongMetadata } = useMusicLibrary();
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -39,6 +39,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const [songsToAddToPlaylist, setSongsToAddToPlaylist] = useState<Song[]>([]);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const flatListRef = React.useRef<any>(null);
+    const filteredSongsRef = React.useRef<Song[]>([]);
 
     React.useEffect(() => {
         const handler = setTimeout(() => {
@@ -75,23 +76,24 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             );
         }
 
-        return [...result].sort((a, b) => {
-            const titleA = (a.title || '').toLowerCase();
-            const titleB = (b.title || '').toLowerCase();
-            let comparison = 0;
-            if (titleA < titleB) comparison = -1;
-            else if (titleA > titleB) comparison = 1;
+        const sorted = [...result].sort((a, b) => {
+            const titleA = a.title || '';
+            const titleB = b.title || '';
+            let comparison = titleA.localeCompare(titleB);
             return sortOrder === 'asc' ? comparison : -comparison;
         });
+
+        filteredSongsRef.current = sorted;
+        return sorted;
     }, [songs, debouncedQuery, sortOrder]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
-        const index = filteredSongs.findIndex(s => s.id === song.id);
+        const index = filteredSongsRef.current.findIndex(s => s.id === song.id);
         if (index !== -1) {
-            playSongInPlaylist(filteredSongs, index, "All Songs");
+            playSongInPlaylist(filteredSongsRef.current, index, "All Songs");
             navigation.navigate('Player', { trackIndex: index });
         }
-    }, [filteredSongs, playSongInPlaylist, navigation]);
+    }, [playSongInPlaylist, navigation]);
 
 
     const onOpenOptions = React.useCallback((item: Song) => {
@@ -130,7 +132,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             isSelected={selectedSongIds.has(item.id)}
             onOpenOptions={onOpenOptions}
         />
-    ), [theme, handlePlaySong, onOpenOptions, currentSong?.id, isSelectionMode, selectedSongIds]);
+    ), [themeType, handlePlaySong, onOpenOptions, currentSong?.id, isSelectionMode, selectedSongIds]);
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
 
@@ -233,9 +235,9 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     <FlashListAny
                         ref={flatListRef}
                         data={filteredSongs}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={(item: any) => item.id}
                         renderItem={renderSong}
-                        extraData={[handlePlaySong, isSelectionMode, selectedSongIds, currentSong?.id, theme]}
+                        extraData={{ currentSongId: currentSong?.id, isSelectionMode, selectedSongIds, themeType: themeType }}
                         estimatedItemSize={70}
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}

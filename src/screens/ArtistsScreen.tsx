@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+const FlashListAny = FlashList as any;
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
@@ -150,15 +152,14 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             </View>
 
             <View style={{ flex: 1 }}>
-                <FlatList
+                <FlashListAny
                     key={layoutMode}
                     data={artists}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
                     numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
-                    columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
+                    estimatedItemSize={150}
                     contentContainerStyle={styles.listContent}
-
                     ListEmptyComponent={
                         <View style={styles.center}>
                             <Text style={{ color: theme.textSecondary }}>No artists found.</Text>

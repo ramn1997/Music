@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Modal } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+const FlashListAny = FlashList as any;
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalMusic, Song } from '../hooks/useLocalMusic';
 import { ScreenContainer } from '../components/ScreenContainer';
@@ -21,7 +23,7 @@ export const SearchScreen = () => {
     const [query, setQuery] = useState('');
     const { songs, fetchMusic } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const { theme } = useTheme();
+    const { theme, themeType } = useTheme();
     const { playSongInPlaylist, currentSong } = usePlayerContext();
     const { playlists, addToPlaylist, updateSongMetadata } = useMusicLibrary();
 
@@ -81,8 +83,15 @@ export const SearchScreen = () => {
     }, [fetchMusic]);
 
     const trimmedQuery = query.trim().toLowerCase();
-    const filteredSongs = trimmedQuery
-        ? songs.filter(s => {
+    const filteredSongsRef = React.useRef<Song[]>([]);
+
+    const filteredSongs = React.useMemo(() => {
+        if (!trimmedQuery) {
+            filteredSongsRef.current = [];
+            return [];
+        }
+
+        const filtered = songs.filter(s => {
             const title = (s.title ?? '').toLowerCase();
             const artist = (s.artist ?? '').toLowerCase();
             const album = (s.album ?? '').toLowerCase();
@@ -91,24 +100,29 @@ export const SearchScreen = () => {
                 artist.includes(trimmedQuery) ||
                 album.includes(trimmedQuery)
             );
-        })
-        : [];
+        });
+
+        filteredSongsRef.current = filtered;
+        return filtered;
+    }, [songs, trimmedQuery]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
         saveSearch(song);
-        // If searching, find in filtered list. If clicking recent, find in all songs or just play it as single
-        const contextList = query ? filteredSongs : [song];
-        const index = query ? filteredSongs.findIndex(s => s.id === song.id) : 0;
 
-        if (index !== -1) {
-            playSongInPlaylist(contextList, index, query ? "Search Results" : "Recent Search");
-            navigation.navigate('Player', { trackIndex: index });
-        } else if (!query) {
-            // Fallback for recent item if not in current filter context (shouldn't happen with logic above but for safety)
-            playSongInPlaylist([song], 0, "Recent Search");
-            navigation.navigate('Player');
+        let contextList = [song];
+        let index = 0;
+
+        if (query) {
+            contextList = filteredSongsRef.current;
+            index = contextList.findIndex(s => s.id === song.id);
+            if (index === -1) {
+                index = 0;
+            }
         }
-    }, [filteredSongs, playSongInPlaylist, navigation, query]);
+
+        playSongInPlaylist(contextList, index, query ? "Search Results" : "Recent Search");
+        navigation.navigate('Player', { trackIndex: index });
+    }, [query, playSongInPlaylist, navigation]);
 
 
     const onOpenOptions = React.useCallback((item: Song) => {
@@ -130,9 +144,6 @@ export const SearchScreen = () => {
     return (
         <ScreenContainer variant="default">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Search</Text>
             </View>
 
@@ -152,7 +163,7 @@ export const SearchScreen = () => {
                 )}
             </View>
 
-            <FlatList
+            <FlashListAny
                 data={query ? filteredSongs : recentSearches}
                 keyExtractor={item => item.id}
                 renderItem={({ item, index }) => (
@@ -197,6 +208,9 @@ export const SearchScreen = () => {
                         <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No results found.</Text>
                     ) : null
                 }
+                estimatedItemSize={70}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                extraData={[themeType, currentSong?.id]}
             />
 
             <SongOptionsMenu

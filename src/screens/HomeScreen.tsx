@@ -5,6 +5,9 @@ import Animated, {
     withSpring,
     useSharedValue,
     useAnimatedStyle,
+    withTiming,
+    FadeIn,
+    FadeOutDown
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -23,7 +26,40 @@ import { AlbumsScreen } from './AlbumsScreen';
 import { ArtistsScreen } from './ArtistsScreen';
 import { GlassCard } from '../components/GlassCard';
 
-const TABS = ['Overview', 'Songs', 'Albums', 'Artists'];
+const TABS = ['Home', 'Songs', 'Albums', 'Artists'];
+
+const TopTabItem = ({ tab, isActive, onPress, appTheme }: any) => {
+    const progress = useSharedValue(isActive ? 1 : 0);
+
+    useEffect(() => {
+        progress.value = withTiming(isActive ? 1 : 0, { duration: 250 });
+    }, [isActive]);
+
+    const indicatorStyle = useAnimatedStyle(() => ({
+        opacity: progress.value,
+        transform: [{ scaleX: progress.value }]
+    }));
+
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            style={styles.tabItem}
+            activeOpacity={0.8}
+        >
+            <Text style={[
+                styles.tabText,
+                {
+                    color: isActive ? appTheme.text : appTheme.textSecondary,
+                    fontSize: 16,
+                    fontWeight: isActive ? '800' : '700'
+                }
+            ]}>
+                {tab}
+            </Text>
+            <Animated.View style={[styles.activeIndicator, { backgroundColor: appTheme.primary }, indicatorStyle]} />
+        </TouchableOpacity>
+    );
+};
 
 const FAVORITES = [
     { id: 'most_played', name: 'Most Played', type: 'Smart Playlist', params: { id: 'most_played', name: 'Most Played', type: 'most_played' } },
@@ -37,10 +73,10 @@ const getGradientColors = (id: string): [string, string] => {
         case 'Artists': return ['#7c2d12', '#9a3412'];
         case 'Genres': return ['#064e3b', '#065f46'];
         case 'Years': return ['#1e293b', '#64748b'];
-        case 'most_played': return ['#2e1065', '#5b21b6'];
-        case 'liked': return ['#881337', '#be123c'];
-        case 'recently_played': return ['#422006', '#854d0e'];
-        case 'recently_added': return ['#172554', '#1d4ed8'];
+        case 'most_played': return ['rgba(46, 16, 101, 0.5)', 'rgba(91, 33, 182, 0.35)'];
+        case 'liked': return ['rgba(136, 19, 55, 0.5)', 'rgba(190, 18, 60, 0.35)'];
+        case 'recently_played': return ['rgba(66, 32, 6, 0.5)', 'rgba(133, 77, 14, 0.35)'];
+        case 'recently_added': return ['rgba(23, 37, 84, 0.5)', 'rgba(29, 78, 216, 0.35)'];
         case 'never_played': return ['#020617', '#334155'];
         default: {
             const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -103,8 +139,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                             {
                                 borderRadius: 14,
                                 overflow: 'hidden',
-                                borderWidth: 1,
-                                borderColor: theme.cardBorder
+                                backgroundColor: 'rgba(255,255,255,0.05)'
                             }
                         ]
                     ]}
@@ -370,13 +405,13 @@ export const HomeScreen = () => {
         artistMetadata
     } = useMusicLibrary();
     const { playSongInPlaylist, currentSong, isPlaying } = usePlayerContext();
-    const [activeTab, setActiveTab] = useState('Overview');
+    const [activeTab, setActiveTab] = useState('Home');
 
     // Handle tab reset when home button is pressed or screen is focused
     useEffect(() => {
         // 1. Reset when Home Tab button is pressed (from anywhere)
         const unsubscribeTab = (navigation.getParent() as any)?.addListener('tabPress', () => {
-            setActiveTab('Overview');
+            setActiveTab('Home');
         });
 
         return () => {
@@ -423,8 +458,8 @@ export const HomeScreen = () => {
     }, [recentlyPlayed, recentlyAdded, neverPlayed]);
 
     const topSongs = useMemo(() => {
-        return [...songs].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 10);
-    }, [songs]);
+        return recentlyPlayed.slice(0, 10).sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+    }, [recentlyPlayed]);
 
 
 
@@ -448,28 +483,15 @@ export const HomeScreen = () => {
 
                 {/* Custom Tabs */}
                 <View style={styles.tabsContainer}>
-                    {TABS.map((tab) => {
-                        const isActive = activeTab === tab;
-                        return (
-                            <TouchableOpacity
-                                key={tab}
-                                onPress={() => handleTabPress(tab)}
-                                style={styles.tabItem}
-                            >
-                                <Text style={[
-                                    styles.tabText,
-                                    {
-                                        color: isActive ? appTheme.text : appTheme.textSecondary,
-                                        fontSize: 16,
-                                        fontWeight: isActive ? '800' : '700'
-                                    }
-                                ]}>
-                                    {tab}
-                                </Text>
-                                {isActive && <View style={[styles.activeIndicator, { backgroundColor: appTheme.primary }]} />}
-                            </TouchableOpacity>
-                        );
-                    })}
+                    {TABS.map((tab) => (
+                        <TopTabItem
+                            key={tab}
+                            tab={tab}
+                            isActive={activeTab === tab}
+                            onPress={() => handleTabPress(tab)}
+                            appTheme={appTheme}
+                        />
+                    ))}
                 </View>
             </View>
         );
@@ -633,10 +655,17 @@ export const HomeScreen = () => {
     return (
         <ScreenContainer variant="default">
             {renderHeader()}
-            {activeTab === 'Overview' && renderOverviewContent()}
-            {activeTab === 'Songs' && <SongsScreen isEmbedded={true} />}
-            {activeTab === 'Albums' && <AlbumsScreen isEmbedded={true} />}
-            {activeTab === 'Artists' && <ArtistsScreen isEmbedded={true} />}
+            <Animated.View
+                key={activeTab}
+                entering={FadeIn.duration(300)}
+                exiting={FadeOutDown.duration(150)}
+                style={{ flex: 1 }}
+            >
+                {activeTab === 'Home' && renderOverviewContent()}
+                {activeTab === 'Songs' && <SongsScreen isEmbedded={true} />}
+                {activeTab === 'Albums' && <AlbumsScreen isEmbedded={true} />}
+                {activeTab === 'Artists' && <ArtistsScreen isEmbedded={true} />}
+            </Animated.View>
         </ScreenContainer>
     );
 };
