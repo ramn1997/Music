@@ -262,38 +262,34 @@ const SmartPlaylistCard = ({
     onPlayPress?: () => void,
     onShufflePress?: () => void
 }) => {
-    // Get unique album arts from songs for collage
-    const collageSongs = React.useMemo(() => {
-        if (!item.songs) return [];
-        const seen = new Set();
-        const unique = [];
-        for (const s of item.songs) {
-            const art = s.coverImage || s.uri; // fallback to uri if no coverImage
-            if (art && !seen.has(art)) {
-                seen.add(art);
-                unique.push(s);
-            }
-            if (unique.length >= 4) break;
-        }
-        return unique;
-    }, [item.songs]);
-
     return (
         <TouchableOpacity style={styles.historyCard} onPress={onPress} activeOpacity={0.9}>
             <View style={[styles.historyImageContainer, { backgroundColor: item.color, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }]}>
-                {/* Subtle Collage Background */}
-                <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', opacity: 0.25 }]}>
-                    {collageSongs.map((song: any, i: number) => (
-                        <View key={song.id + i} style={{ width: '50%', height: '50%' }}>
-                            <MusicImage
-                                uri={song.coverImage}
-                                id={song.id}
-                                style={{ width: '100%', height: '100%' }}
-                                assetUri={song.uri}
-                            />
-                        </View>
-                    ))}
-                </View>
+                {item.collageSongs && item.collageSongs.length >= 4 ? (
+                    <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', opacity: 0.5 }]}>
+                        {item.collageSongs.slice(0, 4).map((s: any, idx: number) => (
+                            <View key={`bgsong-${idx}`} style={{ width: '50%', height: '50%' }}>
+                                <MusicImage
+                                    uri={s.coverImage}
+                                    id={s.id}
+                                    style={{ width: '100%', height: '100%' }}
+                                    assetUri={s.uri}
+                                />
+                            </View>
+                        ))}
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
+                    </View>
+                ) : item.coverSong ? (
+                    <View style={[StyleSheet.absoluteFill, { opacity: 0.6 }]}>
+                        <MusicImage
+                            uri={item.coverSong.coverImage}
+                            id={item.coverSong.id}
+                            style={{ width: '100%', height: '100%' }}
+                            assetUri={item.coverSong.uri}
+                        />
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)' }]} />
+                    </View>
+                ) : null}
 
                 <HistoryCardDesign />
                 <Ionicons
@@ -320,10 +316,10 @@ const SmartPlaylistCard = ({
                             <Ionicons name="play" size={16} color="#000" />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.historyActionBtn, { marginLeft: 8 }]}
+                            style={[styles.historyActionBtn, { marginLeft: 8, backgroundColor: 'transparent', elevation: 0, shadowOpacity: 0 }]}
                             onPress={(e) => { e.stopPropagation(); onShufflePress?.(); }}
                         >
-                            <Ionicons name="shuffle" size={16} color="#000" />
+                            <Ionicons name="shuffle" size={18} color="#fff" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -425,6 +421,7 @@ export const HomeScreen = () => {
                 id: 'recently_played',
                 title: 'Recently Played',
                 type: 'recently_played',
+                collageSongs: recentlyPlayed.slice(0, 4),
                 coverSong: recentlyPlayed[0],
                 songs: recentlyPlayed,
                 count: recentlyPlayed.length,
@@ -436,6 +433,7 @@ export const HomeScreen = () => {
                 id: 'recently_added',
                 title: 'Recently Added',
                 type: 'recently_added',
+                collageSongs: recentlyAdded.slice(0, 4),
                 coverSong: recentlyAdded[0],
                 songs: recentlyAdded,
                 count: recentlyAdded.length,
@@ -447,6 +445,7 @@ export const HomeScreen = () => {
                 id: 'never_played',
                 title: 'Never Played',
                 type: 'never_played',
+                collageSongs: neverPlayed.slice(0, 4),
                 coverSong: neverPlayed[0],
                 songs: neverPlayed,
                 count: neverPlayed.length,
@@ -458,8 +457,48 @@ export const HomeScreen = () => {
     }, [recentlyPlayed, recentlyAdded, neverPlayed]);
 
     const topSongs = useMemo(() => {
-        return recentlyPlayed.slice(0, 10).sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
-    }, [recentlyPlayed]);
+        if (recentlyPlayed && recentlyPlayed.length > 0) {
+            return recentlyPlayed.slice(0, 10).sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+        } else if (recentlyAdded && recentlyAdded.length > 0) {
+            return recentlyAdded.slice(0, 10);
+        } else {
+            return songs.slice(0, 10);
+        }
+    }, [recentlyPlayed, recentlyAdded, songs]);
+
+    const displayTopArtists = useMemo(() => {
+        if (topArtists && topArtists.length > 0) {
+            return topArtists.slice(0, 10);
+        }
+
+        if (songs && songs.length > 0) {
+            const artistMap = new Map<string, { name: string, songCount: number, coverImage?: string }>();
+            for (let i = 0; i < songs.length; i++) {
+                const song = songs[i];
+                if (!song.artist || song.artist === 'Unknown Artist') continue;
+
+                const existing = artistMap.get(song.artist);
+                if (existing) {
+                    existing.songCount += 1;
+                    if (!existing.coverImage && song.coverImage) {
+                        existing.coverImage = song.coverImage;
+                    }
+                } else {
+                    artistMap.set(song.artist, {
+                        name: song.artist,
+                        songCount: 1,
+                        coverImage: song.coverImage
+                    });
+                }
+            }
+
+            return Array.from(artistMap.values())
+                .sort((a, b) => b.songCount - a.songCount)
+                .slice(0, 10);
+        }
+
+        return [];
+    }, [topArtists, songs]);
 
 
 
@@ -623,7 +662,7 @@ export const HomeScreen = () => {
                 </View>
 
                 {/* Top Artists (Horizontal) */}
-                {topArtists.length > 0 && (
+                {displayTopArtists.length > 0 && (
                     <>
                         <View style={styles.sectionHeader}>
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Artists</Text>
@@ -633,7 +672,7 @@ export const HomeScreen = () => {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
                         >
-                            {topArtists.slice(0, 10).map((artist) => {
+                            {displayTopArtists.map((artist) => {
                                 if (!artist || !artist.name) return null;
                                 return (
                                     <TopArtistCard

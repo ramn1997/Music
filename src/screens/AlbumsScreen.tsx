@@ -38,7 +38,7 @@ const CardDesign = () => (
 const MemoizedAlbumItem = React.memo(({ item, layoutMode, theme, onPress }: { item: any, layoutMode: string, theme: any, onPress: (item: any) => void }) => {
     const isGrid3 = layoutMode === 'grid3';
     return (
-        <View style={{ flex: layoutMode === 'list' ? 1 : (isGrid3 ? 1 / 3 : 1 / 2) }}>
+        <View style={{ flex: layoutMode === 'list' ? 1 : (isGrid3 ? 1 / 3 : 1 / 2), paddingHorizontal: layoutMode === 'list' ? 0 : 8, marginBottom: layoutMode === 'list' ? 0 : 16 }}>
             {layoutMode === 'list' ? (
                 <TouchableOpacity
                     style={styles.listItem}
@@ -57,7 +57,7 @@ const MemoizedAlbumItem = React.memo(({ item, layoutMode, theme, onPress }: { it
                 </TouchableOpacity>
             ) : (
                 <TouchableOpacity
-                    style={[isGrid3 ? styles.gridItem3 : styles.gridItem2, { width: '100%', maxWidth: '100%' }]}
+                    style={{ width: '100%' }}
                     onPress={() => onPress(item)}
                     activeOpacity={0.7}
                 >
@@ -200,7 +200,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             {!isEmbedded && (
                 <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: 20 }]}>
                     <View style={styles.headerLeft}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Albums</Text>
@@ -255,6 +255,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     renderItem={renderItem}
                     numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
                     estimatedItemSize={150}
+                    drawDistance={250}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>

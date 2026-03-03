@@ -105,7 +105,7 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             {!isEmbedded && (
                 <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: 20 }]}>
                     <View style={styles.headerLeft}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Artists</Text>
@@ -159,6 +159,7 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     renderItem={renderItem}
                     numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
                     estimatedItemSize={150}
+                    drawDistance={250}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>

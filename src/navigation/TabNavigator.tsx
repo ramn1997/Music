@@ -24,13 +24,13 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
     const progress = useSharedValue(isFocused ? 1 : 0);
 
     useEffect(() => {
-        progress.value = withSpring(isFocused ? 1 : 0, { damping: 14, stiffness: 120 });
+        progress.value = withTiming(isFocused ? 1 : 0, { duration: 250 });
     }, [isFocused]);
 
     const iconName = () => {
         if (route.name === 'HomeTab') return isFocused ? 'home' : 'home-outline';
         if (route.name === 'Search') return isFocused ? 'search' : 'search-outline';
-        if (route.name === 'Favorites') return isFocused ? 'heart' : 'heart-outline';
+        if (route.name === 'Favorites') return isFocused ? 'thumbs-up' : 'thumbs-up-outline';
         if (route.name === 'Playlists') return isFocused ? 'library' : 'library-outline';
         return 'musical-notes';
     };
@@ -65,7 +65,7 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
 
                 {/* Inactive Circle Layout */}
                 <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, inactiveStyle]} pointerEvents="none">
-                    <View style={[styles.inactiveCircle, { backgroundColor: theme.card }]}>
+                    <View style={[styles.inactiveCircle, { backgroundColor: 'transparent' }]}>
                         <Ionicons name={iconName() as any} size={24} color={theme.background === '#ffffff' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.7)"} />
                     </View>
                 </Animated.View>
@@ -81,14 +81,15 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
     const isLight = theme.background === '#ffffff';
 
     return (
-        <View style={[styles.tabBarWrapper, { bottom: Math.max(insets.bottom, 16) }]}>
+        <View style={[styles.tabBarWrapper, { bottom: 0 }]}>
             <View style={[
                 styles.tabBarContainer,
                 {
                     backgroundColor: 'transparent',
-                    height: 70,
-                    overflow: 'hidden', // Required for border radius
-                    borderWidth: 1,
+                    height: 70 + (insets?.bottom || 0),
+                    paddingBottom: insets?.bottom || 0,
+                    overflow: 'hidden',
+                    borderTopWidth: 1,
                     borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)')
                 }
             ]}>
@@ -209,23 +210,24 @@ export const TabNavigator = () => {
 const styles = StyleSheet.create({
     tabBarWrapper: {
         position: 'absolute',
-        left: 8,
-        right: 8,
+        left: 0,
+        right: 0,
         zIndex: 100,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 10,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 15,
     },
     tabBarContainer: {
         width: '100%',
-        borderRadius: 35,
+        borderRadius: 0,
         justifyContent: 'center',
     },
     tabBarInner: {
         flexDirection: 'row',
         width: '100%',
+        height: 70,
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
@@ -241,7 +243,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         height: '100%',
-        borderRadius: 30,
+        borderRadius: 100,
     },
     activeText: {
         color: '#000',
@@ -257,7 +259,7 @@ const styles = StyleSheet.create({
     inactiveCircle: {
         width: 48,
         height: 48,
-        borderRadius: 24,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },

@@ -77,9 +77,11 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         }
 
         const sorted = [...result].sort((a, b) => {
-            const titleA = a.title || '';
-            const titleB = b.title || '';
-            let comparison = titleA.localeCompare(titleB);
+            const titleA = (a.title || '').toLowerCase();
+            const titleB = (b.title || '').toLowerCase();
+            let comparison = 0;
+            if (titleA < titleB) comparison = -1;
+            else if (titleA > titleB) comparison = 1;
             return sortOrder === 'asc' ? comparison : -comparison;
         });
 
@@ -162,7 +164,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         </>
                     ) : (
                         <>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                            <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                                 <Ionicons name="arrow-back" size={24} color={theme.text} />
                             </TouchableOpacity>
                             <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
@@ -239,9 +241,12 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         renderItem={renderSong}
                         extraData={{ currentSongId: currentSong?.id, isSelectionMode, selectedSongIds, themeType: themeType }}
                         estimatedItemSize={70}
+                        overrideItemLayout={(layout, item) => {
+                            layout.size = 70;
+                        }}
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}
-                        drawDistance={500}
+                        drawDistance={250} // Reduced from 500 for memory efficiency
                         removeClippedSubviews={true}
                         ListEmptyComponent={
                             <View style={{ alignItems: 'center', marginTop: 50 }}>

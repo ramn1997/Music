@@ -33,8 +33,7 @@ export const MiniPlayer = () => {
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
     // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.
-    const tabBarHeight = 75 + Math.max(insets.bottom, 10);
-    const bottomOffset = hasTabBar ? (tabBarHeight + 5) : (insets.bottom + 10);
+    const bottomOffset = hasTabBar ? (70 + insets.bottom) : (insets.bottom);
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
 
@@ -178,15 +177,17 @@ export const MiniPlayer = () => {
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        left: 15,
-        right: 15,
+        left: 0,
+        right: 0,
         zIndex: 1000, // Significantly higher to be above everything
         alignItems: 'center',
     },
     pillContainer: {
         width: '100%',
         height: 60,
-        borderRadius: 30, // Make it pill shape
+        borderRadius: 0, // Rectangular shape
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.1)',
         overflow: 'hidden',
         backgroundColor: '#121212', // Solid dark fallback for visibility
         shadowColor: "#000",
@@ -205,8 +206,8 @@ const styles = StyleSheet.create({
     progressTrack: {
         position: 'absolute',
         bottom: 0,
-        left: 20, // inset for the pill bounds
-        right: 20,
+        left: 0, // full width
+        right: 0,
         height: 2,
         backgroundColor: 'rgba(255,255,255,0.1)',
         zIndex: 10,

@@ -14,13 +14,13 @@ export const AboutScreen = () => {
         { icon: 'musical-notes', title: 'Smart Library', desc: 'Auto-organize your local music by Artists, Albums, and Genres.' },
         { icon: 'color-palette', title: 'Premium Themes', desc: 'Six beautiful themes including Glass, Purple, and Deep Blue.' },
         { icon: 'search', title: 'Deep Meta-Scan', desc: 'Fetch high-quality artwork and lyrics directly from the web.' },
-        { icon: 'heart', title: 'Smart Playlists', desc: 'Automatically generated Top Songs and Recently Played collections.' },
+        { icon: 'thumbs-up', title: 'Smart Playlists', desc: 'Automatically generated Top Songs and Recently Played collections.' },
     ];
 
     return (
         <ScreenContainer variant="default">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>About</Text>

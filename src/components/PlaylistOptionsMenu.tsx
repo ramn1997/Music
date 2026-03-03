@@ -50,7 +50,7 @@ export const PlaylistOptionsMenu: React.FC<PlaylistOptionsMenuProps> = ({
                             }}
                         >
                             <Ionicons
-                                name={isFavorite ? "heart-dislike-outline" : "heart-outline"}
+                                name={isFavorite ? "thumbs-down-outline" : "thumbs-up-outline"}
                                 size={24}
                                 color={theme.primary}
                                 style={styles.icon}

@@ -220,19 +220,12 @@ class ImportService {
 
                 const chunkPromises = chunk.map(async (song) => {
                     try {
-                        const info = await MediaLibrary.getAssetInfoAsync(song.id);
-                        if (!info) {
-                            console.warn(`[ImportService] Could not get asset info for ${song.filename}`);
-                            return;
-                        }
-                        const anyInfo = info as any;
-
-                        let libTitle = anyInfo.title;
-                        let libArtist = anyInfo.artist;
-                        let libAlbum = anyInfo.album;
-                        let libYear = anyInfo.year;
-                        const albumId = anyInfo.albumId || anyInfo.album_id;
-                        const targetUri = anyInfo.localUri || song.uri;
+                        let libTitle = song.title;
+                        let libArtist = song.artist;
+                        let libAlbum = song.album;
+                        let libYear = song.year;
+                        const albumId = song.albumId;
+                        const targetUri = song.uri;
 
                         let systemArtUri = null;
                         if (Platform.OS === 'android' && albumId && !['null', 'undefined', '-1', '0'].includes(String(albumId))) {
@@ -242,14 +235,11 @@ class ImportService {
                         const missingText = !libTitle || !libArtist || libArtist === 'Unknown Artist' || !libAlbum || libAlbum === 'Unknown Album';
                         const missingArt = !systemArtUri;
 
-                        // PRODUCTION FIX: Do NOT force heavy MP3 file extraction just for missing art during background sync.
-                        // MusicImage uses `getAlbumArt` which lazily extracts Art when the user actually looks at the song.
                         const needsFileExtraction = forceDeepScan || missingText;
                         let extractedArtUri = null;
 
                         if (needsFileExtraction) {
                             try {
-                                // Add timeout to prevent hanging
                                 const extractionPromise = this.safeGetMusicInfo(targetUri, {
                                     title: true,
                                     artist: true,
@@ -258,7 +248,7 @@ class ImportService {
                                     picture: missingArt
                                 }, song.id, song.uri);
 
-                                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+                                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
 
                                 const meta = await Promise.race([extractionPromise, timeoutPromise]);
 

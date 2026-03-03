@@ -173,7 +173,8 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
     };
 
     const effectiveUri = (uri && uri.trim() !== '' && !ignorePropUri) ? uri : lazyUri;
-    const showImage = effectiveUri && effectiveUri.trim() !== '' && !error;
+    const isValidUri = effectiveUri && typeof effectiveUri === 'string' && effectiveUri.trim() !== '' && effectiveUri !== 'null' && effectiveUri !== 'undefined' && effectiveUri.length > 5;
+    const showImage = isValidUri && !error;
 
     let finalUri = '';
     if (showImage && effectiveUri) {
@@ -183,7 +184,7 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
             finalUri = finalUri.replace(/^file:\/\/file:\/\//, 'file://');
         } else if (finalUri.startsWith('//')) {
             finalUri = `https:${finalUri}`;
-        } else if (!finalUri.match(/^(file|content|http|https):\/\//)) {
+        } else if (!finalUri.match(/^(file|content|http|https|data):\/\//)) {
             finalUri = `file://${finalUri}`;
         }
     }
@@ -245,7 +246,7 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
                     transition={100}
                     cachePolicy="memory-disk"
                     priority="high"
-                    blurRadius={blurRadius}
+                    {...(typeof blurRadius === 'number' && !isNaN(blurRadius) ? { blurRadius } : {})}
                     onError={() => {
                         setError(true);
                         handleImageError();

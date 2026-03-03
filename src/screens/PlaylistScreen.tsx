@@ -584,7 +584,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         <ScreenContainer variant="default">
             <View style={{ flex: 1 }}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
 
@@ -832,7 +832,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
-                                            style={[styles.deleteButton, { backgroundColor: theme.card, borderWidth: 0 }]}
+                                            style={[styles.deleteButton, { backgroundColor: 'transparent', borderWidth: 0 }]}
                                             onPress={() => {
                                                 if (displaySongs.length > 0) {
                                                     const shuffled = [...displaySongs].sort(() => Math.random() - 0.5);

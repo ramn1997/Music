@@ -1029,6 +1029,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             setPlaylist([song]);
             setCurrentIndex(0);
             setCurrentTrack(song);
+            incrementPlayCount(song.id);
+            lastScrobbledTrackId.current = song.id;
             await TrackPlayer.play();
             setIsPlaying(true); // Manual update
         },
@@ -1063,6 +1065,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             if (songs.length > idx) {
                 setCurrentIndex(idx);
                 setCurrentTrack(songs[idx]);
+                incrementPlayCount(songs[idx].id);
+                lastScrobbledTrackId.current = String(songs[idx].id);
                 await TrackPlayer.skip(idx);
                 await TrackPlayer.play();
                 setIsPlaying(true); // Manual update
@@ -1076,6 +1080,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             if (songs.length > index) {
                 setCurrentIndex(index);
                 setCurrentTrack(songs[index]);
+                incrementPlayCount(songs[index].id);
+                lastScrobbledTrackId.current = String(songs[index].id);
                 await TrackPlayer.skip(index);
                 await TrackPlayer.play();
                 setIsPlaying(true); // Manual update

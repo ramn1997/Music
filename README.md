@@ -9,10 +9,16 @@ A premium, comprehensive, and feature-rich music player application built with R
 -   **Lyrics Integration**: Search for and save synchronized or static lyrics using LRCLIB and OVH fallback. Edit lyrics manually for perfect accuracy.
 -   **About Screen**: A dedicated section to explore the app's premium features and current version.
 -   **Improved UI/UX**: 
+    *   Consistent "Add to Playlist" modal across the player and queue.
+    *   Floating Playing Indicator dynamically overlays on Album Art in the queue.
     *   Hidden scrollbars in settings for a cleaner look.
-    *   Intelligent MiniPlayer that auto-hides on Detail screens (Settings, Player, About).
-    *   Optimized "Top Songs" view.
-    *   Enhanced Search bar visibility across all themes.
+    *   Intelligent MiniPlayer that auto-hides on Detail screens.
+    *   Customizable "Liked" icons (standardized across the app).
+    *   Restored dynamic 2x2 collage artwork for Listening History (Recently Played, etc.).
+-   **Under-The-Hood Optimizations**:
+    *   Implemented safety checks for `GO_BACK` navigation errors to prevent app crashes.
+    *   Overhauled list rendering (via `overrideItemLayout` on `FlashList`) and sorting operations, drastically improving load times for massive libraries.
+    *   Removed arbitrary limits on 'Recently Added' and 'Never Played' lists to accurately display all relevant music.
 
 ## 🚀 Features
 

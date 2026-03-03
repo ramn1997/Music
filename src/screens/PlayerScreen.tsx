@@ -19,6 +19,7 @@ import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { EditSongModal } from '../components/EditSongModal';
 import { LyricsModal } from '../components/LyricsModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
+import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { MarqueeText } from '../components/MarqueeText';
 import { useProgress } from 'react-native-track-player';
 import TrackPlayer from 'react-native-track-player';
@@ -402,7 +403,7 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
         <ScreenContainer variant="player">
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}>
                         <Ionicons name="chevron-down" size={30} color={theme.text} />
                     </TouchableOpacity>
                     <View style={{ alignItems: 'center' }}>
@@ -566,13 +567,19 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
                                     style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
                                     onPress={() => { playSongInPlaylist(playlist, index, playlistName); closeSheet(); }}
                                 >
-                                    <MusicImage uri={item.coverImage} id={item.id} style={styles.queueArtwork} iconSize={20} containerStyle={styles.queueArtwork} />
+                                    <View style={{ position: 'relative' }}>
+                                        <MusicImage uri={item.coverImage} id={item.id} style={styles.queueArtwork} iconSize={20} containerStyle={styles.queueArtwork} />
+                                        {index === currentIndex && isPlaying && (
+                                            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', borderRadius: 8 }]}>
+                                                <PlayingIndicator color="white" size={14} isPlaying={true} />
+                                            </View>
+                                        )}
+                                    </View>
                                     <View style={{ flex: 1, marginLeft: 10 }}>
                                         <Text style={[styles.queueTitle, { color: index === currentIndex ? theme.primary : theme.text }]} numberOfLines={1}>{item.title}</Text>
                                         <Text style={[styles.queueArtist, { color: theme.textSecondary }]} numberOfLines={1}>{item.artist}</Text>
                                     </View>
                                 </TouchableOpacity>
-                                {index === currentIndex && <PlayingIndicator color={theme.primary} size={18} isPlaying={isPlaying} />}
                                 <TouchableOpacity style={{ padding: 10 }} onPress={() => { setSelectedQueueItem({ song: item, index }); setQueueOptionsVisible(true); }}>
                                     <Ionicons name="ellipsis-vertical" size={20} color={theme.textSecondary} />
                                 </TouchableOpacity>
@@ -602,27 +609,11 @@ export const PlayerScreen = ({ route, navigation }: Props) => {
             <EditSongModal visible={editModalVisible} onClose={() => setEditModalVisible(false)} song={activeModalSong || currentSong} onSave={updateSongMetadata} />
             <LyricsModal visible={lyricsModalVisible} onClose={() => setLyricsModalVisible(false)} song={currentSong} />
 
-            <Modal animationType="slide" transparent={true} visible={playlistModalVisible} onRequestClose={() => setPlaylistModalVisible(false)}>
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: theme.background, borderColor: theme.cardBorder }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: theme.text }]}>Add to Playlist</Text>
-                            <TouchableOpacity onPress={() => setPlaylistModalVisible(false)}><Ionicons name="close" size={24} color={theme.text} /></TouchableOpacity>
-                        </View>
-                        <FlashListAny
-                            data={playlists.filter(p => !p.isSpecial && p.id !== 'liked')}
-                            keyExtractor={(item: any) => item.id}
-                            estimatedItemSize={70}
-                            renderItem={({ item }: { item: any }) => (
-                                <TouchableOpacity style={[styles.playlistItem, { borderBottomColor: theme.cardBorder }]} onPress={() => handleAddToPlaylist(item.id)}>
-                                    <View style={[styles.playlistIcon, { backgroundColor: theme.card }]}><Ionicons name="musical-notes" size={24} color={theme.primary} /></View>
-                                    <View style={{ flex: 1 }}><Text style={[styles.playlistName, { color: theme.text }]}>{item.name}</Text><Text style={[styles.songCount, { color: theme.textSecondary }]}>{item.songs.length} songs</Text></View>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </View>
-            </Modal>
+            <AddToPlaylistModal
+                visible={playlistModalVisible}
+                onClose={() => setPlaylistModalVisible(false)}
+                songs={activeModalSong ? [activeModalSong] : currentSong ? [currentSong] : []}
+            />
         </ScreenContainer >
     );
 };

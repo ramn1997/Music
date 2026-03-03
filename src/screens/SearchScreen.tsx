@@ -25,7 +25,7 @@ export const SearchScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme, themeType } = useTheme();
     const { playSongInPlaylist, currentSong } = usePlayerContext();
-    const { playlists, addToPlaylist, updateSongMetadata } = useMusicLibrary();
+    const { playlists, addToPlaylist, updateSongMetadata, incrementPlayCount } = useMusicLibrary();
 
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
@@ -108,6 +108,7 @@ export const SearchScreen = () => {
 
     const handlePlaySong = React.useCallback((song: Song) => {
         saveSearch(song);
+        incrementPlayCount(song.id); // Add it to Recently Played!
 
         let contextList = [song];
         let index = 0;
@@ -122,7 +123,7 @@ export const SearchScreen = () => {
 
         playSongInPlaylist(contextList, index, query ? "Search Results" : "Recent Search");
         navigation.navigate('Player', { trackIndex: index });
-    }, [query, playSongInPlaylist, navigation]);
+    }, [query, playSongInPlaylist, navigation, incrementPlayCount]);
 
 
     const onOpenOptions = React.useCallback((item: Song) => {

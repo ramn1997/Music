@@ -166,7 +166,7 @@ export const FavoritesScreen = () => {
                                         <Ionicons
                                             name={
                                                 item.id === 'most_played' ? "refresh" :
-                                                    item.id === 'liked' ? "heart" :
+                                                    item.id === 'liked' ? "thumbs-up" :
                                                         item.type === 'Album' ? "disc" :
                                                             item.type === 'Genre' ? "pricetags" :
                                                                 "musical-notes"
@@ -182,7 +182,7 @@ export const FavoritesScreen = () => {
                                         <Ionicons
                                             name={
                                                 item.id === 'most_played' ? "refresh" :
-                                                    item.id === 'liked' ? "heart" :
+                                                    item.id === 'liked' ? "thumbs-up" :
                                                         item.type === 'Album' ? "disc" :
                                                             item.type === 'Genre' ? "pricetags" :
                                                                 "musical-notes"
@@ -241,7 +241,7 @@ export const FavoritesScreen = () => {
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="heart-outline" size={60} color={theme.textSecondary} />
+                        <Ionicons name="thumbs-up-outline" size={60} color={theme.textSecondary} />
                         <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No favorites yet</Text>
                     </View>
                 }

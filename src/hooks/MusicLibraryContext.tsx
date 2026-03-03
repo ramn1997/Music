@@ -207,6 +207,10 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
             return s;
         }));
 
+        setRecentlyPlayed(prev => prev.map(s => s.id === songId ? { ...s, ...updates } : s));
+        setRecentlyAdded(prev => prev.map(s => s.id === songId ? { ...s, ...updates } : s));
+        setNeverPlayed(prev => prev.map(s => s.id === songId ? { ...s, ...updates } : s));
+
         // Now safe to use setPlaylists
         setPlaylists(prevPlaylists => prevPlaylists.map(p => ({
             ...p,
@@ -637,7 +641,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                         const metaB = songMetadataRef.current[b.id];
                         return (metaB?.lastPlayed || 0) - (metaA?.lastPlayed || 0);
                     })
-                    .slice(0, 50);
+                    .slice(0, 200);
 
                 recent = mergeSongData(recent, customMetadataRef.current, songMetadataRef.current);
 
@@ -648,8 +652,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
                 // 2. Calculate Recently Added
                 let added = [...songs]
-                    .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0))
-                    .slice(0, 50);
+                    .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
 
                 added = mergeSongData(added, customMetadataRef.current, songMetadataRef.current);
                 setRecentlyAdded(added);
@@ -662,8 +665,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     .filter(s => {
                         const meta = songMetadataRef.current[s.id];
                         return !meta || meta.playCount === 0;
-                    })
-                    .slice(0, 50);
+                    });
 
                 never = mergeSongData(never, customMetadataRef.current, songMetadataRef.current);
                 setNeverPlayed(never);

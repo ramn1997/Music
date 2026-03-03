@@ -49,7 +49,7 @@ export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListIte
     const isList = layoutMode === 'list';
 
     return (
-        <View style={{ flex: isList ? 1 : (isGrid3 ? 1 / 3 : 1 / 2) }}>
+        <View style={{ flex: isList ? 1 : (isGrid3 ? 1 / 3 : 1 / 2), paddingHorizontal: isList ? 0 : 8, marginBottom: isList ? 0 : 16 }}>
             {isList ? (
                 <TouchableOpacity style={styles.listItem} onPress={onPress}>
                     <View style={styles.row}>
@@ -73,7 +73,7 @@ export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListIte
                 </TouchableOpacity>
             ) : (
                 <TouchableOpacity
-                    style={[isGrid3 ? styles.gridItem3 : styles.gridItem2, { width: '100%', maxWidth: '100%' }]}
+                    style={{ width: '100%' }}
                     onPress={onPress}
                     activeOpacity={0.7}
                 >
