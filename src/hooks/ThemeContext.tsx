@@ -23,14 +23,14 @@ interface Theme {
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
 
     purple: {
-        background: '#090412', // Almost black with a hint of purple
-        primary: '#a855f7', // Muted violet
-        secondary: '#6b21a8', // Dark purple
-        text: '#faf5ff', // Very light purple text
-        textSecondary: '#a78bfa', // Soft purple-slate contrast
-        card: '#12091d', // Dark purple-black card
+        background: '#090412',
+        primary: '#a855f7',
+        secondary: '#6b21a8',
+        text: '#faf5ff',
+        textSecondary: '#a78bfa',
+        card: '#12091d',
         cardBorder: '#241235',
-        gradient: ['#090412', '#12091d'],
+        gradient: ['#1e0b36', '#090412'], // More visible purple gradient
         menuBackground: '#12091d',
         textOnPrimary: '#000000'
     },
@@ -42,7 +42,7 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#94a3b8',
         card: 'rgba(30, 41, 59, 0.5)',
         cardBorder: 'rgba(56, 189, 248, 0.2)',
-        gradient: ['#0f172a', '#020617'],
+        gradient: ['#1e293b', '#020617'], // More visible blue/navy gradient
         menuBackground: '#1E293B',
         textOnPrimary: '#000000'
     },
