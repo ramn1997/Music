@@ -15,6 +15,8 @@ export type RootStackParamList = {
     Playlists: undefined;
     PlaylistsMain: undefined;
     Favorites: undefined;
+    Library: undefined;
+    LibraryMain: undefined;
     About: undefined;
 };
 

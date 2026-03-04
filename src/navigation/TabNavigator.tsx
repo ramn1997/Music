@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeNavigator } from './HomeNavigator';
 import { FavoritesScreen } from '../screens/FavoritesScreen';
 import { PlaylistsNavigator } from './PlaylistsNavigator';
-import { SearchNavigator } from './SearchNavigator';
+import { LibraryScreen } from '../screens/LibraryScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
@@ -29,9 +29,9 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
 
     const iconName = () => {
         if (route.name === 'HomeTab') return isFocused ? 'home' : 'home-outline';
-        if (route.name === 'Search') return isFocused ? 'search' : 'search-outline';
+        if (route.name === 'Library') return isFocused ? 'library' : 'library-outline';
         if (route.name === 'Favorites') return isFocused ? 'thumbs-up' : 'thumbs-up-outline';
-        if (route.name === 'Playlists') return isFocused ? 'library' : 'library-outline';
+        if (route.name === 'Playlists') return isFocused ? 'musical-notes' : 'musical-notes-outline';
         return 'musical-notes';
     };
 
@@ -166,9 +166,9 @@ const PlaylistsTabScreen = () => (
     </View>
 );
 
-const SearchTabScreen = () => (
+const LibraryTabScreen = () => (
     <View style={{ flex: 1 }}>
-        <SearchNavigator />
+        <LibraryScreen />
     </View>
 );
 
@@ -189,9 +189,9 @@ export const TabNavigator = () => {
                 options={{ tabBarLabel: 'Home' }}
             />
             <Tab.Screen
-                name="Search"
-                component={SearchTabScreen}
-                options={{ tabBarLabel: 'Search' }}
+                name="Library"
+                component={LibraryTabScreen}
+                options={{ tabBarLabel: 'Library' }}
             />
             <Tab.Screen
                 name="Favorites"
