@@ -78,8 +78,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#a1a1aa',
         card: 'rgba(255, 255, 255, 0.04)', // Very slightly transparent
         cardBorder: 'rgba(255, 255, 255, 0.08)',
-        gradient: ['#1DB954', '#0d3d1e', '#050505', '#050505'], // Spotify Green -> Dark Forest -> Deep Shadow -> Black
-        gradientLocations: [0, 0.05, 0.4, 1], // Concentrated green glow in top-left corner
+        gradient: ['#d4ed31', '#6a7a18', '#050505', '#050505'], // Yellowish Lime -> Dark Olive -> Black
+        gradientLocations: [0, 0.05, 0.4, 1], // Concentrated yellowish glow in top-left corner
         gradientStart: { x: 0, y: 0 },
         gradientEnd: { x: 1, y: 1 },
         menuBackground: '#0a0a0c',
