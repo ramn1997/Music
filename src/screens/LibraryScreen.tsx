@@ -10,8 +10,9 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { SongsScreen } from './SongsScreen';
 import { AlbumsScreen } from './AlbumsScreen';
 import { ArtistsScreen } from './ArtistsScreen';
+import { GenresScreen } from './GenresScreen';
 
-const TABS = ['Songs', 'Albums', 'Artists'];
+const TABS = ['Songs', 'Albums', 'Artists', 'Genres'];
 
 const TopTabItem = ({ tab, isActive, onPress, appTheme }: any) => {
     const progress = useSharedValue(isActive ? 1 : 0);
@@ -84,6 +85,11 @@ export const LibraryScreen = () => {
                 {mountedTabs.current.has('Artists') && (
                     <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Artists' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Artists' ? 1 : 0 }]}>
                         <ArtistsScreen isEmbedded={true} />
+                    </View>
+                )}
+                {mountedTabs.current.has('Genres') && (
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Genres' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Genres' ? 1 : 0 }]}>
+                        <GenresScreen isEmbedded={true} />
                     </View>
                 )}
             </View>

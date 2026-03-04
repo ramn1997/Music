@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
 import { useLocalMusic } from '../hooks/useLocalMusic';
+import { useMusicLibrary } from '../hooks/MusicLibraryContext';
 import { MusicImage } from '../components/MusicImage';
 import { GlassCard } from '../components/GlassCard';
 import { useNavigation } from '@react-navigation/native';
@@ -33,9 +34,9 @@ const CardDesign = () => (
     </>
 );
 
-export const GenresScreen = () => {
+export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
-    const { songs, loading, refreshMetadata } = useLocalMusic();
+    const { songs, loading, refreshMetadata } = useMusicLibrary();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
 
@@ -154,37 +155,39 @@ export const GenresScreen = () => {
         );
     }, [theme, navigation, layoutMode]);
 
-    return (
-        <ScreenContainer variant="default">
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Genres</Text>
-                </View>
+    const content = (
+        <>
+            {!isEmbedded && (
+                <View style={styles.header}>
+                    <View style={styles.headerLeft}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color={theme.text} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>Genres</Text>
+                    </View>
 
-                <View style={styles.headerRight}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            const { metadataService } = require('../services/MetadataService');
-                            metadataService.clearCache();
-                            refreshMetadata();
-                        }}
-                        style={[styles.layoutButton, { marginRight: 10 }]}
-                    >
-                        <Ionicons name="refresh" size={22} color={theme.primary} />
-                    </TouchableOpacity>
+                    <View style={styles.headerRight}>
+                        <TouchableOpacity
+                            onPress={() => {
+                                const { metadataService } = require('../services/MetadataService');
+                                metadataService.clearCache();
+                                refreshMetadata();
+                            }}
+                            style={[styles.layoutButton, { marginRight: 10 }]}
+                        >
+                            <Ionicons name="refresh" size={22} color={theme.primary} />
+                        </TouchableOpacity>
 
-                    <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                        <Ionicons
-                            name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                            size={24}
-                            color={theme.primary}
-                        />
-                    </TouchableOpacity>
+                        <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
+                            <Ionicons
+                                name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
+                                size={24}
+                                color={theme.primary}
+                            />
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
+            )}
 
             <FlatList
                 key={layoutMode}
@@ -195,13 +198,21 @@ export const GenresScreen = () => {
                 renderItem={renderItem}
                 numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
                 columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[styles.listContent, isEmbedded && { paddingTop: 0 }]}
                 ListEmptyComponent={
                     <View style={styles.center}>
                         <Text style={{ color: theme.textSecondary }}>No genres found.</Text>
                     </View>
                 }
             />
+        </>
+    );
+
+    if (isEmbedded) return content;
+
+    return (
+        <ScreenContainer variant="default">
+            {content}
         </ScreenContainer>
     );
 };
