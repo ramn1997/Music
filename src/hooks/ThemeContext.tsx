@@ -68,15 +68,15 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textOnPrimary: '#000000'
     },
     cyber: {
-        background: '#050505', // Very dark for contrast
+        background: '#050505',
         primary: '#d4ed31', // Lime green/yellow based on user image
-        secondary: '#a3b822', // Darker lime interaction color
+        secondary: '#a3b822',
         text: '#ffffff',
         textSecondary: '#a1a1aa',
-        card: '#121215', // Sleek dark card background
-        cardBorder: '#222225',
-        gradient: ['#050505', '#0a0a0c'], // Subtle metallic dark gradient
-        menuBackground: '#121215',
+        card: 'rgba(255, 255, 255, 0.03)', // Transparent card to let the gradient show
+        cardBorder: 'rgba(255, 255, 255, 0.08)',
+        gradient: ['#591d57', '#17112b', '#050505'], // Pink/purple glow bleeding into dark background
+        menuBackground: '#0a0a0c',
         textOnPrimary: '#000000'
     },
     green: {
