@@ -72,14 +72,14 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
     },
     cyber: {
         background: '#050505',
-        primary: '#d4ed31', // Lime green/yellow based on user image
-        secondary: '#a3b822',
+        primary: '#1DB954', // Spotify Green
+        secondary: '#1ed760', // Lighter green for hover/active states
         text: '#ffffff',
         textSecondary: '#a1a1aa',
         card: 'rgba(255, 255, 255, 0.04)', // Very slightly transparent
         cardBorder: 'rgba(255, 255, 255, 0.08)',
-        gradient: ['#b346c2', '#6b2d82', '#1a102e', '#050505'], // Hot pink center -> Purple aura -> Deep shadow -> Black
-        gradientLocations: [0, 0.05, 0.35, 1], // Very concentrated glow in top-left corner
+        gradient: ['#1DB954', '#0d3d1e', '#050505', '#050505'], // Spotify Green -> Dark Forest -> Deep Shadow -> Black
+        gradientLocations: [0, 0.05, 0.4, 1], // Concentrated green glow in top-left corner
         gradientStart: { x: 0, y: 0 },
         gradientEnd: { x: 1, y: 1 },
         menuBackground: '#0a0a0c',
