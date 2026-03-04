@@ -1,5 +1,6 @@
-import React, { useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Keyboard } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
     withSpring,
@@ -17,6 +18,13 @@ import { useMusicLibrary, Song } from '../hooks/MusicLibraryContext';
 import { usePlayerContext } from '../hooks/PlayerContext';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+import { FlashList } from '@shopify/flash-list';
+import { SongItem } from '../components/SongItem';
+import { SongOptionsMenu } from '../components/SongOptionsMenu';
+import { EditSongModal } from '../components/EditSongModal';
+import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
+
+const FlashListAny = FlashList as any;
 
 const FAVORITES = [
     { id: 'most_played', name: 'Most Played', type: 'Smart Playlist', params: { id: 'most_played', name: 'Most Played', type: 'most_played' } },
@@ -331,9 +339,110 @@ export const HomeScreen = () => {
         recentlyPlayed,
         recentlyAdded,
         neverPlayed,
-        artistMetadata
+        artistMetadata,
+        incrementPlayCount,
+        updateSongMetadata
     } = useMusicLibrary();
     const { playSongInPlaylist, currentSong, isPlaying } = usePlayerContext();
+
+    // Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [deferredQuery, setDeferredQuery] = useState('');
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [recentSearches, setRecentSearches] = useState<Song[]>([]);
+
+    // Modal States
+    const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
+    const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+
+    const searchInputRef = useRef<TextInput>(null);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        loadRecentSearches();
+    }, []);
+
+    const loadRecentSearches = async () => {
+        try {
+            const saved = await AsyncStorage.getItem('recentSearches');
+            if (saved) setRecentSearches(JSON.parse(saved));
+        } catch (e) {
+            console.error('Failed to load recent searches');
+        }
+    };
+
+    const saveSearch = async (song: Song) => {
+        try {
+            const updated = [song, ...recentSearches.filter(s => s.id !== song.id)].slice(0, 10);
+            setRecentSearches(updated);
+            await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+        } catch (e) {
+            console.error('Failed to save search');
+        }
+    };
+
+    const removeRecentSearch = async (songId: string) => {
+        try {
+            const updated = recentSearches.filter(s => s.id !== songId);
+            setRecentSearches(updated);
+            await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+        } catch (e) {
+            console.error('Failed to remove recent search');
+        }
+    };
+
+    const clearRecentSearches = async () => {
+        try {
+            setRecentSearches([]);
+            await AsyncStorage.removeItem('recentSearches');
+        } catch (e) {
+            console.error('Failed to clear searches');
+        }
+    };
+
+    const filteredSongs = useMemo(() => {
+        const trimmed = deferredQuery.trim().toLowerCase();
+        if (!trimmed) return [];
+
+        return songs.filter(s => {
+            const title = (s.title ?? '').toLowerCase();
+            const artist = (s.artist ?? '').toLowerCase();
+            const album = (s.album ?? '').toLowerCase();
+            return title.includes(trimmed) || artist.includes(trimmed) || album.includes(trimmed);
+        });
+    }, [songs, deferredQuery]);
+
+    const handlePlaySong = React.useCallback((song: Song) => {
+        saveSearch(song);
+        incrementPlayCount(song.id);
+
+        let playList = [song];
+        let playIndex = 0;
+
+        if (deferredQuery.trim()) {
+            const index = filteredSongs.findIndex(s => s.id === song.id);
+            if (index !== -1) {
+                playList = filteredSongs;
+                playIndex = index;
+            }
+        }
+
+        playSongInPlaylist(playList, playIndex, deferredQuery ? "Search Results" : "Recent Search");
+        navigation.navigate('Player', { trackIndex: playIndex });
+        Keyboard.dismiss();
+        setIsSearchFocused(false);
+    }, [filteredSongs, playSongInPlaylist, navigation, incrementPlayCount, deferredQuery, recentSearches]);
+
+    const onOpenOptions = React.useCallback((item: Song) => {
+        setSelectedSong(item);
+        setOptionsModalVisible(true);
+    }, []);
 
     const listeningHistoryPlaylists = useMemo(() => {
         return [
@@ -407,6 +516,13 @@ export const HomeScreen = () => {
         return [];
     }, [topArtists, songs]);
 
+    const handleClearSearch = () => {
+        setSearchQuery('');
+        setDeferredQuery('');
+        setIsSearchFocused(false);
+        Keyboard.dismiss();
+    };
+
     const renderHeader = () => {
         return (
             <View>
@@ -420,16 +536,24 @@ export const HomeScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity
-                    style={[styles.searchBar, { backgroundColor: (themeType === 'glass' || themeType === 'water' || themeType === 'forest' || themeType === 'fire') ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]}
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate('Search')}
-                >
+                <View style={[styles.searchBar, { backgroundColor: (themeType === 'glass' || themeType === 'water' || themeType === 'forest' || themeType === 'fire') ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]}>
                     <Ionicons name="search" size={20} color={appTheme.textSecondary} />
-                    <Text style={[styles.searchInputPlaceholder, { color: appTheme.textSecondary }]}>
-                        Search artists, songs, or albums
-                    </Text>
-                </TouchableOpacity>
+                    <TextInput
+                        ref={searchInputRef}
+                        style={[styles.searchInput, { color: appTheme.text }]}
+                        placeholder="Search artists, songs, or albums"
+                        placeholderTextColor={appTheme.textSecondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        onFocus={() => setIsSearchFocused(true)}
+                        autoCorrect={false}
+                    />
+                    {(searchQuery.length > 0 || isSearchFocused) && (
+                        <TouchableOpacity onPress={handleClearSearch}>
+                            <Ionicons name="close-circle" size={20} color={appTheme.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
         );
     };
@@ -447,6 +571,72 @@ export const HomeScreen = () => {
             );
         }
 
+        // Show search results if query exists
+        if (searchQuery.trim().length > 0) {
+            return (
+                <FlashListAny
+                    data={filteredSongs}
+                    keyExtractor={(item: Song) => item.id}
+                    renderItem={({ item, index }: { item: Song, index: number }) => (
+                        <SongItem
+                            item={item}
+                            index={index}
+                            isCurrent={currentSong?.id === item.id}
+                            theme={appTheme}
+                            onPress={handlePlaySong}
+                            onOpenOptions={onOpenOptions}
+                        />
+                    )}
+                    estimatedItemSize={70}
+                    ListEmptyComponent={
+                        <View style={styles.center}>
+                            <Ionicons name="search-outline" size={48} color={appTheme.textSecondary} style={{ marginTop: 60, opacity: 0.3 }} />
+                            <Text style={{ color: appTheme.textSecondary, marginTop: 10 }}>No results for "{searchQuery}"</Text>
+                        </View>
+                    }
+                    contentContainerStyle={{ paddingBottom: 150 }}
+                />
+            );
+        }
+
+        // Show recent searches if bar is focused but empty
+        if (isSearchFocused && recentSearches.length > 0) {
+            return (
+                <FlashListAny
+                    data={recentSearches}
+                    keyExtractor={(item: Song) => `recent-${item.id}`}
+                    renderItem={({ item, index }: { item: Song, index: number }) => (
+                        <View style={styles.recentItemContainer}>
+                            <View style={{ flex: 1 }}>
+                                <SongItem
+                                    item={item}
+                                    index={index}
+                                    isCurrent={false}
+                                    theme={appTheme}
+                                    onPress={handlePlaySong}
+                                    onOpenOptions={onOpenOptions}
+                                />
+                            </View>
+                            <TouchableOpacity onPress={() => removeRecentSearch(item.id)} style={styles.removeRecentBtn}>
+                                <Ionicons name="close" size={20} color={appTheme.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    ListHeaderComponent={
+                        <View style={styles.recentHeader}>
+                            <Text style={[styles.recentTitle, { color: appTheme.text }]}>Recent Searches</Text>
+                            <TouchableOpacity onPress={clearRecentSearches}>
+                                <Text style={[styles.clearText, { color: appTheme.primary }]}>Clear All</Text>
+                            </TouchableOpacity>
+                        </View>
+                    }
+                    estimatedItemSize={70}
+                    contentContainerStyle={{ paddingBottom: 150 }}
+                />
+            );
+        }
+
+        // Default overview
         return (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 150 }}>
                 <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
@@ -541,6 +731,33 @@ export const HomeScreen = () => {
         <ScreenContainer variant="default">
             {renderHeader()}
             {renderOverviewContent()}
+
+            <SongOptionsMenu
+                visible={optionsModalVisible}
+                onClose={() => setOptionsModalVisible(false)}
+                song={selectedSong}
+                onRequestPlaylistAdd={() => {
+                    setOptionsModalVisible(false);
+                    setTimeout(() => setPlaylistModalVisible(true), 100);
+                }}
+                onEditDetails={() => {
+                    setOptionsModalVisible(false);
+                    setTimeout(() => setEditModalVisible(true), 100);
+                }}
+            />
+
+            <EditSongModal
+                visible={editModalVisible}
+                onClose={() => setEditModalVisible(false)}
+                song={selectedSong}
+                onSave={updateSongMetadata}
+            />
+
+            <AddToPlaylistModal
+                visible={playlistModalVisible}
+                onClose={() => setPlaylistModalVisible(false)}
+                songs={selectedSong ? [selectedSong] : []}
+            />
         </ScreenContainer>
     );
 };
@@ -584,10 +801,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
     },
-    searchInputPlaceholder: {
+    searchInput: {
+        flex: 1,
         marginLeft: 12,
         fontSize: 15,
-        opacity: 0.8,
+        paddingVertical: 0,
+        height: '100%',
     },
     sectionHeader: {
         paddingHorizontal: 20,
@@ -740,4 +959,33 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         opacity: 0.7,
     },
+    center: {
+        flex: 1,
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    recentHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 15,
+        marginTop: 10,
+    },
+    recentTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    clearText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    recentItemContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingRight: 10,
+    },
+    removeRecentBtn: {
+        padding: 10,
+    }
 });

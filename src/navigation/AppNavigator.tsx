@@ -5,7 +5,6 @@ import { PlayerScreen } from '../screens/PlayerScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { EqualizerScreen } from '../screens/EqualizerScreen';
 import { AboutScreen } from '../screens/AboutScreen';
-import { SearchNavigator } from './SearchNavigator';
 import { RootStackParamList } from '../types/navigation';
 import { useTheme } from '../hooks/ThemeContext';
 
@@ -42,7 +41,6 @@ export const AppNavigator = () => {
             >
                 <Stack.Screen name="Home" component={TabNavigator} />
                 <Stack.Screen name="Settings" component={SettingsScreen} />
-                <Stack.Screen name="Search" component={SearchNavigator} />
                 <Stack.Screen
                     name="Player"
                     component={PlayerScreen}
