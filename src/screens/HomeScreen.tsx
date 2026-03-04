@@ -517,10 +517,22 @@ export const HomeScreen = () => {
                         <Image source={require('../../assets/discicon.png')} style={styles.headerLogo} />
                         <Text style={[styles.appNameTitle, { color: appTheme.text }]}>Music</Text>
                     </View>
-                    <TouchableOpacity onPress={() => navigation.navigate('Settings' as any)} style={styles.searchButton}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Settings' as any)} style={styles.settingsButton}>
                         <Ionicons name="settings" size={24} color={appTheme.text} />
                     </TouchableOpacity>
                 </View>
+
+                {/* Search Trigger Bar */}
+                <TouchableOpacity
+                    style={[styles.searchBar, { backgroundColor: (themeType === 'glass' || themeType === 'water' || themeType === 'forest' || themeType === 'fire') ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate('Search')}
+                >
+                    <Ionicons name="search" size={20} color={appTheme.textSecondary} />
+                    <Text style={[styles.searchInputPlaceholder, { color: appTheme.textSecondary }]}>
+                        Search artists, songs, or albums
+                    </Text>
+                </TouchableOpacity>
 
                 {/* Custom Tabs */}
                 <View style={styles.tabsContainer}>
@@ -746,11 +758,25 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         letterSpacing: -0.5,
     },
-    searchButton: {
+    settingsButton: {
         width: 44,
         height: 44,
         justifyContent: 'center',
         alignItems: 'flex-end',
+    },
+    searchBar: {
+        flexDirection: 'row',
+        height: 50,
+        borderRadius: 25,
+        marginHorizontal: 20,
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    searchInputPlaceholder: {
+        marginLeft: 12,
+        fontSize: 15,
+        opacity: 0.8,
     },
     tabsContainer: {
         flexDirection: 'row',
