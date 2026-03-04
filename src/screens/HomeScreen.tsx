@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions, StatusBar, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -402,6 +402,8 @@ export const HomeScreen = () => {
     } = useMusicLibrary();
     const { playSongInPlaylist, currentSong, isPlaying } = usePlayerContext();
     const [activeTab, setActiveTab] = useState('Home');
+    const mountedTabs = useRef(new Set<string>(['Home']));
+    mountedTabs.current.add(activeTab);
 
     // Handle tab reset when home button is pressed or screen is focused
     useEffect(() => {
@@ -694,17 +696,28 @@ export const HomeScreen = () => {
     return (
         <ScreenContainer variant="default">
             {renderHeader()}
-            <Animated.View
-                key={activeTab}
-                entering={FadeIn.duration(300)}
-                exiting={FadeOutDown.duration(150)}
-                style={{ flex: 1 }}
-            >
-                {activeTab === 'Home' && renderOverviewContent()}
-                {activeTab === 'Songs' && <SongsScreen isEmbedded={true} />}
-                {activeTab === 'Albums' && <AlbumsScreen isEmbedded={true} />}
-                {activeTab === 'Artists' && <ArtistsScreen isEmbedded={true} />}
-            </Animated.View>
+            <View style={{ flex: 1 }}>
+                {mountedTabs.current.has('Home') && (
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Home' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Home' ? 1 : 0 }]}>
+                        {renderOverviewContent()}
+                    </View>
+                )}
+                {mountedTabs.current.has('Songs') && (
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Songs' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Songs' ? 1 : 0 }]}>
+                        <SongsScreen isEmbedded={true} />
+                    </View>
+                )}
+                {mountedTabs.current.has('Albums') && (
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Albums' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Albums' ? 1 : 0 }]}>
+                        <AlbumsScreen isEmbedded={true} />
+                    </View>
+                )}
+                {mountedTabs.current.has('Artists') && (
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Artists' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Artists' ? 1 : 0 }]}>
+                        <ArtistsScreen isEmbedded={true} />
+                    </View>
+                )}
+            </View>
         </ScreenContainer>
     );
 };

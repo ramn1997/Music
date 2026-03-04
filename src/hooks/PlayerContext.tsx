@@ -1058,10 +1058,17 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         playNext: nextTrack,
         playPrevious: prevTrack,
         setQueue: async (songs: Song[], index?: number) => {
+            const idx = index || 0;
+            const activeTrack = await TrackPlayer.getActiveTrack();
+            if (songs.length > idx && activeTrack && String(activeTrack.id) === String(songs[idx].id)) {
+                await TrackPlayer.play();
+                setIsPlaying(true);
+                return;
+            }
+
             await TrackPlayer.reset();
             await TrackPlayer.add(songs.map(songToTrack));
             setPlaylist(songs);
-            const idx = index || 0;
             if (songs.length > idx) {
                 setCurrentIndex(idx);
                 setCurrentTrack(songs[idx]);
@@ -1073,6 +1080,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             }
         },
         playSongInPlaylist: async (songs: Song[], index: number, name?: string) => {
+            const activeTrack = await TrackPlayer.getActiveTrack();
+            if (songs.length > index && activeTrack && String(activeTrack.id) === String(songs[index].id)) {
+                await TrackPlayer.play();
+                setIsPlaying(true);
+                return;
+            }
+
             await TrackPlayer.reset();
             await TrackPlayer.add(songs.map(songToTrack));
             setPlaylist(songs);

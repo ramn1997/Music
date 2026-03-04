@@ -76,13 +76,10 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             );
         }
 
+        const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
         const sorted = [...result].sort((a, b) => {
-            const titleA = (a.title || '').toLowerCase();
-            const titleB = (b.title || '').toLowerCase();
-            let comparison = 0;
-            if (titleA < titleB) comparison = -1;
-            else if (titleA > titleB) comparison = 1;
-            return sortOrder === 'asc' ? comparison : -comparison;
+            const cmp = collator.compare(a.title || '', b.title || '');
+            return sortOrder === 'asc' ? cmp : -cmp;
         });
 
         filteredSongsRef.current = sorted;
@@ -137,6 +134,13 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     ), [themeType, handlePlaySong, onOpenOptions, currentSong?.id, isSelectionMode, selectedSongIds]);
 
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
+    const extraData = React.useMemo(() => ({
+        currentSongId: currentSong?.id,
+        isSelectionMode,
+        selectedSongIds,
+        themeType
+    }), [currentSong?.id, isSelectionMode, selectedSongIds, themeType]);
 
     const content = (
         <>
@@ -239,11 +243,14 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         data={filteredSongs}
                         keyExtractor={(item: any) => item.id}
                         renderItem={renderSong}
-                        extraData={{ currentSongId: currentSong?.id, isSelectionMode, selectedSongIds, themeType: themeType }}
+                        extraData={extraData}
                         estimatedItemSize={70}
                         overrideItemLayout={(layout, item) => {
                             layout.size = 70;
                         }}
+                        initialScrollIndex={0}
+                        initialNumToRender={20}
+                        maxToRenderPerBatch={10}
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}
                         drawDistance={250} // Reduced from 500 for memory efficiency

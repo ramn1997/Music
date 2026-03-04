@@ -745,6 +745,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         // Manually trigger stats calculation to update Recently Played in background
         if (calculationTimeoutRef.current) clearTimeout(calculationTimeoutRef.current);
         calculationTimeoutRef.current = setTimeout(() => {
+            // Update recently played
             let recent = songs
                 .filter(s => {
                     const meta = songMetadataRef.current[s.id];
@@ -759,6 +760,26 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
             recent = mergeSongData(recent, customMetadataRef.current, songMetadataRef.current);
             setRecentlyPlayed(recent);
+
+            // Make sure to also dispatch top artists update
+            const artistMap = new Map<string, { name: string, totalPlays: number, songCount: number, coverImage?: string }>();
+            songs.forEach(song => {
+                if (!song) return;
+                const meta = songMetadataRef.current[song.id];
+                const playCount = meta?.playCount || 0;
+                const artistName = song.artist || 'Unknown Artist';
+                const data = artistMap.get(artistName) || { name: artistName, totalPlays: 0, songCount: 0 };
+                data.totalPlays += playCount;
+                data.songCount += 1;
+                if (!data.coverImage && song.coverImage) data.coverImage = song.coverImage;
+                artistMap.set(artistName, data);
+            });
+
+            const top = Array.from(artistMap.values())
+                .map(a => ({ ...a, score: (a.totalPlays * 4) + a.songCount }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 10);
+            setTopArtists(top);
         }, 3000);
 
         try {
@@ -831,7 +852,10 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
     const refreshMetadata = async () => {
         try {
-            // Only scan for newly added tracks, don't wipe existing cache or force full deep scan.
+            // First, revert any incompletely loaded track to 'pending' to force them to be checked again.
+            await databaseService.markIncompleteSongsAsPending();
+
+            // Next, scan for newly added tracks, don't wipe existing cache or force full deep scan.
             await loadSongsFromFolders(savedFolders, false, true, false);
         } catch (e) {
             console.error("Failed to scan for new music", e);

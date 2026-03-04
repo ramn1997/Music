@@ -1,0 +1,11 @@
+{
+    "name": "MusicScanner",
+    "platforms": [
+        "android"
+    ],
+    "android": {
+        "modules": [
+            "expo.modules.musicscanner.MusicScannerModule"
+        ]
+    }
+}

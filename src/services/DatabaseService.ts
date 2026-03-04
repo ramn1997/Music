@@ -70,6 +70,14 @@ class DatabaseService {
                     );
                 `);
 
+                console.log('[DatabaseService] Handling schema migrations...');
+                try {
+                    // This handles backwards compatibility for users who created DB before 'genre' column existed
+                    await this.db.execAsync(`ALTER TABLE songs ADD COLUMN genre TEXT;`);
+                } catch (e) {
+                    // Ignore column already exists error
+                }
+
                 console.log('[DatabaseService] Creating indices...');
                 await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_scanStatus ON songs(scanStatus);');
                 await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_dateAdded ON songs(dateAdded);');
@@ -233,6 +241,25 @@ class DatabaseService {
             total: result?.total || 0,
             processed: result?.processed || 0
         };
+    }
+
+    async markIncompleteSongsAsPending() {
+        const db = await this.getDb();
+        const release = await this.acquireLock();
+        try {
+            await db.runAsync(`
+                UPDATE songs 
+                SET scanStatus = 'pending' 
+                WHERE album = 'Unknown Album' 
+                   OR artist = 'Unknown Artist' 
+                   OR genre IS NULL 
+                   OR genre = 'undefined'
+                   OR title = 'Unknown Title'
+            `);
+            console.log('[DatabaseService] Marked incomplete metadata songs as pending for resync.');
+        } finally {
+            release();
+        }
     }
 
     async getAllSongs() {

@@ -114,11 +114,18 @@ export const SearchScreen = () => {
         let index = 0;
 
         if (query) {
-            contextList = filteredSongsRef.current;
+            const list = filteredSongsRef.current;
+            index = list.findIndex(s => s.id === song.id);
+            if (index === -1) index = 0;
+
+            // Optimization: Provide a snappy, limited queue for search context
+            const maxQueue = 50;
+            let start = Math.max(0, index - (maxQueue / 2));
+            let end = Math.min(list.length, start + maxQueue);
+            start = Math.max(0, end - maxQueue);
+
+            contextList = list.slice(start, end);
             index = contextList.findIndex(s => s.id === song.id);
-            if (index === -1) {
-                index = 0;
-            }
         }
 
         playSongInPlaylist(contextList, index, query ? "Search Results" : "Recent Search");

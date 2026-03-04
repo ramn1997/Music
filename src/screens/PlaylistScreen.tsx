@@ -698,6 +698,41 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     containerStyle={{ width: '100%', height: '100%' }}
                                                     iconSize={80}
                                                 />
+                                            ) : (['recently_played', 'most_played', 'recently_added'].includes(type || '') && displaySongs.length >= 4) ? (
+                                                <View style={StyleSheet.absoluteFill}>
+                                                    <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#222' }]}>
+                                                        {displaySongs.slice(0, 4).map((s, idx) => (
+                                                            <View key={`bgsong-${s.id}-${idx}`} style={{ width: '50%', height: '50%' }}>
+                                                                <MusicImage
+                                                                    uri={s.coverImage}
+                                                                    id={s.id}
+                                                                    style={{ width: '100%', height: '100%' }}
+                                                                    assetUri={s.uri}
+                                                                />
+                                                            </View>
+                                                        ))}
+                                                        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+                                                    </View>
+
+                                                    <View style={{ position: 'absolute', top: -10, right: -10, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                                    <View style={{ position: 'absolute', bottom: -5, left: -5, width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+                                                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'absolute' }}>
+                                                        <Ionicons
+                                                            name={
+                                                                (id === 'most_played' || type === 'most_played') ? 'refresh' :
+                                                                    type === 'recently_added' ? 'add-circle' :
+                                                                        'time'
+                                                            }
+                                                            size={50}
+                                                            color="white"
+                                                            style={{
+                                                                textShadowColor: 'rgba(0,0,0,0.5)',
+                                                                textShadowOffset: { width: 0, height: 2 },
+                                                                textShadowRadius: 6
+                                                            }}
+                                                        />
+                                                    </View>
+                                                </View>
                                             ) : (
                                                 <View style={StyleSheet.absoluteFill}>
                                                     <LinearGradient

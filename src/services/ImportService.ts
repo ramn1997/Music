@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import MusicInfo from 'expo-music-info-2';
 import * as FileSystem from 'expo-file-system/legacy';
+import { scanAudioFilesAsync } from 'music-scanner';
 
 import { databaseService } from './DatabaseService';
 
@@ -28,6 +29,7 @@ export interface Song {
     artist: string;
     album?: string;
     year?: string;
+    genre?: string;
     albumId?: string;
     coverImage?: string;
     dateAdded: number;
@@ -136,7 +138,14 @@ class ImportService {
             // In Android 11+, localUri (file://) bypasses Scoped Storage for read 
             // operations better than content:// if the library allows it. 
             // expo-music-info-2 uses MediaMetadataRetriever which natively handles both.
-            const meta = await getMusicInfoAsync(uri, options);
+
+            // Fix missing protocols for raw POSIX paths 
+            let target = uri;
+            if (target && target.startsWith('/') && !target.startsWith('file://')) {
+                target = `file://${target}`;
+            }
+
+            const meta = await getMusicInfoAsync(target, options);
             if (meta) return meta;
             return null;
         } catch (e) {
@@ -150,29 +159,42 @@ class ImportService {
         return getRootFolder(uri);
     }
 
-    private createSongFromAsset(asset: MediaLibrary.Asset): Song {
-        const { title: parsedTitle, artist: parsedArtist, album: parsedAlbum } = this.parseFilename(asset.filename);
-        const anyAsset = asset as any;
+    private createSongFromAsset(asset: any): Song {
+        // Native module provides MS, MediaLibrary provides seconds.
+        const durationMs = asset.duration > 1000000 || typeof asset.duration === 'number' && asset.albumId ? asset.duration : asset.duration * 1000;
 
-        const title = anyAsset.title || parsedTitle;
-        const artist = anyAsset.artist || parsedArtist;
-        const album = anyAsset.album || parsedAlbum;
-        const albumId = anyAsset.albumId || anyAsset.album_id;
+        const { title: parsedTitle, artist: parsedArtist, album: parsedAlbum } = this.parseFilename(asset.filename);
+
+        let title = asset.title || parsedTitle;
+        let artist = asset.artist || parsedArtist;
+        let album = asset.album || parsedAlbum;
+
+        // Handle "Unknown" defaults from native mapping
+        if (title === asset.filename) title = parsedTitle;
+        if (artist === 'Unknown Artist') artist = parsedArtist;
+        if (album === 'Unknown Album') album = parsedAlbum;
+
+        const albumId = asset.albumId || asset.album_id;
+
+        let systemArtUri: string | undefined = undefined;
+        if (Platform.OS === 'android' && albumId && !['null', 'undefined', '-1', '0'].includes(String(albumId))) {
+            systemArtUri = `content://media/external/audio/albumart/${albumId}`;
+        }
 
         return {
             id: asset.id,
             filename: asset.filename,
             uri: asset.uri,
-            duration: asset.duration * 1000,
-            title,
-            artist,
-            album,
-            year: anyAsset.year,
+            duration: durationMs,
+            title: title,
+            artist: artist,
+            album: album,
+            year: asset.year,
             albumId,
-            coverImage: undefined,
-            scanStatus: 'pending',
+            coverImage: systemArtUri,
+            scanStatus: 'enhanced', // Pre-enhanced by native module since it pulls ID3 text!
             folder: this.getRootFolder(asset.uri) || undefined,
-            dateAdded: anyAsset.creationTime || Date.now(),
+            dateAdded: asset.dateAdded || asset.creationTime || Date.now(),
             playCount: 0,
             lastPlayed: 0,
             playHistory: []
@@ -200,149 +222,163 @@ class ImportService {
             songsLoaded: totalSongsInDb
         });
 
-        // Loop until all done
-        while (pendingCount > 0 && !this.cancelToken.cancelled) {
-            // 1. Fetch a larger batch to work on
-            const batch = await databaseService.getUnenhancedSongs(1000) as Song[];
+        try {
+            // Loop until all done
+            while (pendingCount > 0 && !this.cancelToken.cancelled) {
+                // 1. Fetch a larger batch to work on
+                const batch = await databaseService.getUnenhancedSongs(1000) as Song[];
 
-            if (batch.length === 0) break;
-            pendingCount = batch.length;
+                if (batch.length === 0) break;
+                pendingCount = batch.length;
 
-            const processedSongsForDb: Song[] = [];
+                const processedSongsForDb: Song[] = [];
 
-            // 2. Process batch with limited concurrency (Sequence of chunks)
-            // We process larger native chunks to maximize bridge throughput for 2000+ songs
-            const CHUNK_SIZE = 100;
-            for (let i = 0; i < batch.length; i += CHUNK_SIZE) {
-                if (this.cancelToken.cancelled) break;
+                // 2. Process batch with limited concurrency
+                // Reduced chunk size back to 25 to avoid locking up Android bridge 
+                // and crashing from OOM exceptions.
+                const CHUNK_SIZE = 25;
+                for (let i = 0; i < batch.length; i += CHUNK_SIZE) {
+                    if (this.cancelToken.cancelled) break;
 
-                const chunk = batch.slice(i, i + CHUNK_SIZE);
+                    const chunk = batch.slice(i, i + CHUNK_SIZE);
 
-                const chunkPromises = chunk.map(async (song) => {
-                    try {
-                        let libTitle = song.title;
-                        let libArtist = song.artist;
-                        let libAlbum = song.album;
-                        let libYear = song.year;
-                        const albumId = song.albumId;
-                        const targetUri = song.uri;
+                    const chunkPromises = chunk.map(async (song) => {
+                        try {
+                            let libTitle = song.title;
+                            let libArtist = song.artist;
+                            let libAlbum = song.album;
+                            let libYear = song.year;
+                            const albumId = song.albumId;
+                            const targetUri = song.uri;
 
-                        let systemArtUri = null;
-                        if (Platform.OS === 'android' && albumId && !['null', 'undefined', '-1', '0'].includes(String(albumId))) {
-                            systemArtUri = `content://media/external/audio/albumart/${albumId}`;
-                        }
-
-                        const missingText = !libTitle || !libArtist || libArtist === 'Unknown Artist' || !libAlbum || libAlbum === 'Unknown Album';
-                        const missingArt = !systemArtUri;
-
-                        const needsFileExtraction = forceDeepScan || missingText;
-                        let extractedArtUri = null;
-
-                        if (needsFileExtraction) {
-                            try {
-                                const extractionPromise = this.safeGetMusicInfo(targetUri, {
-                                    title: true,
-                                    artist: true,
-                                    album: true,
-                                    year: true,
-                                    picture: missingArt
-                                }, song.id, song.uri);
-
-                                const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
-
-                                const meta = await Promise.race([extractionPromise, timeoutPromise]);
-
-                                if (meta) {
-                                    if (meta.title) libTitle = meta.title;
-                                    if (meta.artist) libArtist = meta.artist;
-                                    if (meta.album) libAlbum = meta.album;
-                                    if (meta.year) libYear = meta.year;
-
-                                    if (missingArt && meta.picture?.pictureData) {
-                                        let base64Data = meta.picture.pictureData;
-                                        if (base64Data.startsWith('data:')) {
-                                            base64Data = base64Data.split(',')[1];
-                                        }
-                                        base64Data = base64Data.replace(/[\r\n]+/g, '');
-
-                                        const cacheDir = FileSystem.cacheDirectory;
-                                        const artPath = `${cacheDir}art_${song.id}_v3.jpg`;
-
-                                        await FileSystem.writeAsStringAsync(artPath, base64Data, {
-                                            encoding: 'base64'
-                                        });
-                                        extractedArtUri = artPath;
-                                    }
-                                }
-                            } catch (e) {
-                                console.warn(`[ImportService] Extraction failed for ${song.filename}`);
+                            let systemArtUri = null;
+                            if (Platform.OS === 'android' && albumId && !['null', 'undefined', '-1', '0'].includes(String(albumId))) {
+                                systemArtUri = `content://media/external/audio/albumart/${albumId}`;
                             }
+
+                            // A song is missing text if it is literally missing these properties
+                            const missingText = !libTitle || !libArtist || libArtist === 'Unknown Artist' || !libAlbum || libAlbum === 'Unknown Album';
+                            const missingArt = !systemArtUri;
+
+                            // OPTIMIZATION: ONLY extract physically from file if text is missing.
+                            // The native scanner already pulled the OS indexed tags. Over-scanning freezes the app.
+                            const needsFileExtraction = missingText;
+                            let extractedArtUri = null;
+                            let libGenre = song.genre;
+
+                            if (needsFileExtraction) {
+                                try {
+                                    const extractionPromise = this.safeGetMusicInfo(targetUri, {
+                                        title: true,
+                                        artist: true,
+                                        album: true,
+                                        year: true,
+                                        genre: true,
+                                        picture: forceDeepScan // SKIP massive image parsing to maintain fast sync!
+                                    }, song.id, song.uri);
+
+                                    // Timeout to speed up processing for unreadable files
+                                    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
+
+                                    const meta = await Promise.race([extractionPromise, timeoutPromise]);
+
+                                    if (meta) {
+                                        if (meta.title) libTitle = meta.title;
+                                        if (meta.artist) libArtist = meta.artist;
+                                        if (meta.album) libAlbum = meta.album;
+                                        if (meta.year) libYear = meta.year;
+                                        if (meta.genre) libGenre = meta.genre;
+
+                                        if (missingArt && meta.picture?.pictureData) {
+                                            let base64Data = meta.picture.pictureData;
+                                            if (base64Data.startsWith('data:')) {
+                                                base64Data = base64Data.split(',')[1];
+                                            }
+                                            base64Data = base64Data.replace(/[\r\n]+/g, '');
+
+                                            const cacheDir = FileSystem.cacheDirectory;
+                                            const artPath = `${cacheDir}art_${song.id}_v3.jpg`;
+
+                                            await FileSystem.writeAsStringAsync(artPath, base64Data, {
+                                                encoding: 'base64'
+                                            });
+                                            extractedArtUri = artPath;
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn(`[ImportService] Extraction failed for ${song.filename}`);
+                                }
+                            }
+
+                            // Prepare updated song object
+                            processedSongsForDb.push({
+                                ...song,
+                                title: libTitle?.trim() || song.title,
+                                artist: libArtist?.trim() || song.artist,
+                                album: libAlbum?.trim() || song.album,
+                                year: libYear || song.year,
+                                genre: libGenre || song.genre,
+                                coverImage: extractedArtUri || systemArtUri || song.coverImage || null,
+                                scanStatus: 'enhanced'
+                            });
+
+                        } catch (e) {
+                            console.warn(`[ImportService] Enhancement processed failed ${song.id}`, e);
+                            // Mark enhanced so we don't retry forever
+                            processedSongsForDb.push({ ...song, scanStatus: 'enhanced' });
                         }
+                    });
 
-                        // Prepare updated song object
-                        processedSongsForDb.push({
-                            ...song,
-                            title: libTitle?.trim() || song.title,
-                            artist: libArtist?.trim() || song.artist,
-                            album: libAlbum?.trim() || song.album,
-                            year: libYear || song.year,
-                            coverImage: extractedArtUri || systemArtUri || null,
-                            scanStatus: 'enhanced'
-                        });
+                    await Promise.all(chunkPromises);
 
-                    } catch (e) {
-                        console.warn(`[ImportService] Enhancement processed failed ${song.id}`, e);
-                        // Mark enhanced so we don't retry forever
-                        processedSongsForDb.push({ ...song, scanStatus: 'enhanced' });
+                    // Yield to the JS thread to prevent UI freezing (Give react time to process scroll events)
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+
+                // 3. Batch DB Update (Huge performance win)
+                if (processedSongsForDb.length > 0) {
+                    await databaseService.upsertSongs(processedSongsForDb);
+                    processed += processedSongsForDb.length;
+
+                    // Notify UI of the newly enhanced batch
+                    if (callbacks.onSongsUpdate) {
+                        callbacks.onSongsUpdate(processedSongsForDb);
                     }
+                }
+
+                // 4. Update Progress
+                callbacks.onProgress({
+                    phase: 'enhancing',
+                    current: processed,
+                    total: totalSongsToEnhance,
+                    message: `Enhancing... ${processed}/${totalSongsToEnhance}`,
+                    songsLoaded: totalSongsInDb
                 });
 
-                await Promise.all(chunkPromises);
-
-                // Yield to the JS thread to prevent UI freezing (reduced for speed)
-                await new Promise(resolve => setTimeout(resolve, 10));
+                // Yield longer between batches (reduced for speed)
+                await new Promise(resolve => setTimeout(resolve, 5));
             }
 
-            // 3. Batch DB Update (Huge performance win)
-            if (processedSongsForDb.length > 0) {
-                await databaseService.upsertSongs(processedSongsForDb);
-                processed += processedSongsForDb.length;
+            this.isEnhancing = false;
 
-                // Notify UI of the newly enhanced batch
-                if (callbacks.onSongsUpdate) {
-                    callbacks.onSongsUpdate(processedSongsForDb);
-                }
-            }
-
-            // 4. Update Progress
+            // Final completion notification
+            const finalStats = await databaseService.getSyncStatus();
             callbacks.onProgress({
-                phase: 'enhancing',
-                current: processed,
-                total: totalSongsToEnhance,
-                message: `Enhancing... ${processed}/${totalSongsToEnhance}`,
-                songsLoaded: totalSongsInDb
+                phase: 'complete',
+                current: finalStats.processed,
+                total: finalStats.total,
+                message: 'Enhancement complete',
+                songsLoaded: finalStats.total
             });
 
-            // Yield longer between batches (reduced for speed)
-            await new Promise(resolve => setTimeout(resolve, 50));
+            console.log('[ImportService] Enhancement complete!');
+        } catch (e) {
+            console.error('[ImportService] Fatal error during enhancement loop:', e);
+            this.isEnhancing = false;
         }
-
-        this.isEnhancing = false;
-
-        // Final completion notification
-        const finalStats = await databaseService.getSyncStatus();
-        callbacks.onProgress({
-            phase: 'complete',
-            current: finalStats.processed,
-            total: finalStats.total,
-            message: 'Enhancement complete',
-            songsLoaded: finalStats.total
-        });
-
-        console.log('[ImportService] Enhancement complete!');
     }
 
-    async getAlbumArt(songId: string, assetUri: string, forceExtract = false): Promise<string | null> {
+    public async getAlbumArt(songId: string, assetUri: string, forceExtract = false): Promise<string | null> {
         if (!songId) return null;
 
         // Check memory cache
@@ -383,28 +419,41 @@ class ImportService {
                         }
 
                         // 3. Deep extraction from Metadata (Original Art)
-                        // If we are here, either system art failed or we want to force deep extraction
-                        const meta = await this.safeGetMusicInfo(targetUri, { picture: true }, songId, assetUri);
+                        // If we are here, either system art failed or we went via forceExtract
+                        // Safe extraction for Android 10+ using MediaLibrary
+                        if (forceExtract) {
+                            const info = await MediaLibrary.getAssetInfoAsync(songId) as any;
 
-                        if (meta?.picture?.pictureData) {
-                            let base64Data = meta.picture.pictureData;
-                            if (base64Data.startsWith('data:')) {
-                                base64Data = base64Data.split(',')[1];
+                            // Check if MediaLibrary resolved a secondary local art cache
+                            if (info && info.localUri && info.localUri.includes('albumthumbs')) {
+                                albumArtCache.set(songId, info.localUri);
+                                databaseService.updateSong(songId, { coverImage: info.localUri });
+                                return info.localUri;
                             }
-                            base64Data = base64Data.replace(/[\r\n]+/g, '');
 
-                            const cacheDir = FileSystem.cacheDirectory;
-                            const artPath = `${cacheDir}art_${songId}_v4.jpg`;
+                            // Fallback to explicit ID3 extraction if accessible
+                            const meta = await this.safeGetMusicInfo(targetUri, { picture: true }, songId, assetUri);
 
-                            await FileSystem.writeAsStringAsync(artPath, base64Data, {
-                                encoding: 'base64'
-                            });
+                            if (meta?.picture?.pictureData) {
+                                let base64Data = meta.picture.pictureData;
+                                if (base64Data.startsWith('data:')) {
+                                    base64Data = base64Data.split(',')[1];
+                                }
+                                base64Data = base64Data.replace(/[\r\n]+/g, '');
 
-                            albumArtCache.set(songId, artPath);
-                            // Store in DB for instant access next time
-                            databaseService.updateSong(songId, { coverImage: artPath });
+                                const cacheDir = FileSystem.cacheDirectory;
+                                const artPath = `${cacheDir}art_${songId}_v4.jpg`;
 
-                            return artPath;
+                                await FileSystem.writeAsStringAsync(artPath, base64Data, {
+                                    encoding: 'base64'
+                                });
+
+                                albumArtCache.set(songId, artPath);
+                                // Store in DB for instant access next time
+                                databaseService.updateSong(songId, { coverImage: artPath });
+
+                                return artPath;
+                            }
                         }
 
                         // Final fallback to system art if extraction failed
@@ -454,23 +503,28 @@ class ImportService {
             });
 
             let allAssets: any[] = [];
-            let hasNextPage = true;
-            let after: any;
-            let pageCount = 0;
+            try {
+                // Instantly fetch full local library recursively with DB metadata natively without freezing UI
+                allAssets = await scanAudioFilesAsync();
+            } catch (scanErr) {
+                console.warn("[ImportService] Native scanner failed, falling back to MediaLibrary", scanErr);
+                let hasNextPage = true;
+                let after: any;
+                let pageCount = 0;
 
-            // 2000 initial limit per safety request, but loop for full library
-            while (hasNextPage && !this.cancelToken.cancelled && pageCount < 50) {
-                const media = await MediaLibrary.getAssetsAsync({
-                    mediaType: MediaLibrary.MediaType.audio,
-                    first: 2000,
-                    after,
-                    sortBy: [MediaLibrary.SortBy.modificationTime]
-                });
+                while (hasNextPage && !this.cancelToken.cancelled && pageCount < 50) {
+                    const media = await MediaLibrary.getAssetsAsync({
+                        mediaType: MediaLibrary.MediaType.audio,
+                        first: 2000,
+                        after,
+                        sortBy: [MediaLibrary.SortBy.modificationTime]
+                    });
 
-                allAssets.push(...media.assets);
-                hasNextPage = media.hasNextPage;
-                after = media.endCursor;
-                pageCount++;
+                    allAssets.push(...media.assets);
+                    hasNextPage = media.hasNextPage;
+                    after = media.endCursor;
+                    pageCount++;
+                }
             }
 
             if (this.cancelToken.cancelled) {

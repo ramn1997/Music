@@ -100,32 +100,24 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
                 const loadArt = async () => {
                     if (artLoadingInProgress.has(id)) return;
 
-                    // Double check cache before starting work
-                    if (lazyArtCache.has(id)) {
-                        const cached = lazyArtCache.get(id);
-                        if (cached && isMounted) setLazyUri(cached);
-                        return;
-                    }
-
                     artLoadingInProgress.add(id);
 
                     try {
-                        // Try fast lookup first (System Art / DB Cache)
-                        // This uses importService which may check DB or System.
                         let coverImage = await importService.getAlbumArt(id, assetUri || '');
 
-                        // Only do deep extraction if needed and for larger images (Player screen)
-                        // AND only if we didn't find anything yet
                         if (!coverImage && iconSize > 100) {
                             coverImage = await importService.getAlbumArt(id, assetUri || '', true);
                         }
 
-                        lazyArtCache.set(id, coverImage);
-                        if (coverImage && isMounted) {
+                        if (!isMounted) return;
+
+                        if (coverImage) {
+                            lazyArtCache.set(id, coverImage);
                             setLazyUri(coverImage);
+                        } else {
+                            lazyArtCache.set(id, null);
                         }
                     } catch (e) {
-                        // warning suppressed for cleaner logs in production
                         lazyArtCache.set(id, null);
                     } finally {
                         artLoadingInProgress.delete(id);
@@ -143,28 +135,33 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
     }, [uri, id, assetUri, lazyUri, iconSize, priority]);
 
     const handleImageError = async () => {
-        // If we were using the prop 'uri' and it failed, try to force extract
-        if (uri && !ignorePropUri && id) {
-            console.log(`[MusicImage] URI failed for ${id}, attempting extraction...`);
+        console.log(`[MusicImage] Image Error! ID: ${id}, URL: ${effectiveUri}`);
+        // If we tried any URI (either from props or lazySystem) and it failed, 
+        // fallback to deep file extraction (reading ID3 tags).
+        if (!ignorePropUri && id) {
             setIgnorePropUri(true);
 
             try {
-                // Force extraction since the provided URI (system) failed
+                // Force extraction since the provided system URI failed
+                console.log(`[MusicImage] Forcing deep extraction for ID: ${id}...`);
                 const extractedUri = await importService.getAlbumArt(id, assetUri || '', true);
                 if (extractedUri) {
+                    console.log(`[MusicImage] Deep extraction SUCCESS for ID: ${id}`);
                     setLazyUri(extractedUri);
-                    // Error will be cleared on re-render if effectiveUri is valid
+                    // Error will be cleared on re-render
                     setError(false);
                 } else {
+                    console.log(`[MusicImage] Deep extraction FAILED (null) for ID: ${id}`);
                     setError(true);
+                    lazyArtCache.set(id, null);
                 }
             } catch (e) {
-                console.warn(`[MusicImage] Extraction failed for ${id}:`, e);
+                console.warn(`[MusicImage] Deep extraction THROW for ID: ${id}`, e);
                 setError(true);
             }
         } else {
-            // We were already using lazyUri or simply failed
-            // Silence noise for missing artwork as it's common
+            console.log(`[MusicImage] Giving up on ID: ${id} (already tried)`);
+            // We already tried extraction or don't have an ID
             setError(true);
             if (id) {
                 lazyArtCache.set(id, null);
@@ -245,7 +242,7 @@ export const MusicImage = React.memo(({ uri, style, iconSize = 40, containerStyl
                     contentFit={resizeMode === 'cover' ? 'cover' : 'contain'}
                     transition={100}
                     cachePolicy="memory-disk"
-                    priority="high"
+                    priority={priority ? "high" : "low"}
                     {...(typeof blurRadius === 'number' && !isNaN(blurRadius) ? { blurRadius } : {})}
                     onError={() => {
                         setError(true);
