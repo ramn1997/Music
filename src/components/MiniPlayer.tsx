@@ -100,7 +100,7 @@ export const MiniPlayer = () => {
                     />
                     <BlurView
                         intensity={Platform.OS === 'ios' ? 30 : 60}
-                        tint={['black', 'green', 'purple', 'blue'].includes(themeType) ? 'dark' : 'light'}
+                        tint={['black', 'green', 'water', 'fire', 'cyber'].includes(themeType) ? 'dark' : 'light'}
                         style={StyleSheet.absoluteFill}
                     />
                     {/* Subtle Gradient Overlay for depth */}

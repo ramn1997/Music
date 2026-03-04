@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'blue' | 'glass' | 'black' | 'cyber' | 'fire' | 'green' | 'light' | 'system';
+export type ThemeType = 'water' | 'glass' | 'black' | 'cyber' | 'fire' | 'green' | 'light' | 'system';
 
 interface Theme {
     background: string;
@@ -22,16 +22,19 @@ interface Theme {
 
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
 
-    blue: {
+    water: {
         background: '#040924',
-        primary: '#38bdf8',
-        secondary: '#818cf8',
+        primary: '#00b4d8', // Deep sky blue
+        secondary: '#0077b6',
         text: '#ffffff',
         textSecondary: '#94a3b8',
         card: 'rgba(30, 41, 59, 0.5)',
-        cardBorder: 'rgba(56, 189, 248, 0.2)',
-        gradient: ['#1e3a8a', '#040924'], // Brighter Navy/Blue
-        menuBackground: '#1e3a8a',
+        cardBorder: 'rgba(0, 180, 216, 0.2)',
+        gradient: ['#0077b6', '#023e8a', '#050505', '#050505'], // Ocean Blue -> Deep Blue -> Black
+        gradientLocations: [0, 0.08, 0.3, 1], // Top centered glow like fire
+        gradientStart: { x: 0.5, y: 0 },
+        gradientEnd: { x: 0.5, y: 1 },
+        menuBackground: '#023e8a',
         textOnPrimary: '#000000'
     },
     glass: {
