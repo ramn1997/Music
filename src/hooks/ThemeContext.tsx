@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'purple' | 'blue' | 'glass' | 'black' | 'cyber' | 'fire' | 'green' | 'light' | 'system';
+export type ThemeType = 'blue' | 'glass' | 'black' | 'cyber' | 'fire' | 'green' | 'light' | 'system';
 
 interface Theme {
     background: string;
@@ -22,18 +22,6 @@ interface Theme {
 
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
 
-    purple: {
-        background: '#0d071a',
-        primary: '#a855f7',
-        secondary: '#6b21a8',
-        text: '#faf5ff',
-        textSecondary: '#a78bfa',
-        card: '#1a0e2d',
-        cardBorder: '#351d52',
-        gradient: ['#2e1065', '#0d071a'], // Brighter Purple
-        menuBackground: '#1a0e2d',
-        textOnPrimary: '#000000'
-    },
     blue: {
         background: '#040924',
         primary: '#38bdf8',
