@@ -174,7 +174,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const { songs, loading } = useLocalMusic();
     const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked, favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite, artistMetadata, updateArtistMetadata, recentlyPlayed, recentlyAdded, neverPlayed } = useMusicLibrary();
     const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
-    const { theme } = useTheme();
+    const { theme, themeType } = useTheme();
 
     const artistCustomMeta = type === 'artist' ? artistMetadata[name] : null;
 
@@ -582,7 +582,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
     return (
         <ScreenContainer variant="default">
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, backgroundColor: themeType === 'cyber' ? 'transparent' : theme.background }}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />

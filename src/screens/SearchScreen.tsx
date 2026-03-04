@@ -158,77 +158,79 @@ export const SearchScreen = () => {
 
     return (
         <ScreenContainer variant="default">
-            <View style={styles.header}>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Search</Text>
-            </View>
+            <View style={{ flex: 1, backgroundColor: themeType === 'cyber' ? 'transparent' : theme.background }}>
+                <View style={styles.header}>
+                    <Text style={[styles.headerTitle, { color: theme.text }]}>Search</Text>
+                </View>
 
-            <View style={[styles.searchBar, { backgroundColor: theme.card }]}>
-                <Ionicons name="search" size={18} color={theme.textSecondary} />
-                <TextInput
-                    style={[styles.input, { color: theme.text }]}
-                    placeholder="Artists, Songs, or Albums"
-                    placeholderTextColor={theme.textSecondary}
-                    value={query}
-                    onChangeText={setQuery}
-                />
-                {query.length > 0 && (
-                    <TouchableOpacity onPress={() => setQuery('')}>
-                        <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
-                    </TouchableOpacity>
-                )}
-            </View>
+                <View style={[styles.searchBar, { backgroundColor: theme.card }]}>
+                    <Ionicons name="search" size={18} color={theme.textSecondary} />
+                    <TextInput
+                        style={[styles.input, { color: theme.text }]}
+                        placeholder="Artists, Songs, or Albums"
+                        placeholderTextColor={theme.textSecondary}
+                        value={query}
+                        onChangeText={setQuery}
+                    />
+                    {query.length > 0 && (
+                        <TouchableOpacity onPress={() => setQuery('')}>
+                            <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
 
-            <FlashListAny
-                data={deferredQuery ? filteredSongs : recentSearches}
-                keyExtractor={item => item.id}
-                renderItem={({ item, index }) => (
-                    deferredQuery ? (
-                        renderItem({ item, index })
-                    ) : (
-                        <View style={styles.recentItemContainer}>
-                            <View style={{ flex: 1 }}>
-                                <SongItem
-                                    item={item}
-                                    index={index}
-                                    isCurrent={false}
-                                    theme={theme}
-                                    onPress={() => handlePlaySong(item)}
-                                    onOpenOptions={onOpenOptions}
-                                />
+                <FlashListAny
+                    data={deferredQuery ? filteredSongs : recentSearches}
+                    keyExtractor={item => item.id}
+                    renderItem={({ item, index }) => (
+                        deferredQuery ? (
+                            renderItem({ item, index })
+                        ) : (
+                            <View style={styles.recentItemContainer}>
+                                <View style={{ flex: 1 }}>
+                                    <SongItem
+                                        item={item}
+                                        index={index}
+                                        isCurrent={false}
+                                        theme={theme}
+                                        onPress={() => handlePlaySong(item)}
+                                        onOpenOptions={onOpenOptions}
+                                    />
+                                </View>
+                                <TouchableOpacity onPress={() => removeRecentSearch(item.id)} style={styles.removeButton}>
+                                    <Ionicons name="close" size={20} color={theme.textSecondary} />
+                                </TouchableOpacity>
                             </View>
-                            <TouchableOpacity onPress={() => removeRecentSearch(item.id)} style={styles.removeButton}>
-                                <Ionicons name="close" size={20} color={theme.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
-                    )
-                )}
-                ListHeaderComponent={
-                    !deferredQuery && recentSearches.length > 0 ? (
-                        <View style={styles.recentHeader}>
-                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Searches</Text>
-                            <TouchableOpacity onPress={clearRecentSearches}>
-                                <Text style={[styles.clearText, { color: theme.primary }]}>Clear All</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : null
-                }
-                ListFooterComponent={<View style={{ height: 100 }} />}
-                ListEmptyComponent={
-                    !deferredQuery && recentSearches.length === 0 ? (
-                        <View style={styles.placeholderContainer}>
-                            <Ionicons name="search" size={80} color={theme.textSecondary + '40'} />
-                            <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>Search for songs, artists, or albums</Text>
-                        </View>
-                    ) : deferredQuery && filteredSongs.length === 0 ? (
-                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No results found.</Text>
-                    ) : null
-                }
-                estimatedItemSize={70}
-                initialNumToRender={20}
-                maxToRenderPerBatch={10}
-                contentContainerStyle={{ paddingBottom: 100 }}
-                extraData={[themeType, currentSong?.id]}
-            />
+                        )
+                    )}
+                    ListHeaderComponent={
+                        !deferredQuery && recentSearches.length > 0 ? (
+                            <View style={styles.recentHeader}>
+                                <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Searches</Text>
+                                <TouchableOpacity onPress={clearRecentSearches}>
+                                    <Text style={[styles.clearText, { color: theme.primary }]}>Clear All</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : null
+                    }
+                    ListFooterComponent={<View style={{ height: 100 }} />}
+                    ListEmptyComponent={
+                        !deferredQuery && recentSearches.length === 0 ? (
+                            <View style={styles.placeholderContainer}>
+                                <Ionicons name="search" size={80} color={theme.textSecondary + '40'} />
+                                <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>Search for songs, artists, or albums</Text>
+                            </View>
+                        ) : deferredQuery && filteredSongs.length === 0 ? (
+                            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No results found.</Text>
+                        ) : null
+                    }
+                    estimatedItemSize={70}
+                    initialNumToRender={20}
+                    maxToRenderPerBatch={10}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                    extraData={[themeType, currentSong?.id]}
+                />
+            </View>
 
             <SongOptionsMenu
                 visible={optionsModalVisible}
