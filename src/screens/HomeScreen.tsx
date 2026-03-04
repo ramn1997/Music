@@ -139,7 +139,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
                             {
                                 borderRadius: 14,
                                 overflow: 'hidden',
-                                backgroundColor: 'rgba(255,255,255,0.05)'
+                                backgroundColor: 'rgba(255,255,255,0.06)'
                             }
                         ]
                     ]}
@@ -698,22 +698,22 @@ export const HomeScreen = () => {
             {renderHeader()}
             <View style={{ flex: 1 }}>
                 {mountedTabs.current.has('Home') && (
-                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Home' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Home' ? 1 : 0 }]}>
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Home' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Home' ? 1 : 0 }]}>
                         {renderOverviewContent()}
                     </View>
                 )}
                 {mountedTabs.current.has('Songs') && (
-                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Songs' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Songs' ? 1 : 0 }]}>
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Songs' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Songs' ? 1 : 0 }]}>
                         <SongsScreen isEmbedded={true} />
                     </View>
                 )}
                 {mountedTabs.current.has('Albums') && (
-                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Albums' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Albums' ? 1 : 0 }]}>
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Albums' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Albums' ? 1 : 0 }]}>
                         <AlbumsScreen isEmbedded={true} />
                     </View>
                 )}
                 {mountedTabs.current.has('Artists') && (
-                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Artists' ? 'flex' : 'none', backgroundColor: appTheme.background, zIndex: activeTab === 'Artists' ? 1 : 0 }]}>
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Artists' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Artists' ? 1 : 0 }]}>
                         <ArtistsScreen isEmbedded={true} />
                     </View>
                 )}
