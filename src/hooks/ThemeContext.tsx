@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'water' | 'glass' | 'black' | 'cyber' | 'fire' | 'green' | 'light' | 'system';
+export type ThemeType = 'water' | 'glass' | 'black' | 'cyber' | 'fire' | 'forest' | 'light' | 'system';
 
 interface Theme {
     background: string;
@@ -45,7 +45,10 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#d1d5db',
         card: 'rgba(255, 255, 255, 0.12)',
         cardBorder: 'rgba(255, 255, 255, 0.25)',
-        gradient: ['#1f2937', '#0a0a0f'], // Distinct Greyish-Blue
+        gradient: ['#e2e8f0', '#1f2937', '#050505', '#050505'], // Bright Grey -> Deep Grey -> Black
+        gradientLocations: [0, 0.08, 0.3, 1], // Top centered glow like fire
+        gradientStart: { x: 0.5, y: 0 },
+        gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#1f2937',
         textOnPrimary: '#000000'
     },
@@ -76,7 +79,7 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         menuBackground: '#0a0a0c',
         textOnPrimary: '#000000'
     },
-    green: {
+    forest: {
         background: '#05120d',
         primary: '#10b981',
         secondary: '#065f46',
@@ -84,7 +87,10 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#94a3b8',
         card: '#0d1f18',
         cardBorder: '#1a3a2e',
-        gradient: ['#064e3b', '#05120d'], // Brighter Emerald/Green
+        gradient: ['#10b981', '#064e3b', '#050505', '#050505'], // Emerald -> Forest Green -> Black
+        gradientLocations: [0, 0.08, 0.3, 1], // Top centered glow like fire
+        gradientStart: { x: 0.5, y: 0 },
+        gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#0d1f18',
         textOnPrimary: '#000000'
     },
