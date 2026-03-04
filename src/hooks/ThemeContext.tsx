@@ -23,39 +23,39 @@ interface Theme {
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
 
     purple: {
-        background: '#090412',
+        background: '#0d071a',
         primary: '#a855f7',
         secondary: '#6b21a8',
         text: '#faf5ff',
         textSecondary: '#a78bfa',
-        card: '#12091d',
-        cardBorder: '#241235',
-        gradient: ['#1e0b36', '#090412'], // More visible purple gradient
-        menuBackground: '#12091d',
+        card: '#1a0e2d',
+        cardBorder: '#351d52',
+        gradient: ['#2e1065', '#0d071a'], // Brighter Purple
+        menuBackground: '#1a0e2d',
         textOnPrimary: '#000000'
     },
     blue: {
-        background: '#020617',
+        background: '#040924',
         primary: '#38bdf8',
         secondary: '#818cf8',
         text: '#ffffff',
         textSecondary: '#94a3b8',
         card: 'rgba(30, 41, 59, 0.5)',
         cardBorder: 'rgba(56, 189, 248, 0.2)',
-        gradient: ['#1e293b', '#020617'], // More visible blue/navy gradient
-        menuBackground: '#1E293B',
+        gradient: ['#1e3a8a', '#040924'], // Brighter Navy/Blue
+        menuBackground: '#1e3a8a',
         textOnPrimary: '#000000'
     },
     glass: {
-        background: '#000000',
+        background: '#0a0a0f',
         primary: '#ffffff',
         secondary: '#a1a1aa',
         text: '#ffffff',
         textSecondary: '#d1d5db',
-        card: 'rgba(255, 255, 255, 0.1)',
-        cardBorder: 'rgba(255, 255, 255, 0.2)',
-        gradient: ['#000000', '#111827'],
-        menuBackground: '#1F2937',
+        card: 'rgba(255, 255, 255, 0.12)',
+        cardBorder: 'rgba(255, 255, 255, 0.25)',
+        gradient: ['#1f2937', '#0a0a0f'], // Distinct Greyish-Blue
+        menuBackground: '#1f2937',
         textOnPrimary: '#000000'
     },
     black: {
@@ -86,15 +86,15 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textOnPrimary: '#000000'
     },
     green: {
-        background: '#040d0a', // Almost black with a hint of green
-        primary: '#10b981', // Muted emerald green
-        secondary: '#065f46', // Dark emerald
-        text: '#f0fdf4', // Very light mint text
-        textSecondary: '#64748b', // Slate-ish contrast
-        card: '#0a1a15', // Dark green-black card
-        cardBorder: '#142d25',
-        gradient: ['#040d0a', '#061a14'],
-        menuBackground: '#061a14',
+        background: '#05120d',
+        primary: '#10b981',
+        secondary: '#065f46',
+        text: '#f0fdf4',
+        textSecondary: '#94a3b8',
+        card: '#0d1f18',
+        cardBorder: '#1a3a2e',
+        gradient: ['#064e3b', '#05120d'], // Brighter Emerald/Green
+        menuBackground: '#0d1f18',
         textOnPrimary: '#000000'
     },
     fire: {

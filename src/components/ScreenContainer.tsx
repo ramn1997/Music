@@ -22,7 +22,7 @@ interface ScreenContainerProps {
 }
 
 export const ScreenContainer = ({ children, variant = 'default', style }: ScreenContainerProps) => {
-    const { theme } = useTheme();
+    const { theme, themeType } = useTheme();
     let gradientColors = theme.gradient;
     let gradientStart = theme.gradientStart || { x: 0.5, y: 0 };
     let gradientEnd = theme.gradientEnd || { x: 0.5, y: 1 };
@@ -56,6 +56,7 @@ export const ScreenContainer = ({ children, variant = 'default', style }: Screen
 
     return (
         <LinearGradient
+            key={themeType}
             colors={gradientColors as any}
             start={gradientStart}
             end={gradientEnd}
