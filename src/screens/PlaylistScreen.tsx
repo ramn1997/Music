@@ -582,7 +582,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
     return (
         <ScreenContainer variant="default">
-            <View style={{ flex: 1, backgroundColor: themeType === 'cyber' ? 'transparent' : theme.background }}>
+            <View style={{ flex: 1, backgroundColor: (themeType === 'cyber' || themeType === 'fire') ? 'transparent' : theme.background }}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />

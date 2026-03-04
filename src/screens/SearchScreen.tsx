@@ -158,7 +158,7 @@ export const SearchScreen = () => {
 
     return (
         <ScreenContainer variant="default">
-            <View style={{ flex: 1, backgroundColor: themeType === 'cyber' ? 'transparent' : theme.background }}>
+            <View style={{ flex: 1, backgroundColor: (themeType === 'cyber' || themeType === 'fire') ? 'transparent' : theme.background }}>
                 <View style={styles.header}>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Search</Text>
                 </View>

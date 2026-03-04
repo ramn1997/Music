@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'green' | 'purple' | 'blue' | 'glass' | 'black' | 'light' | 'cyber' | 'system';
+export type ThemeType = 'purple' | 'blue' | 'glass' | 'black' | 'cyber' | 'fire' | 'green' | 'light' | 'system';
 
 interface Theme {
     background: string;
@@ -95,6 +95,21 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         cardBorder: '#142d25',
         gradient: ['#040d0a', '#061a14'],
         menuBackground: '#061a14',
+        textOnPrimary: '#000000'
+    },
+    fire: {
+        background: '#050505',
+        primary: '#ff5c4d', // Coral-fire red from button
+        secondary: '#ff453a',
+        text: '#ffffff',
+        textSecondary: '#a1a1aa',
+        card: 'rgba(255, 255, 255, 0.04)',
+        cardBorder: 'rgba(255, 255, 255, 0.08)',
+        gradient: ['#ff3b30', '#8e0000', '#050505', '#050505'], // Vibrant Red -> Dark Red -> Black
+        gradientLocations: [0, 0.2, 0.45, 1], // Top centered glow
+        gradientStart: { x: 0.5, y: 0 },
+        gradientEnd: { x: 0.5, y: 1 },
+        menuBackground: '#0a0a0c',
         textOnPrimary: '#000000'
     },
     light: {
