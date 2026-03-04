@@ -72,8 +72,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
     },
     cyber: {
         background: '#050505',
-        primary: '#1DB954', // Spotify Green
-        secondary: '#1ed760', // Lighter green for hover/active states
+        primary: '#d4ed31', // Reverted to yellowish lime
+        secondary: '#a3b822',
         text: '#ffffff',
         textSecondary: '#a1a1aa',
         card: 'rgba(255, 255, 255, 0.04)', // Very slightly transparent
