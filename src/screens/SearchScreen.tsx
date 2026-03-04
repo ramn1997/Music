@@ -21,6 +21,13 @@ import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 
 export const SearchScreen = () => {
     const [query, setQuery] = useState('');
+    const [deferredQuery, setDeferredQuery] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDeferredQuery(query), 150);
+        return () => clearTimeout(timer);
+    }, [query]);
+
     const { songs, fetchMusic } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme, themeType } = useTheme();
@@ -82,7 +89,7 @@ export const SearchScreen = () => {
         fetchMusic();
     }, [fetchMusic]);
 
-    const trimmedQuery = query.trim().toLowerCase();
+    const trimmedQuery = deferredQuery.trim().toLowerCase();
     const filteredSongsRef = React.useRef<Song[]>([]);
 
     const filteredSongs = React.useMemo(() => {
@@ -128,9 +135,9 @@ export const SearchScreen = () => {
             index = contextList.findIndex(s => s.id === song.id);
         }
 
-        playSongInPlaylist(contextList, index, query ? "Search Results" : "Recent Search");
+        playSongInPlaylist(contextList, index, deferredQuery ? "Search Results" : "Recent Search");
         navigation.navigate('Player', { trackIndex: index });
-    }, [query, playSongInPlaylist, navigation, incrementPlayCount]);
+    }, [deferredQuery, playSongInPlaylist, navigation, incrementPlayCount]);
 
 
     const onOpenOptions = React.useCallback((item: Song) => {
@@ -172,10 +179,10 @@ export const SearchScreen = () => {
             </View>
 
             <FlashListAny
-                data={query ? filteredSongs : recentSearches}
+                data={deferredQuery ? filteredSongs : recentSearches}
                 keyExtractor={item => item.id}
                 renderItem={({ item, index }) => (
-                    query ? (
+                    deferredQuery ? (
                         renderItem({ item, index })
                     ) : (
                         <View style={styles.recentItemContainer}>
@@ -196,7 +203,7 @@ export const SearchScreen = () => {
                     )
                 )}
                 ListHeaderComponent={
-                    !query && recentSearches.length > 0 ? (
+                    !deferredQuery && recentSearches.length > 0 ? (
                         <View style={styles.recentHeader}>
                             <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Searches</Text>
                             <TouchableOpacity onPress={clearRecentSearches}>
@@ -207,16 +214,18 @@ export const SearchScreen = () => {
                 }
                 ListFooterComponent={<View style={{ height: 100 }} />}
                 ListEmptyComponent={
-                    !query && recentSearches.length === 0 ? (
+                    !deferredQuery && recentSearches.length === 0 ? (
                         <View style={styles.placeholderContainer}>
                             <Ionicons name="search" size={80} color={theme.textSecondary + '40'} />
                             <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>Search for songs, artists, or albums</Text>
                         </View>
-                    ) : query && filteredSongs.length === 0 ? (
+                    ) : deferredQuery && filteredSongs.length === 0 ? (
                         <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No results found.</Text>
                     ) : null
                 }
                 estimatedItemSize={70}
+                initialNumToRender={20}
+                maxToRenderPerBatch={10}
                 contentContainerStyle={{ paddingBottom: 100 }}
                 extraData={[themeType, currentSong?.id]}
             />
