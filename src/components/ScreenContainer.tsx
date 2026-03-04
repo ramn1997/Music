@@ -24,6 +24,9 @@ interface ScreenContainerProps {
 export const ScreenContainer = ({ children, variant = 'default', style }: ScreenContainerProps) => {
     const { theme } = useTheme();
     let gradientColors = theme.gradient;
+    let gradientStart = theme.gradientStart || { x: 0.5, y: 0 };
+    let gradientEnd = theme.gradientEnd || { x: 0.5, y: 1 };
+    let gradientLocations = theme.gradientLocations;
 
     // For player variant, we keep the theme gradient but can tweak it if needed
     // Removed hardcoded black to support light theme in player
@@ -54,6 +57,9 @@ export const ScreenContainer = ({ children, variant = 'default', style }: Screen
     return (
         <LinearGradient
             colors={gradientColors as any}
+            start={gradientStart}
+            end={gradientEnd}
+            locations={gradientLocations as any}
             style={[styles.container, style]}
         >
             <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
