@@ -105,8 +105,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         textSecondary: '#a1a1aa',
         card: 'rgba(255, 255, 255, 0.04)',
         cardBorder: 'rgba(255, 255, 255, 0.08)',
-        gradient: ['#ff3b30', '#8e0000', '#050505', '#050505'], // Vibrant Red -> Dark Red -> Black
-        gradientLocations: [0, 0.2, 0.45, 1], // Top centered glow
+        gradient: ['#b91c1c', '#7f1d1d', '#050505', '#050505'], // Darker Deep Red -> Maroon -> Black
+        gradientLocations: [0, 0.08, 0.3, 1], // More concentrated at the top
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#0a0a0c',
