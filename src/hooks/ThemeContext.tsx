@@ -140,8 +140,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (savedTheme) {
                 if (savedTheme === 'dark') {
                     setThemeTypeState('black');
-                } else {
+                } else if (savedTheme === 'system' || Themes[savedTheme as keyof typeof Themes]) {
                     setThemeTypeState(savedTheme as ThemeType);
+                } else {
+                    // Fallback for renamed/removed themes like 'blue' or 'purple'
+                    setThemeTypeState('black');
                 }
             }
 
@@ -167,7 +170,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (themeType === 'system') {
             return Themes.black;
         }
-        return Themes[themeType];
+        return Themes[themeType] || Themes.black; // Fallback to black if theme is missing
     };
 
     return (
