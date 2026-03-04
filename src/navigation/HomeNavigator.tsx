@@ -4,7 +4,6 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { SongsScreen } from '../screens/SongsScreen';
 import { AlbumsScreen } from '../screens/AlbumsScreen';
 import { ArtistsScreen } from '../screens/ArtistsScreen';
-import { GenresScreen } from '../screens/GenresScreen';
 import { MostPlayedScreen } from '../screens/MostPlayedScreen';
 import { RecentlyAddedScreen } from '../screens/RecentlyAddedScreen';
 import { PlaylistScreen } from '../screens/PlaylistScreen';
@@ -27,7 +26,6 @@ export const HomeNavigator = () => {
             <Stack.Screen name="Songs" component={SongsScreen} />
             <Stack.Screen name="Albums" component={AlbumsScreen} />
             <Stack.Screen name="Artists" component={ArtistsScreen} />
-            <Stack.Screen name="Genres" component={GenresScreen} />
 
             <Stack.Screen name="MostPlayed" component={MostPlayedScreen} />
             <Stack.Screen name="RecentlyAdded" component={RecentlyAddedScreen} />

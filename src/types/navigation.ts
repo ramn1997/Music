@@ -7,7 +7,6 @@ export type RootStackParamList = {
     Songs: undefined;
     Albums: undefined;
     Artists: undefined;
-    Genres: undefined;
     MostPlayed: undefined;
     RecentlyAdded: undefined;
     SearchMain: undefined;

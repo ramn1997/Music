@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, {
     useSharedValue,
@@ -10,9 +10,9 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { SongsScreen } from './SongsScreen';
 import { AlbumsScreen } from './AlbumsScreen';
 import { ArtistsScreen } from './ArtistsScreen';
-import { GenresScreen } from './GenresScreen';
+import { useFocusEffect } from '@react-navigation/native';
 
-const TABS = ['Songs', 'Albums', 'Artists', 'Genres'];
+const TABS = ['Songs', 'Albums', 'Artists'];
 
 const TopTabItem = ({ tab, isActive, onPress, appTheme }: any) => {
     const progress = useSharedValue(isActive ? 1 : 0);
@@ -51,6 +51,16 @@ export const LibraryScreen = () => {
     const { theme: appTheme } = useTheme();
     const [activeTab, setActiveTab] = useState('Songs');
     const mountedTabs = useRef(new Set<string>(['Songs']));
+
+    useFocusEffect(
+        useCallback(() => {
+            // Always set to Songs when the tab is clicked/focused
+            setActiveTab('Songs');
+            mountedTabs.current.add('Songs');
+        }, [])
+    );
+
+    // Ensure currently selected tab is always added to mounted set
     mountedTabs.current.add(activeTab);
 
     return (
@@ -85,11 +95,6 @@ export const LibraryScreen = () => {
                 {mountedTabs.current.has('Artists') && (
                     <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Artists' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Artists' ? 1 : 0 }]}>
                         <ArtistsScreen isEmbedded={true} />
-                    </View>
-                )}
-                {mountedTabs.current.has('Genres') && (
-                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Genres' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Genres' ? 1 : 0 }]}>
-                        <GenresScreen isEmbedded={true} />
                     </View>
                 )}
             </View>
