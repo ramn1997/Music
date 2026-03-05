@@ -241,6 +241,25 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    const syncArtistImages = useCallback(async (names: string[]) => {
+        if (!names || names.length === 0) return;
+        const { ArtistImageService } = require('../services/ArtistImageService');
+
+        for (const name of names) {
+            if (!name || name === 'Unknown Artist') continue;
+
+            // If already have it in state, skip network
+            if (artistMetadataRef.current[name]?.coverImage) continue;
+
+            try {
+                const url = await ArtistImageService.getArtistImage(name);
+                if (url) {
+                    updateArtistMetadata(name, { coverImage: url });
+                }
+            } catch (e) { }
+        }
+    }, [updateArtistMetadata]);
+
     // Use MetadataService to re-scan file tags
     const refreshSongMetadata = useCallback(async (songId: string) => {
         const song = songs.find(s => s.id === songId);
@@ -710,6 +729,10 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
                 setTopArtists(top);
                 AsyncStorage.setItem('cached_top_artists', JSON.stringify(top)).catch(() => { });
+
+                // Sync images for top artists to persist URLs
+                syncArtistImages(top.map(a => a.name));
+
                 console.log(`[MusicLibrary] Background stats took ${Date.now() - start}ms`);
             };
 
@@ -780,6 +803,9 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 10);
             setTopArtists(top);
+
+            // Sync images for the new top artists
+            syncArtistImages(top.map(a => a.name));
         }, 3000);
 
         try {

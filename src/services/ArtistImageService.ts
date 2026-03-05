@@ -8,9 +8,10 @@ const memoryCache = new Map<string, string | null>();
 const activeRequests = new Map<string, Promise<string | null>>();
 
 // Rate limiting
-const MAX_CONCURRENT_REQUESTS = 4;
+const MAX_CONCURRENT_REQUESTS = 8;
 let requestCount = 0;
 const requestQueue: (() => void)[] = [];
+const prefetchSet = new Set<string>();
 
 const processNext = () => {
     if (requestCount < MAX_CONCURRENT_REQUESTS && requestQueue.length > 0) {
@@ -109,6 +110,7 @@ export const ArtistImageService = {
 
     clearCache: async () => {
         memoryCache.clear();
+        prefetchSet.clear();
         try {
             const keys = await AsyncStorage.getAllKeys();
             const artistKeys = keys.filter(k => k.startsWith(CACHE_PREFIX));
@@ -118,5 +120,23 @@ export const ArtistImageService = {
         } catch (e) {
             console.error('[ArtistImageService] Failed to clear cache', e);
         }
+    },
+
+    prefetchArtists: async (artistNames: string[]) => {
+        const uniqueArtists = [...new Set(artistNames)]
+            .filter(name => name && name !== 'Unknown Artist' && !memoryCache.has(name) && !prefetchSet.has(name))
+            .slice(0, 20); // Limit prefetch batch
+
+        uniqueArtists.forEach(name => prefetchSet.add(name));
+
+        // Start prefetching in background
+        uniqueArtists.forEach(name => {
+            ArtistImageService.getArtistImage(name).catch(() => { });
+        });
+    },
+
+    getArtistImageSync: (artistName: string): string | null => {
+        if (!artistName) return null;
+        return memoryCache.get(artistName.trim()) || null;
     }
 };

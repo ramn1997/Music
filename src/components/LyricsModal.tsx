@@ -278,13 +278,13 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
         >
             <View style={styles.overlay}>
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-                <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <View style={[styles.container, { backgroundColor: theme.card }]}>
                     <View style={styles.handleBarContainer}>
-                        <View style={[styles.handleBar, { backgroundColor: theme.cardBorder }]} />
+                        <View style={[styles.handleBar, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                     </View>
 
-                    <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
                             <Ionicons name="chevron-down" size={28} color={theme.text} />
                         </TouchableOpacity>
                         <View style={styles.headerCenter}>
@@ -295,19 +295,20 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
                                 {song.artist}
                             </Text>
                         </View>
-                        <TouchableOpacity onPress={fetchLyrics} style={styles.refreshButton}>
-                            <Ionicons name="refresh" size={22} color={theme.primary} />
+                        <TouchableOpacity onPress={fetchLyrics} style={styles.headerBtn}>
+                            <Ionicons name="refresh" size={24} color={theme.primary} />
                         </TouchableOpacity>
                     </View>
 
-                    <View style={[styles.songCard, { backgroundColor: theme.card }]}>
-                        <MusicImage
-                            uri={song.coverImage}
-                            id={song.id}
-                            style={styles.art}
-                            iconSize={24}
-                            containerStyle={[styles.artContainer, { backgroundColor: theme.background }]}
-                        />
+                    <View style={styles.songCard}>
+                        <View style={styles.artWrapper}>
+                            <MusicImage
+                                uri={song.coverImage}
+                                id={song.id}
+                                style={styles.art}
+                                iconSize={30}
+                            />
+                        </View>
                         <View style={styles.songInfo}>
                             <Text style={[styles.songTitle, { color: theme.text }]} numberOfLines={1}>
                                 {song.title}
@@ -360,83 +361,92 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'flex-end',
     },
     container: {
-        height: '92%',
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
+        height: '94%',
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
         overflow: 'hidden',
     },
     handleBarContainer: {
         width: '100%',
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 12,
     },
     handleBar: {
-        width: 40,
-        height: 5,
-        borderRadius: 2.5,
+        width: 36,
+        height: 4,
+        borderRadius: 2,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
+        paddingHorizontal: 20,
+        paddingBottom: 20,
     },
-    closeButton: {
-        padding: 4,
-        width: 40,
+    headerBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerCenter: {
         flex: 1,
         alignItems: 'center',
+        paddingHorizontal: 10,
     },
     headerTitle: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: -0.3,
     },
     headerSubtitle: {
         fontSize: 12,
+        fontFamily: 'PlusJakartaSans_500Medium',
         marginTop: 2,
-    },
-    refreshButton: {
-        padding: 4,
-        width: 40,
-        alignItems: 'flex-end',
+        opacity: 0.6,
     },
     songCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        margin: 16,
-        padding: 12,
-        borderRadius: 12,
+        marginHorizontal: 20,
+        marginBottom: 20,
+        padding: 16,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 20,
+    },
+    artWrapper: {
+        width: 56,
+        height: 56,
+        borderRadius: 14,
+        overflow: 'hidden',
+        elevation: 5,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
     },
     art: {
-        width: 50,
-        height: 50,
-        borderRadius: 8,
-    },
-    artContainer: {
-        width: 50,
-        height: 50,
-        borderRadius: 8,
-        overflow: 'hidden',
+        width: '100%',
+        height: '100%',
     },
     songInfo: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: 16,
     },
     songTitle: {
-        fontSize: 15,
-        fontWeight: '600',
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     songArtist: {
         fontSize: 13,
+        fontFamily: 'PlusJakartaSans_500Medium',
         marginTop: 2,
+        opacity: 0.6,
     },
     centerContent: {
         flex: 1,
@@ -446,43 +456,50 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 16,
-        fontSize: 14,
+        fontSize: 15,
+        fontFamily: 'PlusJakartaSans_500Medium',
     },
     errorText: {
         marginTop: 16,
-        fontSize: 14,
+        fontSize: 15,
+        fontFamily: 'PlusJakartaSans_500Medium',
         textAlign: 'center',
         paddingHorizontal: 40,
+        opacity: 0.6,
     },
     lyricsScrollContent: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 30,
         paddingTop: 20,
-        paddingBottom: SCREEN_HEIGHT * 0.4, // Allow scrolling the last lines to the center
+        paddingBottom: SCREEN_HEIGHT * 0.5,
     },
     lyricLineContainer: {
-        paddingVertical: 12,
-        minHeight: 50,
+        paddingVertical: 14,
+        minHeight: 60,
         justifyContent: 'center',
+        alignItems: 'center',
     },
     activeLineContainer: {
         transform: [{ scale: 1.05 }],
     },
     lyricText: {
-        fontSize: 18,
-        fontWeight: '500',
+        fontSize: 20,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
         textAlign: 'center',
-        opacity: 0.6,
+        opacity: 0.4,
+        letterSpacing: -0.5,
     },
     activeLyricText: {
-        fontSize: 22,
-        fontWeight: '700',
+        fontSize: 26,
+        fontFamily: 'PlusJakartaSans_700Bold',
         opacity: 1,
     },
     plainLyricText: {
-        fontSize: 18,
-        lineHeight: 30,
+        fontSize: 19,
+        lineHeight: 32,
+        fontFamily: 'PlusJakartaSans_500Medium',
         textAlign: 'center',
-        paddingVertical: 4,
+        paddingVertical: 6,
+        opacity: 0.9,
     },
 });
 

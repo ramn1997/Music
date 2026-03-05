@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+
+const FlashListAny = FlashList as any;
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
@@ -139,20 +142,22 @@ export const YearsScreen = () => {
                 </TouchableOpacity>
             </View>
 
-            <FlatList
-                key={layoutMode}
-                data={years}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
-                columnWrapperStyle={layoutMode !== 'list' ? styles.columnWrapper : undefined}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <View style={styles.center}>
-                        <Text style={{ color: theme.textSecondary }}>No years found.</Text>
-                    </View>
-                }
-            />
+            <View style={{ flex: 1 }}>
+                <FlashListAny
+                    key={layoutMode}
+                    data={years}
+                    keyExtractor={(item: any) => item.id}
+                    renderItem={renderItem}
+                    numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
+                    estimatedItemSize={layoutMode === 'list' ? 70 : 150}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        <View style={styles.center}>
+                            <Text style={{ color: theme.textSecondary }}>No years found.</Text>
+                        </View>
+                    }
+                />
+            </View>
         </ScreenContainer>
     );
 };

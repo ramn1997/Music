@@ -1,5 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+
+const FlashListAny = FlashList as any;
 import { MusicImage } from '../components/MusicImage';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
@@ -29,7 +32,7 @@ export const MostPlayedScreen = () => {
         navigation.navigate('Player', { trackIndex: index });
     };
 
-    const renderSong = ({ item, index }: { item: Song; index: number }) => (
+    const renderSong = React.useCallback(({ item, index }: { item: Song; index: number }) => (
         <TouchableOpacity
             style={styles.songItem}
             onPress={() => handlePlaySong(index)}
@@ -57,7 +60,7 @@ export const MostPlayedScreen = () => {
                 <Text style={[styles.playCountText, { color: theme.textSecondary }]}>{item.playCount || 0}</Text>
             </View>
         </TouchableOpacity>
-    );
+    ), [theme, handlePlaySong]);
 
     const topSong = sortedSongs.length > 0 ? sortedSongs[0] : null;
 
@@ -95,17 +98,20 @@ export const MostPlayedScreen = () => {
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Most Played</Text>
                 </View>
 
-                <FlatList
-                    data={sortedSongs}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderSong}
-                    contentContainerStyle={styles.listContent}
-                    ListEmptyComponent={
-                        <View style={styles.center}>
-                            <Text style={{ color: theme.textSecondary }}>No most played songs yet.</Text>
-                        </View>
-                    }
-                />
+                <View style={{ flex: 1 }}>
+                    <FlashListAny
+                        data={sortedSongs}
+                        keyExtractor={(item: Song) => item.id}
+                        renderItem={renderSong}
+                        estimatedItemSize={70}
+                        contentContainerStyle={styles.listContent}
+                        ListEmptyComponent={
+                            <View style={styles.center}>
+                                <Text style={{ color: theme.textSecondary }}>No most played songs yet.</Text>
+                            </View>
+                        }
+                    />
+                </View>
             </View>
         </View>
     );

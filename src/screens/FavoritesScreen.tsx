@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+
+const FlashListAny = FlashList as any;
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -110,7 +113,7 @@ export const FavoritesScreen = () => {
 
 
 
-    const renderItem = ({ item, index }: { item: any, index: number }) => {
+    const renderItem = React.useCallback(({ item, index }: { item: any, index: number }) => {
         const isArtist = item.type === 'Artist';
         const isGrid3 = layoutMode === 'grid3';
         const isList = layoutMode === 'list';
@@ -222,7 +225,7 @@ export const FavoritesScreen = () => {
                 </TouchableOpacity>
             </View>
         );
-    };
+    }, [theme, navigation, layoutMode]);
 
     return (
         <ScreenContainer variant="default">
@@ -230,22 +233,24 @@ export const FavoritesScreen = () => {
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Favorites</Text>
             </View>
 
-            <FlatList
-                key={layoutMode}
-                data={allFavorites}
-                renderItem={renderItem}
-                numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                columnWrapperStyle={layoutMode !== 'list' ? { gap: 10 } : undefined}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="thumbs-up-outline" size={60} color={theme.textSecondary} />
-                        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No favorites yet</Text>
-                    </View>
-                }
-            />
+            <View style={{ flex: 1 }}>
+                <FlashListAny
+                    key={layoutMode}
+                    data={allFavorites}
+                    renderItem={renderItem}
+                    numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
+                    estimatedItemSize={layoutMode === 'list' ? 60 : 150}
+                    keyExtractor={(item: any) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="thumbs-up-outline" size={60} color={theme.textSecondary} />
+                            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No favorites yet</Text>
+                        </View>
+                    }
+                />
+            </View>
         </ScreenContainer>
     );
 };
@@ -255,7 +260,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingVertical: 10,
+        paddingTop: 20,
         marginBottom: 10
     },
     backButton: {
@@ -263,8 +268,9 @@ const styles = StyleSheet.create({
         marginRight: 15
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 32,
+        fontWeight: '900',
+        letterSpacing: -0.5,
         flex: 1
     },
     listContent: {

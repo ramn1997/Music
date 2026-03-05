@@ -7,7 +7,9 @@ import { ArtistImageService } from '../services/ArtistImageService';
  * @returns The remote image URI if found, null otherwise
  */
 export const useArtistImage = (artistName: string) => {
-    const [imageUri, setImageUri] = useState<string | null>(null);
+    const [imageUri, setImageUri] = useState<string | null>(() =>
+        ArtistImageService.getArtistImageSync(artistName)
+    );
 
     useEffect(() => {
         let mounted = true;

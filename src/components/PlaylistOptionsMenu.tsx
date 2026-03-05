@@ -34,12 +34,18 @@ export const PlaylistOptionsMenu: React.FC<PlaylistOptionsMenuProps> = ({
                 activeOpacity={1}
                 onPress={onClose}
             >
-                <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
-                    <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+                <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                    <View style={styles.handleContainer}>
+                        <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
+                    </View>
+
+                    <View style={styles.header}>
                         <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
                             {playlistName}
                         </Text>
                     </View>
+
+                    <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
 
                     {onToggleFavorite && (
                         <TouchableOpacity
@@ -84,40 +90,53 @@ export const PlaylistOptionsMenu: React.FC<PlaylistOptionsMenuProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'flex-end',
     },
     container: {
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: 20,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
         paddingBottom: 40,
-        elevation: 5,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 5,
+        backgroundColor: '#000',
+        borderWidth: 1,
+        borderBottomWidth: 0,
+    },
+    handleContainer: {
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    handle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
     },
     header: {
-        paddingBottom: 15,
-        marginBottom: 10,
-        borderBottomWidth: 1,
-        alignItems: 'center'
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
     },
     title: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: -0.5,
+    },
+    divider: {
+        height: 1,
+        width: '100%',
+        marginBottom: 10,
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 24,
     },
     icon: {
-        marginRight: 20,
+        marginRight: 16,
+        width: 24,
     },
     menuText: {
-        fontSize: 16,
-        fontWeight: '500',
+        fontSize: 15,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
     }
 });

@@ -11,10 +11,13 @@ export const AboutScreen = () => {
     const navigation = useNavigation();
 
     const features = [
-        { icon: 'musical-notes', title: 'Smart Library', desc: 'Auto-organize your local music by Artists, Albums, and Genres.' },
-        { icon: 'color-palette', title: 'Premium Themes', desc: 'Six beautiful themes including Glass, Purple, and Deep Blue.' },
-        { icon: 'search', title: 'Deep Meta-Scan', desc: 'Fetch high-quality artwork and lyrics directly from the web.' },
-        { icon: 'thumbs-up', title: 'Smart Playlists', desc: 'Automatically generated Top Songs and Recently Played collections.' },
+        { icon: 'musical-notes', title: 'High-Fidelity EQ', desc: 'Precision 6-band equalizer with 12dB range and sophisticated glassmorphism UI.' },
+        { icon: 'flash', title: 'Dolby Audio', desc: 'Real-time hardware & software logic for immersive, multi-dimensional sound output.' },
+        { icon: 'diamond', title: 'Ultra Quality Engine', desc: 'Advanced 32-bit float processing with dynamic buffer control for bit-perfect audio.' },
+        { icon: 'finger-print', title: 'Gesture Controls', desc: 'Double-tap artwork to seek ±10s with animated feedback and fluid swipe navigation.' },
+        { icon: 'infinite', title: 'Liquid Performance', desc: 'Ultra-responsive momentum scrolling and perfectly fluid list transitions across the app.' },
+        { icon: 'options', title: 'Complete Control', desc: 'Customize your Home dashboard by toggling sections like Playlists, Favorites, and History.' },
+        { icon: 'color-palette', title: 'Refined Aesthetics', desc: 'Highly-polished themes including Fire, Water, Forest, Cyber, Dark, and Light.' },
     ];
 
     return (
@@ -32,7 +35,7 @@ export const AboutScreen = () => {
                         <Image source={require('../../assets/discicon.png')} style={styles.logo} />
                     </View>
                     <Text style={[styles.appName, { color: theme.text }]}>Music</Text>
-                    <Text style={[styles.appVersion, { color: theme.textSecondary }]}>Version 1.1.0</Text>
+                    <Text style={[styles.appVersion, { color: theme.textSecondary }]}>Version 1.2.0</Text>
                     <Text style={[styles.appDescription, { color: theme.text }]}>
                         A premium local music player designed for audiophiles who value both aesthetics and performance.
                         No ads, no subscriptions, just your music.

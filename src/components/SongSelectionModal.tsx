@@ -64,24 +64,29 @@ export const SongSelectionModal: React.FC<SongSelectionModalProps> = ({
         const isSelected = selectedIds.has(item.id);
         return (
             <TouchableOpacity
-                style={[styles.itemContainer, { borderBottomColor: theme.cardBorder }]}
+                style={styles.itemContainer}
+                activeOpacity={0.7}
                 onPress={() => toggleSelection(item.id)}
             >
-                <View style={[styles.artworkMessage, { backgroundColor: theme.card }]}>
+                <View style={[styles.artworkContainer, { backgroundColor: theme.cardBorder + '20' }]}>
                     <MusicImage
                         uri={item.coverImage}
                         id={item.id}
-                        style={{ width: 34, height: 34, borderRadius: 5 }}
-                        iconSize={16}
+                        style={styles.artwork}
+                        iconSize={20}
                     />
+                    {isSelected && (
+                        <View style={[styles.selectionOverlay, { backgroundColor: theme.primary + 'CC' }]}>
+                            <Ionicons name="checkmark" size={20} color="#fff" />
+                        </View>
+                    )}
                 </View>
                 <View style={styles.info}>
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
                     <Text style={[styles.artist, { color: theme.textSecondary }]} numberOfLines={1}>{item.artist || 'Unknown Artist'}</Text>
                 </View>
-                {/* Radio button */}
-                <View style={[styles.radioOuter, { borderColor: isSelected ? theme.primary : theme.textSecondary }]}>
-                    {isSelected && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
+                <View style={[styles.checkOuter, { borderColor: isSelected ? theme.primary : theme.textSecondary + '40' }]}>
+                    {isSelected && <View style={[styles.checkInner, { backgroundColor: theme.primary }]} />}
                 </View>
             </TouchableOpacity>
         );
@@ -102,34 +107,35 @@ export const SongSelectionModal: React.FC<SongSelectionModalProps> = ({
                     <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
                     <View style={[styles.container, { backgroundColor: theme.background }]}>
 
-                        {/* Handle Bar */}
                         <View style={styles.handleContainer}>
-                            <View style={[styles.handle, { backgroundColor: theme.cardBorder }]} />
+                            <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                         </View>
 
-                        {/* Header */}
-                        <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
-                            <TouchableOpacity onPress={onClose}>
-                                <Text style={{ color: theme.textSecondary, fontSize: 16 }}>Cancel</Text>
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
+                                <Text style={[styles.cancelText, { color: theme.textSecondary }]}>Cancel</Text>
                             </TouchableOpacity>
                             <Text style={[styles.headerTitle, { color: theme.text }]}>Add Songs</Text>
                             <TouchableOpacity
                                 onPress={handleConfirm}
                                 disabled={selectedIds.size === 0}
+                                style={styles.headerBtn}
                             >
-                                <Text style={{ color: selectedIds.size > 0 ? theme.primary : theme.textSecondary, fontSize: 16, fontWeight: 'bold' }}>
-                                    Done ({selectedIds.size})
+                                <Text style={[
+                                    styles.doneText,
+                                    { color: selectedIds.size > 0 ? theme.primary : theme.textSecondary + '60' }
+                                ]}>
+                                    Done {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
                                 </Text>
                             </TouchableOpacity>
                         </View>
 
-                        {/* Search */}
-                        <View style={[styles.searchContainer, { backgroundColor: theme.card }]}>
-                            <Ionicons name="search" size={20} color={theme.textSecondary} />
+                        <View style={[styles.searchContainer, { backgroundColor: theme.textSecondary + '10' }]}>
+                            <Ionicons name="search" size={18} color={theme.textSecondary} />
                             <TextInput
                                 style={[styles.searchInput, { color: theme.text }]}
                                 placeholder="Search songs..."
-                                placeholderTextColor={theme.textSecondary}
+                                placeholderTextColor={theme.textSecondary + '80'}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
                             />
@@ -163,7 +169,7 @@ export const SongSelectionModal: React.FC<SongSelectionModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'flex-end',
     },
     backdrop: {
@@ -174,82 +180,113 @@ const styles = StyleSheet.create({
         bottom: 0,
     },
     container: {
-        height: '90%', // Almost full screen
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        height: '92%',
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
         overflow: 'hidden',
+        backgroundColor: '#000', // Usually black in these themes
     },
     handleContainer: {
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 12,
     },
     handle: {
-        width: 40,
-        height: 5,
-        borderRadius: 3,
+        width: 36,
+        height: 4,
+        borderRadius: 2,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
+        paddingBottom: 20,
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: -0.5,
+    },
+    headerBtn: {
+        minWidth: 60,
+        alignItems: 'center',
+    },
+    cancelText: {
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
+    },
+    doneText: {
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        margin: 15,
-        paddingHorizontal: 15,
-        height: 40,
-        borderRadius: 10,
+        marginHorizontal: 20,
+        marginBottom: 20,
+        paddingHorizontal: 16,
+        height: 46,
+        borderRadius: 23,
     },
     searchInput: {
         flex: 1,
-        marginLeft: 10,
-        fontSize: 16,
+        marginLeft: 12,
+        fontSize: 15,
+        fontFamily: 'PlusJakartaSans_500Medium',
+        paddingVertical: 0,
     },
     itemContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 7,
-        paddingHorizontal: 16,
-        borderBottomWidth: 0.5,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
     },
-    artworkMessage: {
-        width: 34,
-        height: 34,
-        borderRadius: 5,
+    artworkContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        overflow: 'hidden',
+        marginRight: 16,
+        position: 'relative',
+    },
+    artwork: {
+        width: '100%',
+        height: '100%',
+    },
+    selectionOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
     },
     info: {
         flex: 1,
     },
     title: {
         fontSize: 16,
-        fontWeight: '500',
+        fontFamily: 'PlusJakartaSans_600SemiBold',
+        letterSpacing: -0.3,
     },
     artist: {
-        fontSize: 14,
+        fontSize: 13,
+        fontFamily: 'PlusJakartaSans_500Medium',
         marginTop: 2,
+        opacity: 0.6,
     },
-    radioOuter: {
-        width: 18,
-        height: 18,
-        borderRadius: 9,
-        borderWidth: 1.5,
+    checkOuter: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 2,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    radioInner: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
+    checkInner: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
     },
 });

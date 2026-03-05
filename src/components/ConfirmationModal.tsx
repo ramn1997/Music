@@ -34,13 +34,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             onRequestClose={onCancel}
         >
             <View style={styles.overlay}>
-                <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
+                <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
                     <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
                     <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
 
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity
-                            style={[styles.button, styles.cancelButton, { backgroundColor: theme.card }]}
+                            style={[styles.button, { backgroundColor: 'rgba(255,255,255,0.05)' }]}
                             onPress={onCancel}
                         >
                             <Text style={[styles.buttonText, { color: theme.text }]}>{cancelText}</Text>
@@ -50,7 +50,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             style={[styles.button, { backgroundColor: isDestructive ? '#ef4444' : theme.primary }]}
                             onPress={onConfirm}
                         >
-                            <Text style={[styles.buttonText, { color: 'white' }]}>{confirmText}</Text>
+                            <Text style={[styles.buttonText, { color: isDestructive ? '#fff' : theme.textOnPrimary }]}>{confirmText}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -62,53 +62,53 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20
+        padding: 24,
     },
     container: {
         width: '100%',
-        maxWidth: 280,
-        borderRadius: 16,
-        padding: 20,
+        maxWidth: 300,
+        borderRadius: 32,
+        padding: 24,
         borderWidth: 1,
         alignItems: 'center',
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 10
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 12,
     },
     title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        textAlign: 'center'
+        fontSize: 20,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        marginBottom: 12,
+        textAlign: 'center',
+        letterSpacing: -0.5,
     },
     message: {
         fontSize: 14,
+        fontFamily: 'PlusJakartaSans_400Regular',
         textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 20
+        marginBottom: 24,
+        lineHeight: 20,
+        opacity: 0.8,
     },
     buttonContainer: {
         flexDirection: 'row',
-        gap: 10,
-        width: '100%'
+        gap: 12,
+        width: '100%',
     },
     button: {
         flex: 1,
-        paddingVertical: 10,
-        borderRadius: 10,
+        paddingVertical: 14,
+        borderRadius: 16,
         alignItems: 'center',
-        justifyContent: 'center'
-    },
-    cancelButton: {
-        borderWidth: 0,
+        justifyContent: 'center',
     },
     buttonText: {
-        fontWeight: '600',
-        fontSize: 14
-    }
+        fontFamily: 'PlusJakartaSans_700Bold',
+        fontSize: 15,
+    },
 });

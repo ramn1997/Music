@@ -40,7 +40,8 @@
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.WAKE_LOCK",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.ram.musicapp",
       "newArchEnabled": true
@@ -65,7 +66,13 @@
           }
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "@react-native-voice/voice",
+        {
+          "microphonePermission": "Allow Music to use the microphone for voice searching."
+        }
+      ]
     ],
     "extra": {
       "eas": {

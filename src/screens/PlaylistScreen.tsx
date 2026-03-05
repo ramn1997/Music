@@ -39,6 +39,7 @@ const FlashListAny = FlashList as any;
 type Props = NativeStackScreenProps<RootStackParamList, 'Playlist'>;
 
 const AnimatedLikedDesign = () => {
+    const { theme } = useTheme();
     const scale = useSharedValue(1);
     const opacity = useSharedValue(0.1);
     const rotate = useSharedValue(0);
@@ -60,13 +61,14 @@ const AnimatedLikedDesign = () => {
 
     return (
         <>
-            <Animated.View style={[style1, { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'white' }]} />
-            <Animated.View style={[style2, { position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+            <Animated.View style={[style1, { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: theme.primary, opacity: 0.1 }]} />
+            <Animated.View style={[style2, { position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: theme.textSecondary, opacity: 0.1 }]} />
         </>
     );
 };
 
 const AnimatedMostPlayedDesign = () => {
+    const { theme } = useTheme();
     const rotate = useSharedValue(0);
     const scale = useSharedValue(1);
 
@@ -86,8 +88,8 @@ const AnimatedMostPlayedDesign = () => {
 
     return (
         <View style={StyleSheet.absoluteFill}>
-            <Animated.View style={[pulseStyle, { position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', borderRadius: 100, borderWidth: 2, borderColor: 'white' }]} />
-            <Animated.View style={[rotationStyle, { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }]} />
+            <Animated.View style={[pulseStyle, { position: 'absolute', top: '25%', left: '25%', width: '50%', height: '50%', borderRadius: 100, borderWidth: 2, borderColor: theme.primary }]} />
+            <Animated.View style={[rotationStyle, { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, borderStyle: 'dashed', borderWidth: 2, borderColor: theme.textSecondary, opacity: 0.2 }]} />
         </View>
     );
 };
@@ -1133,7 +1135,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
     },
     center: {
         flex: 1,
@@ -1141,7 +1142,6 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     loadingText: {
-        color: colors.textSecondary,
         fontSize: 16
     },
     listContent: {
@@ -1163,7 +1163,6 @@ const styles = StyleSheet.create({
     playlistName: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: colors.text,
         marginBottom: 5,
         textAlign: 'center',
         paddingHorizontal: 20
@@ -1173,12 +1172,10 @@ const styles = StyleSheet.create({
     },
     playlistCount: {
         fontSize: 14,
-        color: colors.textSecondary,
         marginBottom: 20,
     },
     playAllButton: {
         flexDirection: 'row',
-        backgroundColor: colors.primary,
         paddingHorizontal: 16,
         paddingVertical: 6,
         borderRadius: 20,
@@ -1186,7 +1183,6 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     playAllText: {
-        color: colors.background,
         fontWeight: 'bold',
         fontSize: 13,
     },
@@ -1212,17 +1208,14 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     songTitle: {
-        color: colors.text,
         fontSize: 16,
         fontWeight: '500',
         marginBottom: 4,
     },
     songArtist: {
-        color: colors.textSecondary,
         fontSize: 14,
     },
     songDuration: {
-        color: colors.textSecondary,
         fontSize: 14,
         marginRight: 10,
     },

@@ -27,6 +27,7 @@ interface PlayerContextType {
     resume: () => Promise<void>;
     stop: () => Promise<void>;
     seekTo: (position: number) => Promise<void>;
+    seekBy: (seconds: number) => Promise<void>;
     seek: (position: number) => void;
     playNext: () => Promise<void>;
     playPrevious: () => Promise<void>;
@@ -47,8 +48,6 @@ interface PlayerContextType {
     playlistName: string;
     gaplessEnabled: boolean;
     toggleGapless: () => void;
-    volume: number;
-    updateVolume: (val: number) => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -167,13 +166,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const [gaplessEnabled, setGaplessEnabled] = useState(true);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
     const [isRestored, setIsRestored] = useState(false);
-    const [volume, setVolumeState] = useState(1.0);
 
-    const updateVolume = async (val: number) => {
-        const newVolume = Math.max(0, Math.min(1, val));
-        setVolumeState(newVolume);
-        await TrackPlayer.setVolume(newVolume);
-    };
 
     // Widget Communication — use refs so we always call the LATEST functions (no stale closure)
     useEffect(() => {
@@ -583,16 +576,25 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
             console.log(`[PlayerContext] Configuring player with Gapless: ${useGapless}`);
 
+            // Load audio quality to adjust buffer sizes
+            let audioQuality = 'medium';
+            try {
+                const q = await AsyncStorage.getItem('audio_quality');
+                if (q) audioQuality = q;
+            } catch (e) { }
+
+            const qualityMultiplier = audioQuality === 'high' ? 2 : (audioQuality === 'low' ? 0.5 : 1);
+
             // Attempt setup, ignore if already initialized
             try {
                 await TrackPlayer.setupPlayer({
                     waitForBuffer: useGapless, // If gapless disabled, we don't wait for buffer (starts faster but might gap)
                     autoHandleInterruptions: true,
                     // Optimized buffer settings for gapless if enabled
-                    minBuffer: useGapless ? 25 : 15, // Seconds
-                    maxBuffer: useGapless ? 100 : 50,
-                    playBuffer: useGapless ? 5 : 2.5,
-                    backBuffer: useGapless ? 20 : 10,
+                    minBuffer: (useGapless ? 25 : 15) * qualityMultiplier, // Seconds
+                    maxBuffer: (useGapless ? 100 : 50) * qualityMultiplier,
+                    playBuffer: (useGapless ? 5 : 2.5) * qualityMultiplier,
+                    backBuffer: (useGapless ? 20 : 10) * qualityMultiplier,
                 });
                 console.log('[PlayerContext] TrackPlayer.setupPlayer success');
             } catch (e: any) {
@@ -1032,6 +1034,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             incrementPlayCount(song.id);
             lastScrobbledTrackId.current = song.id;
             await TrackPlayer.play();
+            // Re-apply repeat mode after reset/add
+            if (repeatMode === 'one') await TrackPlayer.setRepeatMode(RepeatMode.Track);
+            else if (repeatMode === 'all') await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+            else await TrackPlayer.setRepeatMode(RepeatMode.Off);
             setIsPlaying(true); // Manual update
         },
         pause: async () => {
@@ -1051,6 +1057,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         },
         seekTo: async (millis: number) => {
             await TrackPlayer.seekTo(millis / 1000);
+        },
+        seekBy: async (seconds: number) => {
+            await TrackPlayer.seekBy(seconds);
         },
         seek: (millis: number) => {
             TrackPlayer.seekTo(millis / 1000);
@@ -1076,6 +1085,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 lastScrobbledTrackId.current = String(songs[idx].id);
                 await TrackPlayer.skip(idx);
                 await TrackPlayer.play();
+                // Re-apply repeat mode
+                if (repeatMode === 'one') await TrackPlayer.setRepeatMode(RepeatMode.Track);
+                else if (repeatMode === 'all') await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+                else await TrackPlayer.setRepeatMode(RepeatMode.Off);
                 setIsPlaying(true); // Manual update
             }
         },
@@ -1098,6 +1111,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 lastScrobbledTrackId.current = String(songs[index].id);
                 await TrackPlayer.skip(index);
                 await TrackPlayer.play();
+                // Re-apply repeat mode
+                if (repeatMode === 'one') await TrackPlayer.setRepeatMode(RepeatMode.Track);
+                else if (repeatMode === 'all') await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+                else await TrackPlayer.setRepeatMode(RepeatMode.Off);
                 setIsPlaying(true); // Manual update
             }
         },
@@ -1134,8 +1151,6 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         playPause,
         nextTrack,
         prevTrack,
-        volume,
-        updateVolume,
     };
 
     return (

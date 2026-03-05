@@ -23,6 +23,8 @@ import { SongItem } from '../components/SongItem';
 import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { EditSongModal } from '../components/EditSongModal';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
+import { useHomeSettings } from '../hooks/HomeSettingsContext';
+import { useVoiceCommand } from '../hooks/useVoiceCommand';
 
 const FlashListAny = FlashList as any;
 
@@ -203,19 +205,19 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation }: { item: any, t
     );
 });
 
-const SmartPlaylistCard = ({
+const SmartPlaylistCard = React.memo(({
     item,
     onPress,
     onPlayPress,
     onShufflePress
 }: {
     item: any,
-    onPress: () => void,
-    onPlayPress?: () => void,
-    onShufflePress?: () => void
+    onPress: (item: any) => void,
+    onPlayPress?: (item: any) => void,
+    onShufflePress?: (item: any) => void
 }) => {
     return (
-        <TouchableOpacity style={styles.historyCard} onPress={onPress} activeOpacity={0.9}>
+        <TouchableOpacity style={styles.historyCard} onPress={() => onPress(item)} activeOpacity={0.9}>
             <View style={[styles.historyImageContainer, { backgroundColor: item.color, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }]}>
                 {item.collageSongs && item.collageSongs.length >= 4 ? (
                     <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', opacity: 0.5 }]}>
@@ -260,13 +262,13 @@ const SmartPlaylistCard = ({
                     <View style={styles.historyActionGroup}>
                         <TouchableOpacity
                             style={styles.historyActionBtn}
-                            onPress={(e) => { e.stopPropagation(); onPlayPress?.(); }}
+                            onPress={(e) => { e.stopPropagation(); onPlayPress?.(item); }}
                         >
                             <Ionicons name="play" size={16} color="#000" />
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[styles.historyActionBtn, { marginLeft: 8, backgroundColor: 'transparent', elevation: 0, shadowOpacity: 0 }]}
-                            onPress={(e) => { e.stopPropagation(); onShufflePress?.(); }}
+                            onPress={(e) => { e.stopPropagation(); onShufflePress?.(item); }}
                         >
                             <Ionicons name="shuffle" size={18} color="#fff" />
                         </TouchableOpacity>
@@ -275,11 +277,11 @@ const SmartPlaylistCard = ({
             </View>
         </TouchableOpacity>
     );
-};
+});
 
-const TopSongItem = ({ song, isPlaying, onPress, appTheme }: { song: Song, isPlaying: boolean, onPress: () => void, appTheme: any }) => {
+const TopSongItem = React.memo(({ song, index, isPlaying, onPress, appTheme }: { song: Song, index: number, isPlaying: boolean, onPress: (index: number) => void, appTheme: any }) => {
     return (
-        <TouchableOpacity style={styles.topSongItem} onPress={onPress}>
+        <TouchableOpacity style={styles.topSongItem} onPress={() => onPress(index)}>
             <View style={styles.topSongImageContainer}>
                 <MusicImage
                     uri={song.coverImage}
@@ -301,14 +303,14 @@ const TopSongItem = ({ song, isPlaying, onPress, appTheme }: { song: Song, isPla
             </View>
         </TouchableOpacity>
     );
-};
+});
 
-const TopArtistCard = ({ artist, appTheme, onPress, customImage }: any) => {
+const TopArtistCard = React.memo(({ artist, appTheme, onPress, customImage }: any) => {
     if (!artist) return null;
     const artistImage = useArtistImage(artist.name);
 
     return (
-        <TouchableOpacity style={styles.topArtistCard} onPress={onPress}>
+        <TouchableOpacity style={styles.topArtistCard} onPress={() => onPress(artist)}>
             <View style={styles.topArtistImageContainer}>
                 <MusicImage
                     uri={customImage || artistImage || artist.coverImage}
@@ -326,7 +328,7 @@ const TopArtistCard = ({ artist, appTheme, onPress, customImage }: any) => {
             </Text>
         </TouchableOpacity>
     );
-};
+});
 
 export const HomeScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -376,6 +378,13 @@ export const HomeScreen = () => {
             console.error('Failed to load recent searches');
         }
     };
+
+    const handleVoiceCommand = (command: string) => {
+        setSearchQuery(command);
+        setIsSearchFocused(true);
+    };
+
+    const { isListening, startListening, stopListening, error: voiceError } = useVoiceCommand(handleVoiceCommand);
 
     const saveSearch = async (song: Song) => {
         try {
@@ -486,14 +495,11 @@ export const HomeScreen = () => {
     }, [recentlyPlayed, recentlyAdded, neverPlayed]);
 
     const topSongs = useMemo(() => {
-        if (recentlyPlayed && recentlyPlayed.length > 0) {
-            return recentlyPlayed.slice(0, 10).sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
-        } else if (recentlyAdded && recentlyAdded.length > 0) {
-            return recentlyAdded.slice(0, 10);
-        } else {
-            return songs.slice(0, 10);
-        }
-    }, [recentlyPlayed, recentlyAdded, songs]);
+        const played = songs.filter(s => (s.playCount || 0) > 0)
+            .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+        const unplayed = songs.filter(s => !(s.playCount || 0) || s.playCount === 0);
+        return [...played, ...unplayed].slice(0, 10);
+    }, [songs]);
 
     const displayTopArtists = useMemo(() => {
         if (topArtists && topArtists.length > 0) {
@@ -523,6 +529,39 @@ export const HomeScreen = () => {
         Keyboard.dismiss();
     };
 
+    const handleTopSongPress = React.useCallback((index: number) => {
+        if (topSongs && topSongs.length > index) {
+            playSongInPlaylist(topSongs, index, 'Top Songs');
+        }
+    }, [topSongs, playSongInPlaylist]);
+
+    const handleTopArtistPress = React.useCallback((artist: any) => {
+        navigation.navigate('Playlist', { id: artist.name, name: artist.name, type: 'artist' });
+    }, [navigation]);
+
+    const handleSmartPlaylistPress = React.useCallback((item: any) => {
+        navigation.navigate('Playlist', { id: item.id, name: item.title, type: item.type as any });
+    }, [navigation]);
+
+    const handleSmartPlaylistPlay = React.useCallback((item: any) => {
+        let plSongs: Song[] = [];
+        if (item.type === 'recently_played') plSongs = recentlyPlayed;
+        else if (item.type === 'recently_added') plSongs = recentlyAdded;
+        else if (item.type === 'never_played') plSongs = neverPlayed;
+        if (plSongs.length > 0) playSongInPlaylist(plSongs, 0, item.title);
+    }, [recentlyPlayed, recentlyAdded, neverPlayed, playSongInPlaylist]);
+
+    const handleSmartPlaylistShuffle = React.useCallback((item: any) => {
+        let plSongs: Song[] = [];
+        if (item.type === 'recently_played') plSongs = recentlyPlayed;
+        else if (item.type === 'recently_added') plSongs = recentlyAdded;
+        else if (item.type === 'never_played') plSongs = neverPlayed;
+        if (plSongs.length > 0) {
+            const shuffled = [...plSongs].sort(() => Math.random() - 0.5);
+            playSongInPlaylist(shuffled, 0, `${item.title} (Shuffled)`);
+        }
+    }, [recentlyPlayed, recentlyAdded, neverPlayed, playSongInPlaylist]);
+
     const renderHeader = () => {
         return (
             <View>
@@ -536,21 +575,29 @@ export const HomeScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                <View style={[styles.searchBar, { backgroundColor: (themeType === 'glass' || themeType === 'water' || themeType === 'forest' || themeType === 'fire') ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]}>
+                <View style={[styles.searchBar, { backgroundColor: appTheme.card, borderColor: appTheme.cardBorder, borderWidth: 1 }]}>
                     <Ionicons name="search" size={20} color={appTheme.textSecondary} />
                     <TextInput
                         ref={searchInputRef}
                         style={[styles.searchInput, { color: appTheme.text }]}
-                        placeholder="Search artists, songs, or albums"
-                        placeholderTextColor={appTheme.textSecondary}
+                        placeholder={isListening ? "Listening..." : "Search artists, songs, or albums"}
+                        placeholderTextColor={isListening ? appTheme.primary : appTheme.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         onFocus={() => setIsSearchFocused(true)}
                         autoCorrect={false}
                     />
-                    {(searchQuery.length > 0 || isSearchFocused) && (
+                    {(searchQuery.length > 0 || isSearchFocused) ? (
                         <TouchableOpacity onPress={handleClearSearch}>
                             <Ionicons name="close-circle" size={20} color={appTheme.textSecondary} />
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity onPress={isListening ? stopListening : startListening}>
+                            <Ionicons
+                                name={isListening ? "mic" : "mic-outline"}
+                                size={20}
+                                color={isListening ? '#ef4444' : appTheme.textSecondary}
+                            />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -658,29 +705,15 @@ export const HomeScreen = () => {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
                     style={{ marginBottom: 10 }}
+                    decelerationRate="fast"
                 >
                     {listeningHistoryPlaylists.map((item) => (
                         <SmartPlaylistCard
                             key={item.id}
                             item={item}
-                            onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.title, type: item.type as any })}
-                            onPlayPress={() => {
-                                let plSongs: Song[] = [];
-                                if (item.type === 'recently_played') plSongs = recentlyPlayed;
-                                else if (item.type === 'recently_added') plSongs = recentlyAdded;
-                                else if (item.type === 'never_played') plSongs = neverPlayed;
-                                if (plSongs.length > 0) playSongInPlaylist(plSongs, 0, item.title);
-                            }}
-                            onShufflePress={() => {
-                                let plSongs: Song[] = [];
-                                if (item.type === 'recently_played') plSongs = recentlyPlayed;
-                                else if (item.type === 'recently_added') plSongs = recentlyAdded;
-                                else if (item.type === 'never_played') plSongs = neverPlayed;
-                                if (plSongs.length > 0) {
-                                    const shuffled = [...plSongs].sort(() => Math.random() - 0.5);
-                                    playSongInPlaylist(shuffled, 0, `${item.title} (Shuffled)`);
-                                }
-                            }}
+                            onPress={handleSmartPlaylistPress}
+                            onPlayPress={handleSmartPlaylistPlay}
+                            onShufflePress={handleSmartPlaylistShuffle}
                         />
                     ))}
                 </ScrollView>
@@ -694,9 +727,10 @@ export const HomeScreen = () => {
                         <TopSongItem
                             key={song.id}
                             song={song}
+                            index={index}
                             isPlaying={currentSong?.id === song.id && isPlaying}
                             appTheme={appTheme}
-                            onPress={() => playSongInPlaylist(topSongs, index, 'Top Songs')}
+                            onPress={handleTopSongPress}
                         />
                     ))}
                 </View>
@@ -710,6 +744,7 @@ export const HomeScreen = () => {
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
+                            decelerationRate="fast"
                         >
                             {displayTopArtists.map((artist) => (
                                 <TopArtistCard
@@ -717,7 +752,7 @@ export const HomeScreen = () => {
                                     artist={artist}
                                     appTheme={appTheme}
                                     customImage={artistMetadata[artist.name]?.coverImage}
-                                    onPress={() => navigation.navigate('Playlist', { id: artist.name, name: artist.name, type: 'artist' })}
+                                    onPress={handleTopArtistPress}
                                 />
                             ))}
                         </ScrollView>
@@ -841,7 +876,7 @@ const styles = StyleSheet.create({
     },
     historyTitle: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
         fontSize: 14,
         marginBottom: 8,
     },
@@ -905,7 +940,7 @@ const styles = StyleSheet.create({
     },
     topSongTitle: {
         fontSize: 15,
-        fontWeight: '700',
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     topSongSubtitle: {
         fontSize: 13,
@@ -931,7 +966,7 @@ const styles = StyleSheet.create({
     },
     topArtistName: {
         fontSize: 14,
-        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
         textAlign: 'center',
     },
     topArtistSub: {
@@ -951,7 +986,7 @@ const styles = StyleSheet.create({
     },
     emptyStateTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
         marginBottom: 10,
     },
     emptyStateSubtitle: {
@@ -974,11 +1009,11 @@ const styles = StyleSheet.create({
     },
     recentTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     clearText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: 'PlusJakartaSans_600SemiBold',
     },
     recentItemContainer: {
         flexDirection: 'row',

@@ -7,7 +7,8 @@ import { LibraryScreen } from '../screens/LibraryScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
-import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Platform, Dimensions } from 'react-native';
+const { width } = Dimensions.get('window');
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
     useAnimatedStyle,
@@ -78,19 +79,26 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
 import { BlurView } from 'expo-blur';
 
 const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) => {
+    const { navigationStyle } = useTheme();
     const isLight = theme.background === '#ffffff';
+    const isPill = navigationStyle === 'pill';
 
     return (
-        <View style={[styles.tabBarWrapper, { bottom: 0 }]}>
+        <View style={[
+            styles.tabBarWrapper,
+            { bottom: isPill ? (insets?.bottom || 20) : 0 },
+            isPill && styles.pillWrapper
+        ]}>
             <View style={[
                 styles.tabBarContainer,
                 {
                     backgroundColor: 'transparent',
-                    height: 70 + (insets?.bottom || 0),
-                    paddingBottom: insets?.bottom || 0,
+                    height: 70 + (isPill ? 0 : (insets?.bottom || 0)),
+                    paddingBottom: isPill ? 0 : (insets?.bottom || 0),
                     overflow: 'hidden',
-                    borderTopWidth: 1,
-                    borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)')
+                    borderTopWidth: isPill ? 0 : 1,
+                    borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'),
+                    borderRadius: isPill ? 35 : 0,
                 }
             ]}>
                 <BlurView
@@ -126,8 +134,14 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
                                 canPreventDefault: true,
                             });
 
-                            if (!isFocused && !event.defaultPrevented) {
-                                navigation.navigate(route.name);
+                            if (!event.defaultPrevented) {
+                                // Forcing a navigation to the tab's sub-screen (Home, LibraryScreen, etc)
+                                // directly by resetting the state.
+                                navigation.navigate({
+                                    name: route.name,
+                                    params: { screen: undefined }, // This helps reset stacks
+                                    merge: false, // Ensures we don't just stay where we are in a stack
+                                });
                             }
                         };
 
@@ -181,6 +195,7 @@ export const TabNavigator = () => {
             tabBar={(props) => <CustomTabBar {...props} insets={insets} theme={theme} />}
             screenOptions={{
                 headerShown: false,
+                unmountOnBlur: true,
             }}
         >
             <Tab.Screen
@@ -221,8 +236,17 @@ const styles = StyleSheet.create({
     },
     tabBarContainer: {
         width: '100%',
-        borderRadius: 0,
         justifyContent: 'center',
+    },
+    pillWrapper: {
+        bottom: 20,
+        left: 20,
+        right: 20,
+        width: width - 40,
+        borderRadius: 35,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        overflow: 'hidden'
     },
     tabBarInner: {
         flexDirection: 'row',

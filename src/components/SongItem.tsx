@@ -128,11 +128,12 @@ const styles = StyleSheet.create({
     },
     songTitle: {
         fontSize: 16,
-        fontWeight: '500',
+        fontFamily: 'PlusJakartaSans_500Medium',
         marginBottom: 4,
     },
     songArtist: {
         fontSize: 13,
+        fontFamily: 'PlusJakartaSans_400Regular',
     },
     songDuration: {
         fontSize: 12,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Dimensions } from 'react-native';
+const { width } = Dimensions.get('window');
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlayerContext } from '../hooks/PlayerContext';
@@ -13,7 +14,7 @@ import { useProgress } from 'react-native-track-player';
 export const MiniPlayer = () => {
     const navigation = useNavigation<any>();
     const { currentSong, isPlaying, playPause, nextTrack, prevTrack, seek } = usePlayerContext();
-    const { theme, themeType, playerStyle } = useTheme();
+    const { theme, themeType, playerStyle, navigationStyle } = useTheme();
     const insets = useSafeAreaInsets();
     const { position, duration } = useProgress(1000); // 1s update for mini player is enough
 
@@ -24,8 +25,8 @@ export const MiniPlayer = () => {
 
     const seekInterval = useRef<NodeJS.Timeout | null>(null);
 
-    // Only hide mini player when on the full Player screen, Settings screen, About screen, or if no song exists
-    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Settings' || currentRouteName === 'About';
+    // Only hide mini player when on the full Player screen, Queue screen, Settings screen, About screen, Equalizer screen, or if no song exists
+    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Queue' || currentRouteName === 'Settings' || currentRouteName === 'About' || currentRouteName === 'Equalizer';
     if (!currentSong || isHiddenScreen) return null;
 
     // List of screens that DO NOT have a bottom tab bar
@@ -33,7 +34,10 @@ export const MiniPlayer = () => {
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
     // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.
-    const bottomOffset = hasTabBar ? (70 + insets.bottom) : (insets.bottom);
+    const isPill = navigationStyle === 'pill';
+    const bottomOffset = hasTabBar
+        ? (isPill ? 94 : (70 + insets.bottom))
+        : (isPill ? (20 + insets.bottom) : (insets.bottom));
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
 
@@ -42,6 +46,7 @@ export const MiniPlayer = () => {
             case 'circle': return 19;
 
             case 'sharp': return 0;
+            // @ts-ignore
             case 'soft': return 12;
             case 'square': return 4;
             default: return 6;
@@ -82,10 +87,14 @@ export const MiniPlayer = () => {
             <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => navigation.navigate('Player')}
-                style={[styles.pillContainer, {
-                    overflow: 'hidden',
-                    backgroundColor: theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card
-                }]}
+                style={[
+                    styles.pillContainer,
+                    isPill && styles.floatingPill,
+                    {
+                        overflow: 'hidden',
+                        backgroundColor: theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card
+                    }
+                ]}
             >
                 {/* Adaptive Background based on Album Art */}
                 <View style={StyleSheet.absoluteFill}>
@@ -198,6 +207,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 20, // Even higher elevation
+    },
+    floatingPill: {
+        width: width - 40,
+        borderRadius: 30,
+        height: 64,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     blurContainer: {
         flex: 1,

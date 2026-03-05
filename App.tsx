@@ -50,6 +50,8 @@ const AppContent = () => {
     );
 };
 
+import { HomeSettingsProvider } from './src/hooks/HomeSettingsContext';
+
 export default function App() {
     const [fontsLoaded] = useFonts({
         PlusJakartaSans_400Regular,
@@ -66,13 +68,15 @@ export default function App() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaProvider>
                 <ThemeProvider>
-                    <MusicLibraryProvider>
-                        <PlayerProvider>
-                            <NavigationContainer linking={linking}>
-                                <AppContent />
-                            </NavigationContainer>
-                        </PlayerProvider>
-                    </MusicLibraryProvider>
+                    <HomeSettingsProvider>
+                        <MusicLibraryProvider>
+                            <PlayerProvider>
+                                <NavigationContainer linking={linking}>
+                                    <AppContent />
+                                </NavigationContainer>
+                            </PlayerProvider>
+                        </MusicLibraryProvider>
+                    </HomeSettingsProvider>
                 </ThemeProvider>
             </SafeAreaProvider>
         </GestureHandlerRootView>

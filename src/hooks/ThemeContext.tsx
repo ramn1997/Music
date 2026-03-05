@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'water' | 'glass' | 'black' | 'cyber' | 'fire' | 'forest' | 'light' | 'system';
+export type ThemeType = 'water' | 'black' | 'cyber' | 'fire' | 'forest' | 'light' | 'system';
 
 interface Theme {
     background: string;
@@ -35,21 +35,6 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#023e8a',
-        textOnPrimary: '#000000'
-    },
-    glass: {
-        background: '#0a0a0f',
-        primary: '#ffffff',
-        secondary: '#a1a1aa',
-        text: '#ffffff',
-        textSecondary: '#d1d5db',
-        card: 'rgba(255, 255, 255, 0.12)',
-        cardBorder: 'rgba(255, 255, 255, 0.25)',
-        gradient: ['#e2e8f0', '#1f2937', '#050505', '#050505'], // Bright Grey -> Deep Grey -> Black
-        gradientLocations: [0, 0.08, 0.3, 1], // Top centered glow like fire
-        gradientStart: { x: 0.5, y: 0 },
-        gradientEnd: { x: 0.5, y: 1 },
-        menuBackground: '#1f2937',
         textOnPrimary: '#000000'
     },
     black: {
@@ -123,7 +108,9 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
     },
 };
 
-export type PlayerStyle = 'square' | 'circle' | 'rounded' | 'squircle' | 'sharp' | 'soft';
+
+
+export type PlayerStyle = 'square' | 'circle' | 'sharp';
 
 interface ThemeContextType {
     theme: Theme;
@@ -131,6 +118,12 @@ interface ThemeContextType {
     setThemeType: (type: ThemeType) => void;
     playerStyle: PlayerStyle;
     setPlayerStyle: (style: PlayerStyle) => void;
+    isCarouselEnabled: boolean;
+    setCarouselEnabled: (enabled: boolean) => void;
+    navigationStyle: 'full' | 'pill';
+    setNavigationStyle: (style: 'full' | 'pill') => void;
+    isSwipeEnabled: boolean;
+    setSwipeEnabled: (enabled: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -138,7 +131,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const systemScheme = useColorScheme();
     const [themeType, setThemeTypeState] = useState<ThemeType>('black');
-    const [playerStyle, setPlayerStyleState] = useState<PlayerStyle>('rounded');
+    const [playerStyle, setPlayerStyleState] = useState<PlayerStyle>('square');
+    const [isCarouselEnabled, setIsCarouselEnabledState] = useState<boolean>(false);
+    const [isSwipeEnabled, setIsSwipeEnabledState] = useState<boolean>(true);
+    const [navigationStyle, setNavigationStyleState] = useState<'full' | 'pill'>('full');
 
     useEffect(() => {
         const loadTheme = async () => {
@@ -158,6 +154,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (savedStyle) {
                 setPlayerStyleState(savedStyle as PlayerStyle);
             }
+
+            const savedCarousel = await AsyncStorage.getItem('isCarouselEnabled');
+            if (savedCarousel !== null) {
+                setIsCarouselEnabledState(savedCarousel === 'true');
+            }
+
+            const savedNavStyle = await AsyncStorage.getItem('navigationStyle');
+            if (savedNavStyle) {
+                setNavigationStyleState(savedNavStyle as 'full' | 'pill');
+            }
+            const savedSwipe = await AsyncStorage.getItem('isSwipeEnabled');
+            if (savedSwipe !== null) {
+                setIsSwipeEnabledState(savedSwipe === 'true');
+            }
         };
         loadTheme();
     }, []);
@@ -172,6 +182,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await AsyncStorage.setItem('playerStyle', style);
     };
 
+    const setCarouselEnabled = async (enabled: boolean) => {
+        setIsCarouselEnabledState(enabled);
+        await AsyncStorage.setItem('isCarouselEnabled', enabled.toString());
+    };
+
+    const setNavigationStyle = async (style: 'full' | 'pill') => {
+        setNavigationStyleState(style);
+        await AsyncStorage.setItem('navigationStyle', style);
+    };
+
+    const setSwipeEnabled = async (enabled: boolean) => {
+        setIsSwipeEnabledState(enabled);
+        await AsyncStorage.setItem('isSwipeEnabled', enabled.toString());
+    };
+
     const getActiveTheme = (): Theme => {
         if (themeType === 'system') {
             return Themes.black;
@@ -180,7 +205,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     return (
-        <ThemeContext.Provider value={{ theme: getActiveTheme(), themeType, setThemeType, playerStyle, setPlayerStyle }}>
+        <ThemeContext.Provider value={{
+            theme: getActiveTheme(),
+            themeType,
+            setThemeType,
+            playerStyle,
+            setPlayerStyle,
+            isCarouselEnabled,
+            setCarouselEnabled,
+            navigationStyle,
+            setNavigationStyle,
+            isSwipeEnabled,
+            setSwipeEnabled
+        }}>
             {children}
         </ThemeContext.Provider>
     );

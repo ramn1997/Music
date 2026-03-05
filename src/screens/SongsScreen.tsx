@@ -180,7 +180,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
             {/* Search Bar & Sort */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10 }}>
-                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, marginRight: 10, marginHorizontal: 0, marginVertical: 0 }]}>
+                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, marginRight: 10, marginHorizontal: 0, marginVertical: 0, borderWidth: 1, borderColor: theme.cardBorder }]}>
                     <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
                     <TextInput
                         style={[styles.searchInput, { color: theme.text }]}
@@ -218,7 +218,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.primary, borderWidth: 1.5 }]}
+                    style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.primary, borderWidth: 1.5, opacity: 1 }]}
                     onPress={() => {
                         if (filteredSongs.length > 0) {
                             const shuffled = [...filteredSongs].sort(() => Math.random() - 0.5);
@@ -255,6 +255,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         contentContainerStyle={styles.listContent}
                         drawDistance={250} // Reduced from 500 for memory efficiency
                         removeClippedSubviews={true}
+                        decelerationRate="fast"
                         ListEmptyComponent={
                             <View style={{ alignItems: 'center', marginTop: 50 }}>
                                 <Text style={{ color: theme.textSecondary }}>No songs found.</Text>
@@ -355,7 +356,6 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
     },
     center: {
         flex: 1,
@@ -363,7 +363,6 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     loadingText: {
-        color: colors.textSecondary,
         fontSize: 16
     },
     listContent: {

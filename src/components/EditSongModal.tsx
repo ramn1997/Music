@@ -257,15 +257,15 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.overlay}
             >
-                <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <View style={[styles.container, { backgroundColor: theme.card }]}>
                     {/* Header */}
-                    <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={onClose} style={styles.headerButton}>
                             <Ionicons name="close" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Edit Details</Text>
-                        <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-                            <Text style={[styles.saveText, { color: theme.primary }]}>Save</Text>
+                        <TouchableOpacity onPress={handleSave} style={styles.headerButton}>
+                            <Text style={[styles.saveText, { color: theme.primary }]}>Done</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -298,25 +298,25 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                                 <TouchableOpacity
                                     onPress={handleScanTags}
                                     disabled={isScanning}
-                                    style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                                    style={[styles.actionButton, { backgroundColor: theme.primary + '15' }]}
                                 >
                                     {isScanning ? (
                                         <ActivityIndicator size="small" color={theme.primary} />
                                     ) : (
-                                        <Ionicons name="scan-outline" size={16} color={theme.primary} />
+                                        <Ionicons name="sparkles" size={16} color={theme.primary} />
                                     )}
                                     <Text style={[styles.actionButtonText, { color: theme.primary }]}>
-                                        {isScanning ? 'SCANNING...' : 'SCAN TAGS'}
+                                        {isScanning ? 'Searching...' : 'Auto-Match'}
                                     </Text>
                                 </TouchableOpacity>
 
                                 {isArtModified && (
                                     <TouchableOpacity
                                         onPress={handleResetArt}
-                                        style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                                        style={[styles.actionButton, { backgroundColor: 'rgba(255,255,255,0.05)' }]}
                                     >
                                         <Ionicons name="refresh-outline" size={16} color={theme.textSecondary} />
-                                        <Text style={[styles.actionButtonText, { color: theme.textSecondary }]}>RESET</Text>
+                                        <Text style={[styles.actionButtonText, { color: theme.textSecondary }]}>Reset</Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -328,64 +328,55 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                         </View>
 
                         {/* Form Fields */}
-                        {inputFields.map((field, index) => (
-                            <View key={index} style={styles.fieldContainer}>
-                                <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
-                                <TextInput
-                                    style={[
-                                        styles.input,
-                                        {
-                                            color: theme.text,
-                                            backgroundColor: theme.card,
-                                            borderColor: theme.cardBorder
-                                        }
-                                    ]}
-                                    value={field.value}
-                                    onChangeText={field.setValue}
-                                    placeholder={field.placeholder}
-                                    placeholderTextColor={theme.textSecondary}
-                                    keyboardType={field.keyboardType || 'default'}
-                                />
-                            </View>
-                        ))}
+                        <View style={[styles.cardGroup, { backgroundColor: theme.card, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+                            {inputFields.map((field, index) => (
+                                <View key={index} style={[styles.fieldContainer, { borderBottomColor: theme.cardBorder }, index === inputFields.length - 1 && { borderBottomWidth: 0 }]}>
+                                    <Text style={[styles.label, { color: theme.textSecondary }]}>{field.label}</Text>
+                                    <TextInput
+                                        style={[styles.input, { color: theme.text }]}
+                                        value={field.value}
+                                        onChangeText={field.setValue}
+                                        placeholder={field.placeholder}
+                                        placeholderTextColor={theme.textSecondary + '60'}
+                                        keyboardType={field.keyboardType || 'default'}
+                                    />
+                                </View>
+                            ))}
+                        </View>
 
                         {/* Lyrics Field */}
-                        <View style={styles.fieldContainer}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <View style={[styles.cardGroup, { backgroundColor: theme.card, borderColor: theme.cardBorder, borderWidth: 1, marginTop: 10 }]}>
+                            <View style={styles.lyricsFieldHeader}>
                                 <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 0 }]}>Lyrics</Text>
                                 <TouchableOpacity
                                     onPress={handleSearchLyrics}
                                     disabled={isLyricsLoading}
-                                    style={{ flexDirection: 'row', alignItems: 'center' }}
+                                    style={[styles.searchLyricsButton, { backgroundColor: theme.primary + '15' }]}
                                 >
                                     {isLyricsLoading ? (
                                         <ActivityIndicator size="small" color={theme.primary} />
                                     ) : (
                                         <>
-                                            <Ionicons name="search" size={12} color={theme.primary} style={{ marginRight: 4 }} />
-                                            <Text style={{ color: theme.primary, fontSize: 11, fontWeight: 'bold' }}>SEARCH</Text>
+                                            <Ionicons name="cloud-download-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
+                                            <Text style={{ color: theme.primary, fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold' }}>Fetch Lyrics</Text>
                                         </>
                                     )}
                                 </TouchableOpacity>
                             </View>
                             <TextInput
                                 style={[
-                                    styles.input,
+                                    styles.lyricsInput,
                                     {
                                         color: theme.text,
-                                        backgroundColor: theme.card,
-                                        borderColor: theme.cardBorder,
-                                        height: 150,
-                                        textAlignVertical: 'top',
-                                        paddingTop: 10
+                                        height: 200,
                                     }
                                 ]}
                                 value={lyrics}
                                 onChangeText={setLyrics}
-                                placeholder="Paste or search lyrics..."
-                                placeholderTextColor={theme.textSecondary}
+                                placeholder="Paste or fetch lyrics..."
+                                placeholderTextColor={theme.textSecondary + '80'}
                                 multiline={true}
-                                numberOfLines={8}
+                                numberOfLines={10}
                             />
                         </View>
                         <View style={styles.bottomSpacing} />
@@ -399,68 +390,70 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'flex-end',
     },
     container: {
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        maxHeight: '92%',
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
+        maxHeight: '94%',
         width: '100%',
         overflow: 'hidden',
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        borderBottomWidth: 1,
+        paddingHorizontal: 16,
+        paddingTop: 20,
+        paddingBottom: 15,
     },
-    closeButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+    headerButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 19,
-        fontWeight: 'bold',
-    },
-    saveButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 12,
+        fontSize: 18,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     saveText: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     formScrollView: {
-        padding: 20,
+        paddingHorizontal: 20,
+    },
+    cardGroup: {
+        borderRadius: 24,
+        overflow: 'hidden',
+        marginBottom: 20,
     },
     artSection: {
         alignItems: 'center',
-        marginBottom: 25,
+        marginVertical: 10,
+        marginBottom: 30,
     },
     artWrapper: {
         position: 'relative',
-        elevation: 8,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 12,
     },
     art: {
-        width: 140,
-        height: 140,
-        borderRadius: 16,
+        width: 160,
+        height: 160,
+        borderRadius: 24,
     },
     artContainer: {
-        width: 140,
-        height: 140,
-        borderRadius: 16,
+        width: 160,
+        height: 160,
+        borderRadius: 24,
         overflow: 'hidden',
     },
     editOverlay: {
@@ -468,66 +461,87 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: 32,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 16,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
         gap: 6,
     },
     editText: {
         color: 'white',
-        fontSize: 11,
-        fontWeight: 'bold',
-        letterSpacing: 1,
+        fontSize: 10,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: 1.5,
     },
     artActions: {
         flexDirection: 'row',
-        gap: 12,
-        marginTop: 15,
+        gap: 10,
+        marginTop: 20,
     },
     actionButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        borderWidth: 1.5,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 16,
         gap: 8,
     },
     actionButtonText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        letterSpacing: 0.5,
+        fontSize: 13,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
     },
     fieldContainer: {
-        marginBottom: 12,
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
     },
     label: {
-        fontSize: 11,
-        fontWeight: 'bold',
-        marginBottom: 4,
+        fontSize: 10,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        marginBottom: 6,
         textTransform: 'uppercase',
         letterSpacing: 1,
+        opacity: 0.5,
     },
     input: {
-        fontSize: 14,
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_500Medium',
+        paddingVertical: 0,
+    },
+    lyricsFieldHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 4,
+    },
+    searchLyricsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
         paddingHorizontal: 12,
-        paddingVertical: 10,
         borderRadius: 10,
-        borderWidth: 1,
+    },
+    lyricsInput: {
+        fontSize: 15,
+        fontFamily: 'PlusJakartaSans_400Regular',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        textAlignVertical: 'top',
+        lineHeight: 22,
     },
     bottomSpacing: {
-        height: 60,
+        height: 100,
     },
     statusText: {
         fontSize: 11,
-        fontWeight: 'bold',
-        marginTop: 10,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5
+        fontFamily: 'PlusJakartaSans_600SemiBold',
+        marginTop: 12,
+        letterSpacing: 0.5,
     }
 });

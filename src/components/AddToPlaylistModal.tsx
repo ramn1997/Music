@@ -58,56 +58,52 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                     activeOpacity={1}
                     onPress={onClose}
                 >
-                    <View style={[styles.container, { backgroundColor: theme.background }]}>
+                    <View style={[styles.container, { backgroundColor: theme.card }]}>
                         <View style={styles.handleBarContainer}>
-                            <View style={[styles.handleBar, { backgroundColor: theme.cardBorder }]} />
+                            <View style={[styles.handleBar, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                         </View>
 
-                        <View style={[styles.header, { borderBottomColor: theme.cardBorder }]}>
+                        <View style={styles.header}>
                             <Text style={[styles.title, { color: theme.text }]}>Add to Playlist</Text>
-                            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                            <TouchableOpacity onPress={onClose} style={styles.headerCloseButton}>
                                 <Ionicons name="close" size={24} color={theme.text} />
                             </TouchableOpacity>
                         </View>
 
                         <View style={styles.songCard}>
-                            <Ionicons name="musical-notes" size={20} color={theme.primary} />
+                            <View style={[styles.songCardIcon, { backgroundColor: theme.primary + '15' }]}>
+                                <Ionicons name="musical-notes" size={18} color={theme.primary} />
+                            </View>
                             <Text style={[styles.songTitle, { color: theme.textSecondary }]} numberOfLines={1}>
                                 {songs.length === 1 ? songs[0].title : `${songs.length} songs selected`}
                             </Text>
                         </View>
 
                         {isCreating ? (
-                            <View style={{ padding: 20 }}>
-                                <Text style={{ color: theme.text, marginBottom: 10 }}>Playlist Name</Text>
-                                <TextInput
-                                    style={{
-                                        backgroundColor: theme.card,
-                                        color: theme.text,
-                                        padding: 12,
-                                        borderRadius: 8,
-                                        borderWidth: 1,
-                                        borderColor: theme.cardBorder,
-                                        marginBottom: 20
-                                    }}
-                                    value={newPlaylistName}
-                                    onChangeText={setNewPlaylistName}
-                                    placeholder="My Playlist"
-                                    placeholderTextColor={theme.textSecondary}
-                                    autoFocus
-                                />
-                                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                            <View style={styles.createContainer}>
+                                <View style={styles.createCard}>
+                                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Playlist Name</Text>
+                                    <TextInput
+                                        style={[styles.input, { color: theme.text }]}
+                                        value={newPlaylistName}
+                                        onChangeText={setNewPlaylistName}
+                                        placeholder="My Favorite Tracks"
+                                        placeholderTextColor={theme.textSecondary + '60'}
+                                        autoFocus
+                                    />
+                                </View>
+                                <View style={styles.createActions}>
                                     <TouchableOpacity
                                         onPress={() => setIsCreating(false)}
-                                        style={{ padding: 10 }}
+                                        style={styles.cancelButton}
                                     >
-                                        <Text style={{ color: theme.textSecondary }}>Cancel</Text>
+                                        <Text style={[styles.cancelText, { color: theme.textSecondary }]}>Cancel</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={handleCreatePlaylist}
-                                        style={{ backgroundColor: theme.primary, padding: 10, borderRadius: 8 }}
+                                        style={[styles.createBtn, { backgroundColor: theme.primary }]}
                                     >
-                                        <Text style={{ color: theme.background, fontWeight: 'bold' }}>Create</Text>
+                                        <Text style={[styles.createBtnText, { color: '#fff' }]}>Create Playlist</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -119,14 +115,15 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                                 contentContainerStyle={styles.listContent}
                                 ListHeaderComponent={() => (
                                     <TouchableOpacity
-                                        style={[styles.playlistItem, { borderBottomColor: theme.cardBorder }]}
+                                        style={styles.playlistItem}
                                         onPress={() => setIsCreating(true)}
                                     >
-                                        <View style={[styles.playlistIcon, { backgroundColor: theme.card, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.textSecondary }]}>
-                                            <Ionicons name="add" size={24} color={theme.text} />
+                                        <View style={[styles.playlistIcon, { backgroundColor: theme.primary + '10' }]}>
+                                            <Ionicons name="add" size={26} color={theme.primary} />
                                         </View>
                                         <View style={styles.playlistInfo}>
-                                            <Text style={[styles.playlistName, { color: theme.text }]}>Create New Playlist</Text>
+                                            <Text style={[styles.playlistName, { color: theme.primary, fontFamily: 'PlusJakartaSans_700Bold' }]}>Create New Playlist</Text>
+                                            <Text style={[styles.songCount, { color: theme.textSecondary }]}>Create a fresh collection</Text>
                                         </View>
                                     </TouchableOpacity>
                                 )}
@@ -140,19 +137,19 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                                 )}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity
-                                        style={[styles.playlistItem, { borderBottomColor: theme.cardBorder }]}
+                                        style={styles.playlistItem}
                                         onPress={() => handleAddToPlaylist(item.id)}
                                     >
-                                        <View style={[styles.playlistIcon, { backgroundColor: theme.card }]}>
-                                            <Ionicons name="list" size={22} color={theme.primary} />
+                                        <View style={[styles.playlistIcon, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                                            <Ionicons name="musical-note" size={22} color={theme.text} />
                                         </View>
                                         <View style={styles.playlistInfo}>
                                             <Text style={[styles.playlistName, { color: theme.text }]}>{item.name}</Text>
                                             <Text style={[styles.songCount, { color: theme.textSecondary }]}>
-                                                {item.songs.length} songs
+                                                {item.songs.length} {item.songs.length === 1 ? 'song' : 'songs'}
                                             </Text>
                                         </View>
-                                        <Ionicons name="add-circle-outline" size={24} color={theme.primary} />
+                                        <Ionicons name="add-circle-outline" size={24} color={theme.textSecondary} />
                                     </TouchableOpacity>
                                 )}
                             />
@@ -168,82 +165,147 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'flex-end',
     },
     container: {
-        maxHeight: SCREEN_HEIGHT * 0.7,
-        borderTopLeftRadius: 32,
-        borderTopRightRadius: 32,
-        paddingBottom: 40, // Increased padding to avoid system navigation
+        maxHeight: SCREEN_HEIGHT * 0.8,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
     },
     handleBarContainer: {
         width: '100%',
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 12,
     },
     handleBar: {
-        width: 40,
-        height: 5,
-        borderRadius: 2.5,
+        width: 36,
+        height: 4,
+        borderRadius: 2,
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingVertical: 15,
-        borderBottomWidth: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingBottom: 15,
+        position: 'relative',
     },
     title: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
-    closeButton: {
-        padding: 4,
+    headerCloseButton: {
+        position: 'absolute',
+        right: 16,
+        top: 0,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     songCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 24,
-        marginVertical: 15,
-        padding: 12,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 12,
-        gap: 10,
+        marginHorizontal: 20,
+        marginVertical: 10,
+        padding: 14,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 16,
+        gap: 12,
+    },
+    songCardIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     songTitle: {
         fontSize: 14,
+        fontFamily: 'PlusJakartaSans_500Medium',
         flex: 1,
     },
     listContent: {
-        paddingHorizontal: 24,
-        paddingBottom: 20,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 40,
     },
     playlistItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 14,
-        borderBottomWidth: 1,
+        paddingVertical: 16,
     },
     playlistIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
+        width: 48,
+        height: 48,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 15,
+        marginRight: 16,
     },
     playlistInfo: {
         flex: 1,
     },
     playlistName: {
         fontSize: 16,
-        fontWeight: '600',
+        fontFamily: 'PlusJakartaSans_600SemiBold',
     },
     songCount: {
         fontSize: 12,
+        fontFamily: 'PlusJakartaSans_400Regular',
         marginTop: 2,
+        opacity: 0.6,
+    },
+    createContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 10,
+    },
+    createCard: {
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 20,
+        padding: 18,
+        marginBottom: 20,
+    },
+    inputLabel: {
+        fontSize: 10,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        opacity: 0.5,
+    },
+    input: {
+        fontSize: 18,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
+        paddingVertical: 0,
+    },
+    createActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    cancelButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+    },
+    cancelText: {
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
+    },
+    createBtn: {
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        borderRadius: 16,
+        minWidth: 140,
+        alignItems: 'center',
+    },
+    createBtnText: {
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     emptyState: {
         padding: 60,
@@ -254,5 +316,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 15,
         fontSize: 14,
+        fontFamily: 'PlusJakartaSans_400Regular',
     },
 });

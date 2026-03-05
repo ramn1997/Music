@@ -30,17 +30,16 @@ export const RecentlyAddedScreen = () => {
         return result;
     }, [songs]);
 
-    const handlePlaySong = (item: any) => {
-        // We need to construct a linear playlist from the sections for the player
+    const handlePlaySong = React.useCallback((item: any) => {
         const allSongs = sections.flatMap(s => s.data);
         const index = allSongs.findIndex(s => s.id === item.id);
         if (index !== -1) {
             playSongInPlaylist(allSongs, index);
             navigation.navigate('Player');
         }
-    };
+    }, [sections, playSongInPlaylist, navigation]);
 
-    const renderSong = ({ item }: { item: any }) => (
+    const renderSong = React.useCallback(({ item }: { item: any }) => (
         <TouchableOpacity
             style={styles.songItem}
             onPress={() => handlePlaySong(item)}
@@ -60,7 +59,7 @@ export const RecentlyAddedScreen = () => {
                 {item.dateAdded ? new Date(item.dateAdded).toLocaleDateString() : ''}
             </Text>
         </TouchableOpacity>
-    );
+    ), [theme, handlePlaySong]);
 
     return (
         <ScreenContainer variant="default">

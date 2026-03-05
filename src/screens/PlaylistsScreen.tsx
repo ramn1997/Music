@@ -13,6 +13,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
 import { MusicImage } from '../components/MusicImage';
 import { MarqueeText } from '../components/MarqueeText';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 const getGradientColors = (id: string): [string, string] => {
     switch (id) {
@@ -193,31 +194,34 @@ export const PlaylistsScreen = () => {
                     onRequestClose={() => setModalVisible(false)}
                 >
                     <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: theme.background, borderColor: theme.cardBorder }]}>
+                        <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
                             <TouchableOpacity
-                                style={styles.closeButton}
+                                style={styles.headerCloseButton}
                                 onPress={() => setModalVisible(false)}
                             >
-                                <Ionicons name="close" size={20} color={theme.textSecondary} />
+                                <Ionicons name="close" size={24} color={theme.text} />
                             </TouchableOpacity>
 
                             <Text style={[styles.modalTitle, { color: theme.text }]}>New Playlist</Text>
 
-                            <TextInput
-                                style={[styles.input, { color: theme.text, backgroundColor: theme.card, borderColor: theme.cardBorder }]}
-                                placeholder="Playlist Name"
-                                placeholderTextColor={theme.textSecondary}
-                                value={newPlaylistName}
-                                onChangeText={setNewPlaylistName}
-                                autoFocus
-                            />
+                            <View style={[styles.createCard, { backgroundColor: theme.card, borderColor: theme.cardBorder, borderWidth: 1 }]}>
+                                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Playlist Name</Text>
+                                <TextInput
+                                    style={[styles.input, { color: theme.text }]}
+                                    placeholder="Summer Hits 2026"
+                                    placeholderTextColor={theme.textSecondary + '80'}
+                                    value={newPlaylistName}
+                                    onChangeText={setNewPlaylistName}
+                                    autoFocus
+                                />
+                            </View>
 
                             <View style={styles.modalButtons}>
                                 <TouchableOpacity
-                                    style={[styles.modalButton, { backgroundColor: theme.primary, borderColor: 'transparent' }]}
+                                    style={[styles.modalButton, { backgroundColor: theme.primary }]}
                                     onPress={handleAddPlaylist}
                                 >
-                                    <Text style={{ color: theme.textOnPrimary, fontWeight: 'bold' }}>Create</Text>
+                                    <Text style={[styles.modalButtonText, { color: theme.textOnPrimary }]}>Create Playlist</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -225,36 +229,15 @@ export const PlaylistsScreen = () => {
                 </Modal>
 
                 {/* Delete Confirmation Modal */}
-                <Modal
-                    animationType="fade"
-                    transparent={true}
+                <ConfirmationModal
                     visible={deleteModalVisible}
-                    onRequestClose={() => setDeleteModalVisible(false)}
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: theme.background, borderColor: theme.cardBorder }]}>
-                            <Text style={[styles.modalTitle, { color: theme.text }]}>Delete Playlist</Text>
-                            <Text style={{ color: theme.textSecondary, textAlign: 'center', marginBottom: 20 }}>
-                                Are you sure you want to delete "{playlistToDelete?.name}"?
-                            </Text>
-
-                            <View style={styles.modalButtons}>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, { backgroundColor: theme.card }]}
-                                    onPress={() => setDeleteModalVisible(false)}
-                                >
-                                    <Text style={{ color: theme.text }}>Cancel</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, { backgroundColor: '#ef4444' }]}
-                                    onPress={handleDeletePlaylist}
-                                >
-                                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Delete</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
+                    title="Delete Playlist"
+                    message={`Are you sure you want to delete "${playlistToDelete?.name}"? This action cannot be undone.`}
+                    onConfirm={handleDeletePlaylist}
+                    onCancel={() => setDeleteModalVisible(false)}
+                    confirmText="Delete"
+                    isDestructive={true}
+                />
             </View>
         </ScreenContainer>
     );
@@ -287,9 +270,10 @@ const styles = StyleSheet.create({
         gap: 15
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        flex: 1
+        fontSize: 32,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        flex: 1,
+        letterSpacing: -1,
     },
     backButton: {
         width: 40,
@@ -393,44 +377,64 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
-        paddingBottom: 100 // Shift modal up
+        padding: 24,
     },
     modalContent: {
-        width: '80%', // Reduced width
-        maxWidth: 260,
-        borderRadius: 20,
-        padding: 15, // Further reduced padding
+        width: '100%',
+        maxWidth: 320,
+        borderRadius: 36,
+        padding: 24,
         borderWidth: 1,
+        position: 'relative',
+    },
+    headerCloseButton: {
+        position: 'absolute',
+        right: 16,
+        top: 16,
+        zIndex: 10,
     },
     modalTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 10, // Further reduced margin
-        textAlign: 'center'
+        fontSize: 22,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        marginBottom: 24,
+        textAlign: 'center',
+        letterSpacing: -0.5,
+    },
+    createCard: {
+        borderRadius: 20,
+        padding: 18,
+        marginBottom: 24,
+    },
+    inputLabel: {
+        fontSize: 10,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        opacity: 0.5,
     },
     input: {
-        borderRadius: 12,
-        padding: 8,
-        fontSize: 14,
-        borderWidth: 1,
-        marginBottom: 10 // Further reduced margin
+        fontSize: 18,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
+        paddingVertical: 0,
     },
     modalButtons: {
         flexDirection: 'row',
-        justifyContent: 'flex-end', // Move to right
+        justifyContent: 'center',
     },
     modalButton: {
-        width: '30%', // Smaller width
-        padding: 8,
-        borderRadius: 12,
+        width: '100%',
+        paddingVertical: 14,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)'
+    },
+    modalButtonText: {
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     deleteOption: {
         position: 'absolute',
