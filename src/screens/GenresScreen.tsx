@@ -15,7 +15,7 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
     const { songs } = useLocalMusic();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
+    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
 

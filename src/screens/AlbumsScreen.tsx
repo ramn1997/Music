@@ -216,7 +216,6 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 </View>
             )}
 
-            {/* Separate Search Bar Row */}
             <View style={{
                 paddingHorizontal: 20,
                 marginBottom: 10,

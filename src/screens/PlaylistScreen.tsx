@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -598,15 +597,14 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     return (
         <ScreenContainer variant="default">
             <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-                <View style={styles.header}>
+                {/* Header Bar */}
+                <View style={[styles.header, (type === 'artist' || type === 'album') && { backgroundColor: 'transparent' }]}>
                     <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={theme.text} />
                     </TouchableOpacity>
 
-
-
-                    {/* Search Bar in Header - Excluded for Artist/Album */}
-                    {type !== 'artist' && type !== 'album' && (
+                    {/* Search Bar in Header - shown for all types that have songs */}
+                    {(!['genre'].includes(type || '')) && (
                         <View style={{
                             flex: 1,
                             marginLeft: 15,
@@ -620,7 +618,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                         }}>
                             <Ionicons name="search" size={18} color={theme.textSecondary} style={{ marginRight: 8 }} />
                             <TextInput
-                                placeholder="Search in playlist..."
+                                placeholder={type === 'artist' ? `Search artist songs...` : type === 'album' ? `Search album songs...` : `Search in playlist...`}
                                 placeholderTextColor={theme.textSecondary}
                                 style={{
                                     flex: 1,
@@ -645,6 +643,68 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                     <View style={{ width: 40 }} />
                 </View>
 
+                {/* Artist / Album Art Card - shown BELOW the back button */}
+                {(type === 'artist' || type === 'album') && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 12 }}>
+                        <View
+                            style={[
+                                styles.playlistArtCard,
+                                (type === 'artist') && { borderRadius: 85 },
+                                type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
+                                { overflow: 'hidden', width: 150, height: 150, marginBottom: 0, marginRight: 16 }
+                            ]}
+                        >
+                            {(type === 'artist') ? (
+                                <TouchableOpacity
+                                    onPress={handleEditArtistImage}
+                                    style={StyleSheet.absoluteFill}
+                                >
+                                    <MusicImage
+                                        uri={artistCustomMeta?.coverImage || deezerArtistImage || artistInfo?.image || undefined}
+                                        id={name}
+                                        style={StyleSheet.absoluteFill}
+                                        iconSize={70}
+                                    />
+                                </TouchableOpacity>
+                            ) : (type === 'album') ? (
+                                <MusicImage
+                                    uri={displaySongs[0]?.coverImage}
+                                    id={displaySongs[0]?.id}
+                                    assetUri={displaySongs[0]?.uri}
+                                    style={{ width: '100%', height: '100%' }}
+                                    containerStyle={{ width: '100%', height: '100%', borderRadius: 16 }}
+                                />
+                            ) : null}
+                        </View>
+
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 24, fontWeight: '800', color: theme.text, marginBottom: 4 }} numberOfLines={2}>
+                                {displayName}
+                            </Text>
+
+                            {type === 'album' && (
+                                <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
+                            )}
+
+                            {type === 'artist' && artistInfo?.listeners && (
+                                <Text style={{ color: theme.textSecondary, fontSize: 11, marginTop: 4 }} numberOfLines={1}>
+                                    {parseInt(artistInfo.listeners).toLocaleString()} listeners
+                                </Text>
+                            )}
+
+                            {type === 'artist' && artistInfo?.bio && (
+                                <Text
+                                    style={{ color: theme.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 6 }}
+                                    numberOfLines={3}
+                                >
+                                    {artistInfo.bio}
+                                </Text>
+                            )}
+                        </View>
+                    </View>
+                )}
+
+
                 {loading ? (
                     <View style={styles.center}>
                         <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading Music...</Text>
@@ -667,158 +727,119 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                 </View>
                             }
                             ListHeaderComponent={
-                                <View style={styles.playlistHeader}>
-                                    {/* Unified Left-Aligned Header */}
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-                                        <View
-                                            style={[
-                                                styles.playlistArtCard,
-                                                (type === 'artist') && { borderRadius: 85 },
-                                                type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
-                                                { overflow: 'hidden', width: 170, height: 170, marginBottom: 0, marginRight: 20 }
-                                            ]}
-                                        >
-                                            {(type === 'artist') ? (
-                                                <TouchableOpacity
-                                                    activeOpacity={0.8}
-                                                    onPress={() => setShowArtistArtOptions(true)}
-                                                    style={StyleSheet.absoluteFill}
-                                                >
-                                                    <MusicImage
-                                                        uri={artistCustomMeta?.coverImage || deezerArtistImage || artistInfo?.image || undefined}
-                                                        id={name}
-                                                        style={StyleSheet.absoluteFill}
-                                                        iconSize={80}
-                                                        iconName="person"
-                                                    />
-                                                    <View style={{
-                                                        position: 'absolute',
-                                                        bottom: 0,
-                                                        left: 0,
-                                                        right: 0,
-                                                        height: 28,
-                                                        backgroundColor: 'rgba(0,0,0,0.5)',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center'
-                                                    }}>
-                                                        <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>EDIT</Text>
-                                                    </View>
-                                                </TouchableOpacity>
-                                            ) : (type === 'album') ? (
-                                                <MusicImage
-                                                    uri={displaySongs[0]?.coverImage}
-                                                    id={displaySongs[0]?.id}
-                                                    assetUri={displaySongs[0]?.uri}
-                                                    style={{ width: '100%', height: '100%' }}
-                                                    containerStyle={{ width: '100%', height: '100%' }}
-                                                    iconSize={80}
-                                                />
-                                            ) : (
-                                                <PlaylistCollage
-                                                    songs={collageSongsForHeader}
-                                                    size={170}
-                                                    iconSize={80}
-                                                    iconName={
-                                                        id === 'liked' ? 'heart' :
-                                                            (id === 'most_played' || type === 'most_played') ? 'refresh' :
-                                                                type === 'never_played' ? 'close-circle' :
-                                                                    type === 'recently_added' ? 'add-circle' :
-                                                                        type === 'recently_played' ? 'time' :
-                                                                            type === 'year' ? 'calendar' :
-                                                                                'musical-notes'
-                                                    }
-                                                    gradientColors={gradientColors as [string, string]}
-                                                />
-                                            )}
-                                        </View>
-
-                                        <View style={{ flex: 1 }}>
-                                            {isEditing ? (
-                                                <TextInput
-                                                    value={editName}
-                                                    onChangeText={setEditName}
-                                                    onSubmitEditing={handleRename}
-                                                    onBlur={() => setIsEditing(false)}
-                                                    autoFocus
+                                <View style={[styles.playlistHeader, (type === 'artist' || type === 'album') && { paddingHorizontal: 0, paddingTop: 0 }]}>
+                                    {(type === 'artist' || type === 'album') ? (
+                                        <>{/* artwork shown above, action buttons below */}</>
+                                    ) : (
+                                        <>
+                                            {/* Unified Left-Aligned Header */}
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: (type === 'artist' || type === 'album') ? 20 : 0 }}>
+                                                <View
                                                     style={[
-                                                        styles.playlistName,
-                                                        {
-                                                            color: theme.text,
-                                                            fontSize: 24,
-                                                            marginBottom: 4,
-                                                            textAlign: 'left',
-                                                            paddingHorizontal: 0,
-                                                            borderBottomWidth: 1,
-                                                            borderBottomColor: theme.primary,
-                                                            paddingVertical: 0
-                                                        }
+                                                        styles.playlistArtCard,
+                                                        type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
+                                                        { overflow: 'hidden', width: 170, height: 170, marginBottom: 0, marginRight: 20 }
                                                     ]}
-                                                />
-                                            ) : (
-                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                                    <TouchableOpacity
-                                                        disabled={type !== 'playlist' || id === 'liked'}
-                                                        onPress={() => {
-                                                            if (type === 'playlist' && id !== 'liked') {
-                                                                setEditName(displayName);
-                                                                setIsEditing(true);
-                                                            }
-                                                        }}
-                                                        activeOpacity={0.7}
-                                                        style={{ flexShrink: 1 }}
-                                                    >
-                                                        <Text style={[
-                                                            styles.playlistName,
-                                                            {
-                                                                color: theme.text,
-                                                                fontSize: 26,
-                                                                marginBottom: 4,
-                                                                textAlign: 'left',
-                                                                paddingHorizontal: 0
-                                                            }
-                                                        ]}>{displayName}</Text>
-                                                    </TouchableOpacity>
-                                                    {type === 'playlist' && id !== 'liked' && (
-                                                        <TouchableOpacity
-                                                            onPress={() => {
-                                                                setEditName(displayName);
-                                                                setIsEditing(true);
-                                                            }}
-                                                            style={{ marginLeft: 8, padding: 5 }}
-                                                        >
-                                                            <Ionicons name="pencil" size={18} color={theme.textSecondary} />
-                                                        </TouchableOpacity>
-                                                    )}
+                                                >
+                                                    <PlaylistCollage
+                                                        songs={collageSongsForHeader}
+                                                        size={170}
+                                                        iconSize={80}
+                                                        iconName={
+                                                            id === 'liked' ? 'heart' :
+                                                                (id === 'most_played' || type === 'most_played') ? 'refresh' :
+                                                                    type === 'never_played' ? 'close-circle' :
+                                                                        type === 'recently_added' ? 'add-circle' :
+                                                                            type === 'recently_played' ? 'time' :
+                                                                                type === 'year' ? 'calendar' :
+                                                                                    'musical-notes'
+                                                        }
+                                                        gradientColors={gradientColors as [string, string]}
+                                                    />
                                                 </View>
-                                            )}
-                                            <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
 
-                                            {/* Artist Bio Snippet */}
-                                            {type === 'artist' && artistInfo?.listeners && (
-                                                <Text style={{ color: theme.textSecondary, fontSize: 11, marginTop: 4 }} numberOfLines={1}>
-                                                    {parseInt(artistInfo.listeners).toLocaleString()} listeners
+                                                <View style={{ flex: 1 }}>
+                                                    {isEditing ? (
+                                                        <TextInput
+                                                            value={editName}
+                                                            onChangeText={setEditName}
+                                                            onSubmitEditing={handleRename}
+                                                            onBlur={() => setIsEditing(false)}
+                                                            autoFocus
+                                                            style={[
+                                                                styles.playlistName,
+                                                                {
+                                                                    color: theme.text,
+                                                                    fontSize: 24,
+                                                                    marginBottom: 4,
+                                                                    textAlign: 'left',
+                                                                    paddingHorizontal: 0,
+                                                                    borderBottomWidth: 1,
+                                                                    borderBottomColor: theme.primary,
+                                                                    paddingVertical: 0
+                                                                }
+                                                            ]}
+                                                        />
+                                                    ) : (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                            <TouchableOpacity
+                                                                disabled={type !== 'playlist' || id === 'liked'}
+                                                                onPress={() => {
+                                                                    if (type === 'playlist' && id !== 'liked') {
+                                                                        setEditName(displayName);
+                                                                        setIsEditing(true);
+                                                                    }
+                                                                }}
+                                                                activeOpacity={0.7}
+                                                                style={{ flexShrink: 1 }}
+                                                            >
+                                                                <Text style={[
+                                                                    styles.playlistName,
+                                                                    {
+                                                                        color: theme.text,
+                                                                        fontSize: 26,
+                                                                        marginBottom: 4,
+                                                                        textAlign: 'left',
+                                                                        paddingHorizontal: 0
+                                                                    }
+                                                                ]}>{displayName}</Text>
+                                                            </TouchableOpacity>
+                                                            {type === 'playlist' && id !== 'liked' && (
+                                                                <TouchableOpacity
+                                                                    onPress={() => {
+                                                                        setEditName(displayName);
+                                                                        setIsEditing(true);
+                                                                    }}
+                                                                    style={{ marginLeft: 8, padding: 5 }}
+                                                                >
+                                                                    <Ionicons name="pencil" size={18} color={theme.textSecondary} />
+                                                                </TouchableOpacity>
+                                                            )}
+                                                        </View>
+                                                    )}
+                                                    <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
+                                                </View>
+                                            </View>
+
+                                            {/* Artist Bio Full (Optional context) */}
+                                            {!(type === 'artist' || type === 'album') && type === 'artist' && artistInfo?.bio && (
+                                                <Text
+                                                    style={{
+                                                        color: theme.textSecondary,
+                                                        fontSize: 13,
+                                                        textAlign: 'left',
+                                                        marginTop: 15,
+                                                        lineHeight: 18,
+                                                        width: '100%'
+                                                    }}
+                                                    numberOfLines={3}
+                                                >
+                                                    {artistInfo.bio}
                                                 </Text>
                                             )}
-                                        </View>
-                                    </View>
-
-                                    {/* Artist Bio Full (Optional context) */}
-                                    {type === 'artist' && artistInfo?.bio && (
-                                        <Text
-                                            style={{
-                                                color: theme.textSecondary,
-                                                fontSize: 13,
-                                                textAlign: 'left',
-                                                marginTop: 15,
-                                                lineHeight: 18,
-                                                width: '100%'
-                                            }}
-                                            numberOfLines={3}
-                                        >
-                                            {artistInfo.bio}
-                                        </Text>
+                                        </>
                                     )}
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, paddingHorizontal: (type === 'artist' || type === 'album') ? 20 : 0 }}>
                                         <TouchableOpacity
                                             style={[styles.playAllButton, { backgroundColor: theme.primary }]}
                                             onPress={() => {
