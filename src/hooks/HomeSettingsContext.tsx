@@ -42,14 +42,11 @@ export const HomeSettingsProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const toggleSectionVisibility = async (section: HomeSection) => {
-        const newValue = !sectionVisibility[section];
-        const updatedVisibility = { ...sectionVisibility, [section]: newValue };
-        setSectionVisibility(updatedVisibility);
-        try {
-            await AsyncStorage.setItem('home_section_visibility', JSON.stringify(updatedVisibility));
-        } catch (e) {
-            console.error('Failed to save home section visibility settings', e);
-        }
+        setSectionVisibility((prev) => {
+            const nextVisibility = { ...prev, [section]: !prev[section] };
+            AsyncStorage.setItem('home_section_visibility', JSON.stringify(nextVisibility)).catch(console.error);
+            return nextVisibility;
+        });
     };
 
     return (

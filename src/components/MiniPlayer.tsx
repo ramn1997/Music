@@ -25,12 +25,12 @@ export const MiniPlayer = () => {
 
     const seekInterval = useRef<NodeJS.Timeout | null>(null);
 
-    // Only hide mini player when on the full Player screen, Queue screen, Settings screen, About screen, Equalizer screen, or if no song exists
-    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Queue' || currentRouteName === 'Settings' || currentRouteName === 'About' || currentRouteName === 'Equalizer';
+    // Only hide mini player when on the full Player screen, Queue screen, Settings screen, About screen, or if no song exists
+    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Queue' || currentRouteName === 'Settings' || currentRouteName === 'About';
     if (!currentSong || isHiddenScreen) return null;
 
     // List of screens that DO NOT have a bottom tab bar
-    const noTabBarScreens = ['Player', 'Settings', 'Equalizer', 'EditSong', 'Lyrics'];
+    const noTabBarScreens = ['Player', 'Settings', 'EditSong', 'Lyrics'];
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
     // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.

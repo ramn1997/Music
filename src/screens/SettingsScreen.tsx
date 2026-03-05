@@ -30,6 +30,7 @@ export const SettingsScreen = () => {
     const [navExpanded, setNavExpanded] = useState(false);
     const navigation = useNavigation<any>();
     const { fetchMusic, loading, scanForFolders, loadSongsFromFolders, refreshMetadata, savedFolders } = useMusicLibrary();
+    const { isGapless, setGapless } = usePlayerContext();
     const { sectionVisibility, toggleSectionVisibility } = useHomeSettings();
 
     // Folder Picker State
@@ -41,21 +42,7 @@ export const SettingsScreen = () => {
     const [pickerStep, setPickerStep] = useState<'storage' | 'folder'>('storage');
     const [targetStorage, setTargetStorage] = useState<string>('');
 
-    const [audioQuality, setAudioQuality] = useState('medium');
-    const [isQualityModalVisible, setQualityModalVisible] = useState(false);
 
-    React.useEffect(() => {
-        const loadQuality = async () => {
-            const saved = await AsyncStorage.getItem('audio_quality');
-            if (saved) setAudioQuality(saved);
-        };
-        loadQuality();
-    }, []);
-
-    const saveQuality = async (q: string) => {
-        setAudioQuality(q);
-        await AsyncStorage.setItem('audio_quality', q);
-    };
 
     const handleOpenFolderPicker = async () => {
         const folders = await scanForFolders();
@@ -131,7 +118,7 @@ export const SettingsScreen = () => {
 
                         {themeExpanded && (
                             <View style={[styles.dropdownContainer, { backgroundColor: 'transparent', borderTopWidth: 1, borderColor: theme.cardBorder }]}>
-                                {(['fire', 'water', 'forest', 'cyber', 'black', 'light'] as const).map((t) => (
+                                {(['fire', 'water', 'forest', 'nebula', 'cyber', 'black', 'light'] as const).map((t) => (
                                     <TouchableOpacity
                                         key={t}
                                         style={[
@@ -262,7 +249,20 @@ export const SettingsScreen = () => {
                             <Switch
                                 value={isCarouselEnabled}
                                 onValueChange={setCarouselEnabled}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                trackColor={{ false: theme.cardBorder, true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
+                        <View style={[styles.divider, { backgroundColor: theme.cardBorder }]} />
+                        <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="infinite-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Gapless Playback</Text>
+                            </View>
+                            <Switch
+                                value={isGapless}
+                                onValueChange={setGapless}
+                                trackColor={{ false: theme.cardBorder, true: theme.primary }}
                                 thumbColor={'#f4f3f4'}
                             />
                         </View>
@@ -298,19 +298,7 @@ export const SettingsScreen = () => {
                             />
                         </View>
                         <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="library-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Playlists</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.playlists}
-                                onValueChange={() => toggleSectionVisibility('playlists')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleRowInfo}>
                                 <Ionicons name="heart-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
@@ -324,6 +312,21 @@ export const SettingsScreen = () => {
                             />
                         </View>
                         <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="library-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Playlists</Text>
+                            </View>
+                            <Switch
+                                value={sectionVisibility.playlists}
+                                onValueChange={() => toggleSectionVisibility('playlists')}
+                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
+                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleRowInfo}>
                                 <Ionicons name="time-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
@@ -337,6 +340,7 @@ export const SettingsScreen = () => {
                             />
                         </View>
                         <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleRowInfo}>
                                 <Ionicons name="stats-chart-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
@@ -350,6 +354,7 @@ export const SettingsScreen = () => {
                             />
                         </View>
                         <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
+
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleRowInfo}>
                                 <Ionicons name="people-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
@@ -365,40 +370,6 @@ export const SettingsScreen = () => {
                     </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Audio</Text>
-                    <View style={[styles.customSectionContainer, { backgroundColor: theme.card }]}>
-                        <TouchableOpacity
-                            style={styles.settingsRow}
-                            onPress={() => navigation.navigate('Equalizer')}
-                        >
-                            <View style={styles.rowIcon}>
-                                <Ionicons name="options-outline" size={20} color={theme.primary} />
-                            </View>
-                            <View style={styles.rowContent}>
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Equalizer</Text>
-                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Presets & Custom Bands</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                        </TouchableOpacity>
-
-                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
-
-                        <TouchableOpacity
-                            style={styles.settingsRow}
-                            onPress={() => setQualityModalVisible(true)}
-                        >
-                            <View style={styles.rowIcon}>
-                                <Ionicons name="stats-chart" size={20} color={theme.secondary} />
-                            </View>
-                            <View style={styles.rowContent}>
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Audio Quality</Text>
-                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>{audioQuality.charAt(0).toUpperCase() + audioQuality.slice(1)} • Responsive</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
 
                 <View style={styles.section}>
                     <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Library & Maintenance</Text>
@@ -457,89 +428,6 @@ export const SettingsScreen = () => {
                         </TouchableOpacity>
                     </View>
                 </View>
-
-                {/* Audio Quality Modal */}
-                <Modal
-                    visible={isQualityModalVisible}
-                    transparent
-                    animationType="slide"
-                    onRequestClose={() => setQualityModalVisible(false)}
-                >
-                    <TouchableOpacity
-                        style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
-                        activeOpacity={1}
-                        onPress={() => setQualityModalVisible(false)}
-                    >
-                        <View
-                            style={[
-                                styles.premiumModal,
-                                { backgroundColor: theme.card, borderColor: theme.cardBorder }
-                            ]}
-                        >
-                            <View style={styles.modalIndictor} />
-
-                            <View style={styles.premiumModalHeader}>
-                                <Text style={[styles.premiumModalTitle, { color: theme.text }]}>Playback Quality</Text>
-                                <Text style={[styles.premiumModalSub, { color: theme.textSecondary }]}>Tailor the audio engine performance</Text>
-                            </View>
-
-                            <View style={styles.qualityCardsGrid}>
-                                {[
-                                    {
-                                        id: 'high',
-                                        label: 'Ultra High',
-                                        desc: '32-bit float processing • Best detail',
-                                        icon: 'diamond-outline',
-                                        color: '#fbbf24'
-                                    },
-                                    {
-                                        id: 'medium',
-                                        label: 'Balanced',
-                                        desc: 'Efficient buffer • Stable performance',
-                                        icon: 'flash-outline',
-                                        color: theme.primary
-                                    },
-                                    {
-                                        id: 'low',
-                                        label: 'Power Saver',
-                                        desc: 'Reduced CPU load • Fast loading',
-                                        icon: 'leaf-outline',
-                                        color: '#10b981'
-                                    }
-                                ].map((opt) => (
-                                    <TouchableOpacity
-                                        key={opt.id}
-                                        style={[
-                                            styles.premiumQualityCard,
-                                            { backgroundColor: theme.background, borderColor: theme.cardBorder },
-                                            audioQuality === opt.id && { borderColor: theme.primary, borderWidth: 2 }
-                                        ]}
-                                        onPress={() => {
-                                            saveQuality(opt.id);
-                                            setQualityModalVisible(false);
-                                        }}
-                                    >
-                                        <View style={[styles.qualityLabelRow]}>
-                                            <View style={[styles.miniIconCircle, { backgroundColor: opt.color + '20' }]}>
-                                                <Ionicons name={opt.icon as any} size={18} color={opt.color} />
-                                            </View>
-                                            <Text style={[styles.premiumOptionLabel, { color: theme.text }]}>{opt.label}</Text>
-                                            {audioQuality === opt.id && <Ionicons name="checkmark-circle" size={20} color={theme.primary} />}
-                                        </View>
-                                        <Text style={[styles.premiumOptionDesc, { color: theme.textSecondary }]}>{opt.desc}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <TouchableOpacity
-                                style={[styles.premiumCloseBtn, { backgroundColor: theme.primary }]}
-                                onPress={() => setQualityModalVisible(false)}
-                            >
-                                <Text style={[styles.premiumCloseText, { color: '#fff' }]}>Done</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableOpacity>
-                </Modal>
             </ScrollView>
 
             <Modal

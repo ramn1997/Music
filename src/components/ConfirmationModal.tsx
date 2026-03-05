@@ -34,13 +34,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             onRequestClose={onCancel}
         >
             <View style={styles.overlay}>
-                <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
                     <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
                     <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
 
                     <View style={styles.buttonContainer}>
                         <TouchableOpacity
-                            style={[styles.button, { backgroundColor: 'rgba(255,255,255,0.05)' }]}
+                            style={[styles.button, { backgroundColor: theme.card }]}
                             onPress={onCancel}
                         >
                             <Text style={[styles.buttonText, { color: theme.text }]}>{cancelText}</Text>

@@ -189,12 +189,12 @@ class ImportService {
             title: title,
             artist: artist,
             album: album,
-            year: asset.year,
+            genre: asset.genre,
             albumId,
             coverImage: systemArtUri,
             scanStatus: 'enhanced', // Pre-enhanced by native module since it pulls ID3 text!
             folder: this.getRootFolder(asset.uri) || undefined,
-            dateAdded: asset.dateAdded || asset.creationTime || Date.now(),
+            dateAdded: (asset.dateAdded ? asset.dateAdded * 1000 : (asset.creationTime || Date.now())),
             playCount: 0,
             lastPlayed: 0,
             playHistory: []
@@ -250,6 +250,7 @@ class ImportService {
                             let libYear = song.year;
                             const albumId = song.albumId;
                             const targetUri = song.uri;
+                            let libGenre = song.genre;
 
                             let systemArtUri = null;
                             if (Platform.OS === 'android' && albumId && !['null', 'undefined', '-1', '0'].includes(String(albumId))) {
@@ -257,14 +258,14 @@ class ImportService {
                             }
 
                             // A song is missing text if it is literally missing these properties
-                            const missingText = !libTitle || !libArtist || libArtist === 'Unknown Artist' || !libAlbum || libAlbum === 'Unknown Album';
+                            const missingGenre = !libGenre || libGenre === 'Unknown Genre' || libGenre === 'undefined';
+                            const missingText = !libTitle || !libArtist || libArtist === 'Unknown Artist' || !libAlbum || libAlbum === 'Unknown Album' || missingGenre;
                             const missingArt = !systemArtUri;
 
                             // OPTIMIZATION: ONLY extract physically from file if text is missing.
                             // The native scanner already pulled the OS indexed tags. Over-scanning freezes the app.
                             const needsFileExtraction = missingText;
                             let extractedArtUri = null;
-                            let libGenre = song.genre;
 
                             if (needsFileExtraction) {
                                 try {
@@ -506,6 +507,7 @@ class ImportService {
             try {
                 // Instantly fetch full local library recursively with DB metadata natively without freezing UI
                 allAssets = await scanAudioFilesAsync();
+                console.log(`[ImportService] Native scanner found ${allAssets.length} assets`);
             } catch (scanErr) {
                 console.warn("[ImportService] Native scanner failed, falling back to MediaLibrary", scanErr);
                 let hasNextPage = true;
@@ -525,6 +527,7 @@ class ImportService {
                     after = media.endCursor;
                     pageCount++;
                 }
+                console.log(`[ImportService] MediaLibrary fallback found ${allAssets.length} assets`);
             }
 
             if (this.cancelToken.cancelled) {
@@ -543,6 +546,14 @@ class ImportService {
             const total = filteredAssets.length;
 
             if (total === 0) {
+                // Still try to enhance existing unenhanced songs if any
+                const unenhancedCount = await databaseService.getUnenhancedSongsCount();
+                if (unenhancedCount > 0) {
+                    this.startEnhancement(callbacks, options.forceDeepScan).catch(e => {
+                        console.error('[ImportService] Background enhancement (cleanup) failed', e);
+                    });
+                }
+
                 callbacks.onComplete([]);
                 this.isImporting = false;
                 return;

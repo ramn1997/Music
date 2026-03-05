@@ -105,7 +105,7 @@ export const SongSelectionModal: React.FC<SongSelectionModalProps> = ({
             >
                 <View style={styles.overlay}>
                     <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-                    <View style={[styles.container, { backgroundColor: theme.background }]}>
+                    <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
 
                         <View style={styles.handleContainer}>
                             <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />

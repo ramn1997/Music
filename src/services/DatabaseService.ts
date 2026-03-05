@@ -254,7 +254,9 @@ class DatabaseService {
                    OR artist = 'Unknown Artist' 
                    OR genre IS NULL 
                    OR genre = 'undefined'
+                   OR genre = 'Unknown Genre'
                    OR title = 'Unknown Title'
+                   OR title = filename
             `);
             console.log('[DatabaseService] Marked incomplete metadata songs as pending for resync.');
         } finally {

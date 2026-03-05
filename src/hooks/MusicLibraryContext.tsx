@@ -336,7 +336,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
-        if (folderNames !== null && folderNames.length === 0) {
+        if (saveToStorage && folderNames !== null && folderNames.length === 0) {
             // User deselected all folders -> Clear everything
             setSongs([]);
             setLikedSongs([]);
@@ -407,11 +407,12 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     }
                 },
                 onComplete: (finalSongs) => {
-                    const convertedSongs = finalSongs.map(s => ({
+                    const convertedSongs = (finalSongs || []).map(s => ({
                         ...s,
                         scanStatus: s.scanStatus as string | undefined
                     })) as Song[];
-                    // Apply ALL metadata and load songs into app
+
+                    // Always update local state, even if empty, so UI reflects current reality
                     setSongs(mergeSongData(convertedSongs, customMetadataRef.current, songMetadataRef.current));
 
                     // Don't clear progress immediately if we are enhancing
@@ -674,6 +675,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
 
                 added = mergeSongData(added, customMetadataRef.current, songMetadataRef.current);
+                added = added.slice(0, 200); // Cap same as recentlyPlayed
                 setRecentlyAdded(added);
                 AsyncStorage.setItem('cached_recently_added', JSON.stringify(added)).catch(() => { });
 
@@ -739,7 +741,7 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
             calculateStats().finally(() => {
                 isCalculatingStats.current = false;
             });
-        }, 15000);
+        }, 3000); // 3s: enough to let import settle, fast enough to feel instant
 
         return () => {
             if (calculationTimeoutRef.current) clearTimeout(calculationTimeoutRef.current);
@@ -881,8 +883,8 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
             // First, revert any incompletely loaded track to 'pending' to force them to be checked again.
             await databaseService.markIncompleteSongsAsPending();
 
-            // Next, scan for newly added tracks, don't wipe existing cache or force full deep scan.
-            await loadSongsFromFolders(savedFolders, false, true, false);
+            // Next, scan for newly added tracks, and FORCE deep scan to fix existing pending songs.
+            await loadSongsFromFolders(savedFolders, false, true, true);
         } catch (e) {
             console.error("Failed to scan for new music", e);
         }

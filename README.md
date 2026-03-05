@@ -2,7 +2,15 @@
 
 A premium, comprehensive, and feature-rich music player application built with React Native and Expo. Designed for audiophiles who value aesthetics, performance, and complete control over their local library.
 
-## ✨ New in v1.2.0
+## ✨ New in v1.3.0
+
+-   **Gapless Playback**: Experience completely seamless transitions between tracks with optimized ExoPlayer buffering capabilities.
+-   **Playback Speed Control**: Fine-tune your listening experience by adjusting audio playback speed from 0.5x up to 2.0x, seamlessly integrated into the song options menu.
+-   **Visual Share Cards**: Generate stunning, gradient-rich image cards of your favorite songs and easily share them to other apps directly from the player screen or track options.
+-   **Favorites Screen Dashboard Overhaul**: Fully redesigned to elegantly display Favorited Playlists, Artists, Albums, and now seamlessly integrates Favorited Genres.
+-   **Immersive About Screen**: A modernized, premium About Screen featuring floating logo animations and interactive gradient styling.
+
+## ✨ Highlights from v1.2.0
 
 -   **Dolby Audio integration**: Immerse yourself with the new premium Dolby Codec and Ultra Quality Engine options, togglable in the new equalizer settings.
 -   **Equalizer Overhaul**: A modern, sleek, and minimalist redesign for precise acoustic control.

@@ -3,6 +3,7 @@ import { StyleSheet, ViewStyle, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../hooks/ThemeContext';
 import Animated, {
@@ -10,6 +11,7 @@ import Animated, {
     useAnimatedStyle,
     withTiming,
     withDelay,
+    withRepeat,
     Easing
 } from 'react-native-reanimated';
 import { useIsFocused } from '@react-navigation/native';

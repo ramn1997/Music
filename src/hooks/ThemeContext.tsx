@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type ThemeType = 'water' | 'black' | 'cyber' | 'fire' | 'forest' | 'light' | 'system';
+export type ThemeType = 'water' | 'black' | 'cyber' | 'fire' | 'forest' | 'nebula' | 'light' | 'system';
 
 interface Theme {
     background: string;
@@ -92,6 +92,21 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#0a0a0c',
+        textOnPrimary: '#000000'
+    },
+    nebula: {
+        background: '#020505',
+        primary: '#0891b2', // Muted Cyan/Teal
+        secondary: '#164e63', // Deep Slate Blue
+        text: '#ecfeff',
+        textSecondary: '#64748b', // Muted Slate
+        card: 'rgba(20, 40, 50, 0.4)',
+        cardBorder: 'rgba(8, 145, 178, 0.1)',
+        gradient: ['#155e75', '#083344', '#020505', '#020505'], // Deep Teal -> Midnight Cyan -> Black
+        gradientLocations: [0, 0.08, 0.3, 1],
+        gradientStart: { x: 0.5, y: 0 },
+        gradientEnd: { x: 0.5, y: 1 },
+        menuBackground: '#083344',
         textOnPrimary: '#000000'
     },
     light: {

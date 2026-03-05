@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeNavigator } from './HomeNavigator';
-import { FavoritesScreen } from '../screens/FavoritesScreen';
+import { FavoritesNavigator } from './FavoritesNavigator';
 import { PlaylistsNavigator } from './PlaylistsNavigator';
-import { LibraryScreen } from '../screens/LibraryScreen';
+import { LibraryNavigator } from './LibraryNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
@@ -170,7 +170,7 @@ const HomeTabScreen = () => (
 
 const FavoritesTabScreen = () => (
     <View style={{ flex: 1 }}>
-        <FavoritesScreen />
+        <FavoritesNavigator />
     </View>
 );
 
@@ -182,7 +182,7 @@ const PlaylistsTabScreen = () => (
 
 const LibraryTabScreen = () => (
     <View style={{ flex: 1 }}>
-        <LibraryScreen />
+        <LibraryNavigator />
     </View>
 );
 

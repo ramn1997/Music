@@ -25,6 +25,7 @@ import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { SongSelectionModal } from '../components/SongSelectionModal';
 import { MusicImage } from '../components/MusicImage';
 import { useArtistImage } from '../hooks/useArtistImage';
+import { PlaylistCollage } from '../components/PlaylistCollage';
 
 // Safe import for ImagePicker
 let ImagePicker: any;
@@ -458,8 +459,11 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
             );
         }
 
-        // Apply sorting
-        if (sortOrder === 'recent') {
+        // Apply sorting — skip for smart playlists that are already pre-sorted by context
+        const isSmartPlaylist = ['most_played', 'recently_played', 'recently_added', 'never_played'].includes(type || '');
+        if (sortOrder === 'recent' && isSmartPlaylist) {
+            // Already in correct order from context — no-op
+        } else if (sortOrder === 'recent') {
             filtered.sort((a, b) => {
                 // If it's a playlist or liked songs, use the time it was ADDED to that list
                 if (type === 'playlist' || id === 'liked') {
@@ -499,6 +503,15 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         displaySongsRef.current = filtered;
         return filtered;
     }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery, recentlyPlayed, recentlyAdded, neverPlayed]);
+
+    // For the cover art collage, most_played should show songs by play count
+    // (not restricted to "played >2 today") so the collage always has artwork
+    const collageSongsForHeader = useMemo(() => {
+        if (type === 'most_played') {
+            return [...songs].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 4);
+        }
+        return displaySongs.slice(0, 4);
+    }, [type, songs, displaySongs]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
         const index = displaySongsRef.current.findIndex(s => s.id === song.id);
@@ -660,9 +673,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                         <View
                                             style={[
                                                 styles.playlistArtCard,
-                                                (type === 'artist') && { borderRadius: 65 },
+                                                (type === 'artist') && { borderRadius: 85 },
                                                 type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
-                                                { overflow: 'hidden', width: 130, height: 130, marginBottom: 0, marginRight: 20 }
+                                                { overflow: 'hidden', width: 170, height: 170, marginBottom: 0, marginRight: 20 }
                                             ]}
                                         >
                                             {(type === 'artist') ? (
@@ -700,72 +713,22 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     containerStyle={{ width: '100%', height: '100%' }}
                                                     iconSize={80}
                                                 />
-                                            ) : (['recently_played', 'most_played', 'recently_added'].includes(type || '') && displaySongs.length >= 4) ? (
-                                                <View style={StyleSheet.absoluteFill}>
-                                                    <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#222' }]}>
-                                                        {displaySongs.slice(0, 4).map((s, idx) => (
-                                                            <View key={`bgsong-${s.id}-${idx}`} style={{ width: '50%', height: '50%' }}>
-                                                                <MusicImage
-                                                                    uri={s.coverImage}
-                                                                    id={s.id}
-                                                                    style={{ width: '100%', height: '100%' }}
-                                                                    assetUri={s.uri}
-                                                                />
-                                                            </View>
-                                                        ))}
-                                                        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
-                                                    </View>
-
-                                                    <View style={{ position: 'absolute', top: -10, right: -10, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                                                    <View style={{ position: 'absolute', bottom: -5, left: -5, width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-                                                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'absolute' }}>
-                                                        <Ionicons
-                                                            name={
-                                                                (id === 'most_played' || type === 'most_played') ? 'refresh' :
-                                                                    type === 'recently_added' ? 'add-circle' :
-                                                                        'time'
-                                                            }
-                                                            size={50}
-                                                            color="white"
-                                                            style={{
-                                                                textShadowColor: 'rgba(0,0,0,0.5)',
-                                                                textShadowOffset: { width: 0, height: 2 },
-                                                                textShadowRadius: 6
-                                                            }}
-                                                        />
-                                                    </View>
-                                                </View>
                                             ) : (
-                                                <View style={StyleSheet.absoluteFill}>
-                                                    <LinearGradient
-                                                        colors={gradientColors as [string, string]}
-                                                        style={StyleSheet.absoluteFill}
-                                                        start={{ x: 0, y: 0 }}
-                                                        end={{ x: 1, y: 1 }}
-                                                    />
-                                                    <View style={{ position: 'absolute', top: -10, right: -10, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-                                                    <View style={{ position: 'absolute', bottom: -5, left: -5, width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.04)' }} />
-                                                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                                                        <Ionicons
-                                                            name={
-                                                                id === 'liked' ? 'heart' :
-                                                                    (id === 'most_played' || type === 'most_played') ? 'refresh' :
-                                                                        type === 'never_played' ? 'close-circle' :
-                                                                            type === 'recently_added' ? 'add-circle' :
-                                                                                type === 'recently_played' ? 'time' :
-                                                                                    type === 'year' ? 'calendar' :
-                                                                                        'musical-notes'
-                                                            }
-                                                            size={70}
-                                                            color="white"
-                                                            style={{
-                                                                textShadowColor: 'rgba(0,0,0,0.3)',
-                                                                textShadowOffset: { width: 0, height: 2 },
-                                                                textShadowRadius: 4
-                                                            }}
-                                                        />
-                                                    </View>
-                                                </View>
+                                                <PlaylistCollage
+                                                    songs={collageSongsForHeader}
+                                                    size={170}
+                                                    iconSize={80}
+                                                    iconName={
+                                                        id === 'liked' ? 'heart' :
+                                                            (id === 'most_played' || type === 'most_played') ? 'refresh' :
+                                                                type === 'never_played' ? 'close-circle' :
+                                                                    type === 'recently_added' ? 'add-circle' :
+                                                                        type === 'recently_played' ? 'time' :
+                                                                            type === 'year' ? 'calendar' :
+                                                                                'musical-notes'
+                                                    }
+                                                    gradientColors={gradientColors as [string, string]}
+                                                />
                                             )}
                                         </View>
 

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/ThemeContext';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
 import { Song } from '../hooks/useLocalMusic';
+import { PlaylistCollage } from './PlaylistCollage';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -58,7 +59,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                     activeOpacity={1}
                     onPress={onClose}
                 >
-                    <View style={[styles.container, { backgroundColor: theme.card }]}>
+                    <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
                         <View style={styles.handleBarContainer}>
                             <View style={[styles.handleBar, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                         </View>
@@ -103,7 +104,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                                         onPress={handleCreatePlaylist}
                                         style={[styles.createBtn, { backgroundColor: theme.primary }]}
                                     >
-                                        <Text style={[styles.createBtnText, { color: '#fff' }]}>Create Playlist</Text>
+                                        <Text style={[styles.createBtnText, { color: theme.textOnPrimary }]}>Create Playlist</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -140,9 +141,14 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                                         style={styles.playlistItem}
                                         onPress={() => handleAddToPlaylist(item.id)}
                                     >
-                                        <View style={[styles.playlistIcon, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                                            <Ionicons name="musical-note" size={22} color={theme.text} />
-                                        </View>
+                                        <PlaylistCollage
+                                            songs={item.songs}
+                                            size={48}
+                                            iconSize={22}
+                                            iconName="musical-note"
+                                            borderRadius={14}
+                                            showBubbles={false}
+                                        />
                                         <View style={styles.playlistInfo}>
                                             <Text style={[styles.playlistName, { color: theme.text }]}>{item.name}</Text>
                                             <Text style={[styles.songCount, { color: theme.textSecondary }]}>

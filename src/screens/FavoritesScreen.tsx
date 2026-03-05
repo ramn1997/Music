@@ -16,6 +16,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { usePlayerContext } from '../hooks/PlayerContext';
 import { useArtistImage } from '../hooks/useArtistImage';
 import { MusicImage } from '../components/MusicImage';
+import { PlaylistCollage } from '../components/PlaylistCollage';
 
 const FAVORITES = [
     { id: 'most_played', name: 'Most Played', type: 'Smart Playlist', image: 'https://images.unsplash.com/photo-1514525253440-b393452e8fc4?q=80&w=300&auto=format&fit=crop', screen: 'Playlist', params: { id: 'most', name: 'Most Played', type: 'most_played' } },
@@ -45,12 +46,7 @@ const getGradientColors = (id: string): [string, string] => {
     }
 };
 
-const CardDesign = () => (
-    <>
-        <View style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-        <View style={{ position: 'absolute', bottom: -10, left: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-    </>
-);
+const CardDesign = () => null;
 
 const ArtistAvatar = ({ name, id, isList, isGrid3 }: { name: string, id: string, isList: boolean, isGrid3: boolean }) => {
     const imageUri = useArtistImage(name);
@@ -76,15 +72,30 @@ const ArtistAvatar = ({ name, id, isList, isGrid3 }: { name: string, id: string,
 export const FavoritesScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
-    const { playlists, favoriteArtists, favoriteAlbums, likedSongs, favoriteSpecialPlaylists } = useMusicLibrary();
+    const { songs, playlists, favoriteArtists, favoriteAlbums, favoriteGenres, likedSongs, favoriteSpecialPlaylists } = useMusicLibrary();
     const { playSongInPlaylist } = usePlayerContext();
     const [layoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
 
     const allFavorites = useMemo(() => {
-        const favoritedPlaylists = playlists.filter(p => p.isFavorite).map(p => ({
+        const findImageForType = (name: string, type: 'artist' | 'album' | 'playlist' | 'genre') => {
+            if (type === 'playlist') {
+                const pl = playlists.find(p => p.name === name);
+                return pl?.songs[0]?.coverImage;
+            }
+            const song = (songs || []).find(s =>
+                (type === 'artist' && s.artist === name) ||
+                (type === 'album' && s.album === name) ||
+                (type === 'genre' && s.genre === name)
+            );
+            return song?.coverImage;
+        };
+
+        const favoritedPlaylists = (playlists || []).filter(p => p.isFavorite).map(p => ({
             id: p.id,
             name: p.name,
             type: 'Playlist',
+            songs: p.songs,
+            image: p.songs && p.songs.length > 0 ? p.songs[0].coverImage : null,
             screen: 'Playlist',
             params: { id: p.id, name: p.name, type: 'playlist' }
         }));
@@ -93,6 +104,7 @@ export const FavoritesScreen = () => {
             id: artist,
             name: artist,
             type: 'Artist',
+            image: findImageForType(artist, 'artist'),
             screen: 'Playlist',
             params: { id: artist, name: artist, type: 'artist' }
         }));
@@ -101,14 +113,33 @@ export const FavoritesScreen = () => {
             id: album,
             name: album,
             type: 'Album',
+            image: findImageForType(album, 'album'),
+            songs: (songs || []).filter(s => s.album === album),
             screen: 'Playlist',
             params: { id: album, name: album, type: 'album' }
         }));
 
-        const dynamicSpecial = FAVORITES.filter(f => favoriteSpecialPlaylists.includes(f.id));
+        const favGenres = (favoriteGenres || []).map(genre => ({
+            id: genre,
+            name: genre,
+            type: 'Genre',
+            image: findImageForType(genre, 'genre'),
+            songs: (songs || []).filter(s => s.genre === genre),
+            screen: 'Playlist',
+            params: { id: genre, name: genre, type: 'genre' }
+        }));
 
-        return [...dynamicSpecial, ...favoritedPlaylists, ...favArtists, ...favAlbums];
-    }, [playlists, favoriteArtists, favoriteAlbums, favoriteSpecialPlaylists]);
+        const dynamicSpecial = FAVORITES.filter(f => favoriteSpecialPlaylists.includes(f.id)).map(f => {
+            if (f.id === 'liked') return { ...f, songs: likedSongs };
+            if (f.id === 'most_played') {
+                const sorted = [...(songs || [])].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 50);
+                return { ...f, songs: sorted };
+            }
+            return f;
+        });
+
+        return [...dynamicSpecial, ...favoritedPlaylists, ...favArtists, ...favAlbums, ...favGenres];
+    }, [playlists, favoriteArtists, favoriteAlbums, favoriteGenres, favoriteSpecialPlaylists, songs, likedSongs]);
 
 
 
@@ -118,17 +149,18 @@ export const FavoritesScreen = () => {
         const isGrid3 = layoutMode === 'grid3';
         const isList = layoutMode === 'list';
         const { width } = Dimensions.get('window');
-        const cardWidth = isList ? '100%' : (width - 40 - (isGrid3 ? 20 : 10)) / (isGrid3 ? 3 : 2);
+        const gridCardWidth = (width - 40 - (isGrid3 ? 20 : 10)) / (isGrid3 ? 3 : 2);
+        const cardWidth = isList ? '100%' : gridCardWidth;
 
-        // Consistent height for non-artist cards
-        const cardHeight = isList ? 60 : (isGrid3 ? 95 : 140);
+        // Consistent height for non-artist cards (Square aspect ratio)
+        const cardHeight = isList ? 60 : gridCardWidth;
 
         return (
             <View
                 style={{
                     width: isList ? '100%' : cardWidth,
                     marginBottom: 15,
-                    alignItems: isArtist && !isList ? 'center' : 'stretch'
+                    alignItems: isList ? 'stretch' : (isArtist ? 'center' : 'flex-start')
                 }}
             >
                 <TouchableOpacity
@@ -156,46 +188,21 @@ export const FavoritesScreen = () => {
                         { overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }
                     ]}>
                         {!isArtist && (
-                            <>
-                                <LinearGradient
-                                    colors={getGradientColors(item.id)}
-                                    style={StyleSheet.absoluteFill}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                />
-                                <CardDesign />
-                                {!isList ? (
-                                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 10 }}>
-                                        <Ionicons
-                                            name={
-                                                item.id === 'most_played' ? "refresh" :
-                                                    item.id === 'liked' ? "thumbs-up" :
-                                                        item.type === 'Album' ? "disc" :
-                                                            item.type === 'Genre' ? "pricetags" :
-                                                                "musical-notes"
-                                            }
-                                            size={32}
-                                            color="white"
-                                            style={{ marginBottom: 8 }}
-                                        />
-                                        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
-                                    </View>
-                                ) : (
-                                    <View style={{ alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                                        <Ionicons
-                                            name={
-                                                item.id === 'most_played' ? "refresh" :
-                                                    item.id === 'liked' ? "thumbs-up" :
-                                                        item.type === 'Album' ? "disc" :
-                                                            item.type === 'Genre' ? "pricetags" :
-                                                                "musical-notes"
-                                            }
-                                            size={24}
-                                            color="white"
-                                        />
-                                    </View>
-                                )}
-                            </>
+                            <PlaylistCollage
+                                songs={item.songs}
+                                size={isList ? 50 : (isArtist ? (isGrid3 ? 80 : 120) : cardHeight)}
+                                iconSize={isList ? 24 : 32}
+                                iconName={
+                                    item.id === 'most_played' ? "refresh" :
+                                        item.id === 'liked' ? "heart" :
+                                            item.type === 'Album' ? "disc" :
+                                                item.type === 'Genre' ? "pricetags" :
+                                                    "musical-notes"
+                                }
+                                borderRadius={isList ? 8 : 16}
+                                gradientColors={getGradientColors(item.id)}
+                                forceSingleImage={item.type === 'Album'}
+                            />
                         )}
 
                         {/* Special Rendering for Artists with Image Support */}
@@ -209,9 +216,11 @@ export const FavoritesScreen = () => {
                         )}
                     </View>
 
-                    {/* Artist Name outside for Grid */}
-                    {isArtist && !isList && (
-                        <Text style={[styles.artistName, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+                    {/* Item Name outside for Grid */}
+                    {!isList && (
+                        <View style={{ marginTop: 8, alignItems: isArtist ? 'center' : 'flex-start', paddingHorizontal: isArtist ? 0 : 4, width: '100%' }}>
+                            <Text style={[styles.artistName, { color: theme.text, marginTop: 0 }]} numberOfLines={1}>{item.name}</Text>
+                        </View>
                     )}
 
                     {/* List View Details */}
@@ -311,10 +320,9 @@ const styles = StyleSheet.create({
         textShadowRadius: 2
     },
     artistName: {
-        marginTop: 5,
-        fontSize: 12,
-        fontWeight: '500',
-        textAlign: 'center'
+        fontSize: 13,
+        fontWeight: '600',
+        textAlign: 'left'
     },
     listItem: {
         flexDirection: 'row',

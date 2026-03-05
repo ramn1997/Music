@@ -20,6 +20,9 @@ interface SongOptionsMenuProps {
     onRemoveFromPlaylist?: () => void;
     onRemoveFromQueue?: () => void;
     onEditDetails?: () => void;
+    onPlaybackSpeedPress?: () => void;
+    onSharePress?: () => void;
+    currentSpeed?: number;
 }
 
 export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
@@ -29,7 +32,10 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
     onRequestPlaylistAdd,
     onRemoveFromPlaylist,
     onRemoveFromQueue,
-    onEditDetails
+    onEditDetails,
+    onPlaybackSpeedPress,
+    onSharePress,
+    currentSpeed
 }) => {
     const { theme } = useTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -105,10 +111,15 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
             label: 'Edit Details',
             action: onEditDetails
         }] : []),
+        ...(onPlaybackSpeedPress ? [{
+            icon: 'speedometer-outline',
+            label: `Playback Speed (${currentSpeed || 1}x)`,
+            action: onPlaybackSpeedPress
+        }] : []),
         {
             icon: 'share-outline',
             label: 'Share',
-            action: handleShare,
+            action: onSharePress || handleShare,
         }
     ];
 
@@ -124,7 +135,7 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
                 activeOpacity={1}
                 onPress={onClose}
             >
-                <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
                     <View style={styles.handleContainer}>
                         <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                     </View>

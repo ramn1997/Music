@@ -278,7 +278,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
         >
             <View style={styles.overlay}>
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-                <View style={[styles.container, { backgroundColor: theme.card }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
                     <View style={styles.handleBarContainer}>
                         <View style={[styles.handleBar, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                     </View>

@@ -34,7 +34,7 @@ export const PlaylistOptionsMenu: React.FC<PlaylistOptionsMenuProps> = ({
                 activeOpacity={1}
                 onPress={onClose}
             >
-                <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
                     <View style={styles.handleContainer}>
                         <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                     </View>

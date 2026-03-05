@@ -14,6 +14,7 @@ import { useMusicLibrary } from '../hooks/MusicLibraryContext';
 import { MusicImage } from '../components/MusicImage';
 import { MarqueeText } from '../components/MarqueeText';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { PlaylistCollage } from '../components/PlaylistCollage';
 
 const getGradientColors = (id: string): [string, string] => {
     switch (id) {
@@ -34,12 +35,7 @@ const getGradientColors = (id: string): [string, string] => {
     }
 };
 
-const CardDesign = () => (
-    <>
-        <View style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-        <View style={{ position: 'absolute', bottom: -10, left: -10, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-    </>
-);
+const CardDesign = () => null;
 
 
 export const PlaylistsScreen = () => {
@@ -115,7 +111,7 @@ export const PlaylistsScreen = () => {
                     <View style={[
                         styles.cardContainer,
                         {
-                            height: 95, // Matching FavoritesScreen Grid3 height
+                            height: 115,
                             width: '100%',
                             borderRadius: 16,
                             overflow: 'hidden',
@@ -124,32 +120,40 @@ export const PlaylistsScreen = () => {
                             backgroundColor: theme.card
                         }
                     ]}>
-                        <>
-                            <LinearGradient
-                                colors={getGradientColors(item.id)}
-                                style={StyleSheet.absoluteFill}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            />
-                            <CardDesign />
-                        </>
-
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 5, zIndex: 10 }}>
-                            <Ionicons
-                                name={item.id === 'liked' ? "heart" : item.id === 'recently_played' ? "time" : "musical-notes"}
-                                size={30}
-                                color="white"
-                                style={{ marginBottom: 5 }}
-                            />
-
-
+                        <PlaylistCollage
+                            songs={item.id === 'liked' ? [] : (item.isSpecial ? [] : (userPlaylists.find(p => p.id === item.id)?.songs || []))}
+                            size={115}
+                            iconSize={34}
+                            iconName={item.id === 'liked' ? "heart" : item.id === 'recently_played' ? "time" : "musical-notes"}
+                            gradientColors={getGradientColors(item.id)}
+                            showBubbles={true}
+                        />
+                        <View style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            paddingVertical: 8,
+                            paddingHorizontal: 6,
+                            alignItems: 'center',
+                            zIndex: 10,
+                        }}>
                             <Text
-                                numberOfLines={2}
-                                style={[
-                                    styles.cardTitle
-                                ]}
+                                numberOfLines={1}
+                                style={[styles.cardTitle]}
                             >
                                 {item.name}
+                            </Text>
+                            <Text style={{
+                                color: 'rgba(255,255,255,0.7)',
+                                fontSize: 9,
+                                fontWeight: '600',
+                                textShadowColor: 'rgba(0, 0, 0, 0.5)',
+                                textShadowOffset: { width: 0, height: 1 },
+                                textShadowRadius: 3,
+                                marginTop: 1,
+                            }}>
+                                {item.count} {item.count === 1 ? 'song' : 'songs'}
                             </Text>
                         </View>
                     </View>

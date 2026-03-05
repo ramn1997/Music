@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
+import { PlaylistCollage } from '../components/PlaylistCollage';
 
 export const YearsScreen = () => {
     const { theme } = useTheme();
@@ -69,13 +70,14 @@ export const YearsScreen = () => {
                     onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'year' })}
                 >
                     <View style={styles.row}>
-                        <View style={[styles.listIconPlaceholder, { backgroundColor: theme.card }]}>
-                            {coverImage ? (
-                                <MusicImage uri={coverImage} iconSize={20} style={{ width: 40, height: 40, borderRadius: 8 }} />
-                            ) : (
-                                <Ionicons name="calendar-outline" size={20} color={theme.textSecondary} />
-                            )}
-                        </View>
+                        <PlaylistCollage
+                            songs={item.songs}
+                            size={40}
+                            iconSize={20}
+                            iconName="calendar-outline"
+                            borderRadius={8}
+                            showBubbles={false}
+                        />
                         <View style={styles.info}>
                             <Text style={[styles.title, { color: theme.text, textAlign: 'left' }]} numberOfLines={1}>{item.name}</Text>
                             <Text style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]}>{item.count} Songs</Text>
@@ -100,22 +102,14 @@ export const YearsScreen = () => {
                     ]}
                     disableBlur={true}
                 >
-                    <View style={[
-                        styles.iconPlaceholder,
-                        { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12 },
-                        { width: '100%', aspectRatio: 1, marginBottom: 10, justifyContent: 'center', alignItems: 'center' }
-                    ]}>
-                        {coverImage ? (
-                            <MusicImage
-                                uri={coverImage}
-                                iconSize={isGrid3 ? 22 : 32}
-                                style={{ width: '100%', height: '100%', borderRadius: 12 }}
-                                containerStyle={{ width: '100%', height: '100%', borderRadius: 12 }}
-                            />
-                        ) : (
-                            <Ionicons name="calendar-outline" size={isGrid3 ? 30 : 40} color={theme.textSecondary} />
-                        )}
-                    </View>
+                    <PlaylistCollage
+                        songs={item.songs}
+                        size={isGrid3 ? 100 : 160} // Approximate based on aspect ratio
+                        iconSize={isGrid3 ? 30 : 40}
+                        iconName="calendar-outline"
+                        borderRadius={12}
+                        showBubbles={!isGrid3}
+                    />
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
                     <Text style={[styles.subtitle, { color: theme.textSecondary }]} numberOfLines={1}>{item.count} Songs</Text>
                 </GlassCard>

@@ -46,8 +46,10 @@ interface PlayerContextType {
     playlist: Song[];
     currentIndex: number;
     playlistName: string;
-    gaplessEnabled: boolean;
-    toggleGapless: () => void;
+    playbackSpeed: number;
+    setPlaybackSpeed: (speed: number) => Promise<void>;
+    isGapless: boolean;
+    setGapless: (enabled: boolean) => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -163,7 +165,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const [isShuffleOn, setIsShuffleOn] = useState(false);
     const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('all'); // Default to 'all' to ensure lockscreen Prev/Next buttons show even for single-song queues
     const [playlistName, setPlaylistName] = useState<string>('');
-    const [gaplessEnabled, setGaplessEnabled] = useState(true);
+    const [playbackSpeed, setPlaybackSpeedState] = useState(1.0);
+    const [isGapless, setIsGaplessState] = useState(true);
     const [isPlayerReady, setIsPlayerReady] = useState(false);
     const [isRestored, setIsRestored] = useState(false);
 
@@ -469,6 +472,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             console.log('[PlayerContext] ActiveTrackChanged:', track?.title, 'ID:', track?.id, 'Index:', index);
 
             if (track) {
+
                 // 1. Try finding by ID in playlist (Primary - Most Reliable)
                 let song = playlistRef.current.find(s => String(s.id) === String(track.id));
 
@@ -531,10 +535,11 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         }
     });
 
-    useTrackPlayerEvents([Event.PlaybackProgressUpdated], (event) => {
+    useTrackPlayerEvents([Event.PlaybackProgressUpdated], async (event) => {
         if (event.position > 0) {
             positionRef.current = event.position * 1000;
-            durationRef.current = event.duration * 1000;
+            const dur = event.duration > 0 ? event.duration : (currentTrack?.duration ? currentTrack.duration / 1000 : 0);
+            durationRef.current = dur * 1000;
         }
     });
 
@@ -564,17 +569,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
             console.log('[PlayerContext] Initializing TrackPlayer...');
 
-            // Read gapless setting directly from storage for startup configuration
-            let useGapless = true; // Default
-            try {
-                const saved = await AsyncStorage.getItem(PLAYER_STATE_KEY);
-                if (saved) {
-                    const state = JSON.parse(saved);
-                    if (state.gaplessEnabled !== undefined) useGapless = state.gaplessEnabled;
-                }
-            } catch (e) { }
-
-            console.log(`[PlayerContext] Configuring player with Gapless: ${useGapless}`);
+            console.log(`[PlayerContext] Configuring player...`);
 
             // Load audio quality to adjust buffer sizes
             let audioQuality = 'medium';
@@ -588,15 +583,14 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             // Attempt setup, ignore if already initialized
             try {
                 await TrackPlayer.setupPlayer({
-                    waitForBuffer: useGapless, // If gapless disabled, we don't wait for buffer (starts faster but might gap)
+                    waitForBuffer: true,
                     autoHandleInterruptions: true,
-                    // Optimized buffer settings for gapless if enabled
-                    minBuffer: (useGapless ? 25 : 15) * qualityMultiplier, // Seconds
-                    maxBuffer: (useGapless ? 100 : 50) * qualityMultiplier,
-                    playBuffer: (useGapless ? 5 : 2.5) * qualityMultiplier,
-                    backBuffer: (useGapless ? 20 : 10) * qualityMultiplier,
+                    minBuffer: (isGapless ? 20 : 15) * qualityMultiplier,
+                    maxBuffer: (isGapless ? 60 : 50) * qualityMultiplier,
+                    playBuffer: (isGapless ? 3 : 2.5) * qualityMultiplier,
+                    backBuffer: (isGapless ? 15 : 10) * qualityMultiplier,
                 });
-                console.log('[PlayerContext] TrackPlayer.setupPlayer success');
+                console.log('[PlayerContext] TrackPlayer.setupPlayer success (Gapless:', isGapless, ')');
             } catch (e: any) {
                 console.log('[PlayerContext] TrackPlayer setup skipped (likely already active):', e.message);
             }
@@ -629,7 +623,9 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
             if (isMountedRef.current) {
                 setIsPlayerReady(true);
-                console.log('[PlayerContext] isPlayerReady set to true');
+                // Apply current playback speed
+                await TrackPlayer.setRate(playbackSpeed);
+                console.log('[PlayerContext] isPlayerReady set to true and rate applied:', playbackSpeed);
             }
         } catch (error) {
             console.error('[PlayerContext] Critical Error setting up TrackPlayer:', error);
@@ -660,31 +656,38 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
             try {
                 const saved = await AsyncStorage.getItem(PLAYER_STATE_KEY);
                 if (saved) {
-                    const state = JSON.parse(saved);
-                    if (state.currentTrack) {
-                        setCurrentTrack(state.currentTrack);
-                        setPlaylist(state.playlist || []);
-                        setCurrentIndex(state.currentIndex ?? -1);
-                        setPlaylistName(state.playlistName || '');
-                        if (state.gaplessEnabled !== undefined) setGaplessEnabled(state.gaplessEnabled);
-                        if (state.repeatMode !== undefined) {
-                            setRepeatMode(state.repeatMode);
-                            if (state.repeatMode === 'one') await TrackPlayer.setRepeatMode(RepeatMode.Track);
-                            else if (state.repeatMode === 'all') await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+                    const data = JSON.parse(saved);
+                    if (data.shuffle !== undefined) setIsShuffleOn(data.shuffle);
+                    if (data.repeat !== undefined) setRepeatMode(data.repeat);
+                    if (data.speed !== undefined) {
+                        setPlaybackSpeedState(data.speed);
+                        await TrackPlayer.setRate(data.speed);
+                    }
+                    if (data.gapless !== undefined) setIsGaplessState(data.gapless);
+                    if (data.currentTrack) {
+                        setCurrentTrack(data.currentTrack);
+                        setPlaylist(data.playlist || []);
+                        setCurrentIndex(data.currentIndex ?? -1);
+                        setPlaylistName(data.playlistName || '');
+                        setPlaylistName(data.playlistName || '');
+                        if (data.repeatMode !== undefined) {
+                            setRepeatMode(data.repeatMode);
+                            if (data.repeatMode === 'one') await TrackPlayer.setRepeatMode(RepeatMode.Track);
+                            else if (data.repeatMode === 'all') await TrackPlayer.setRepeatMode(RepeatMode.Queue);
                             else await TrackPlayer.setRepeatMode(RepeatMode.Off);
                         }
 
                         // Seed the queue but don't play
-                        if (state.playlist && state.playlist.length > 0) {
-                            const tracks = state.playlist.map(songToTrack);
+                        if (data.playlist && data.playlist.length > 0) {
+                            const tracks = data.playlist.map(songToTrack);
                             // Clear existing queue first to be safe
                             await TrackPlayer.reset();
                             await TrackPlayer.add(tracks);
 
-                            if (state.currentIndex >= 0 && state.currentIndex < tracks.length) {
+                            if (data.currentIndex >= 0 && data.currentIndex < tracks.length) {
                                 // Store position for restoration on first play
                                 let initialPos = 0;
-                                let savedPos = state.position || 0;
+                                let savedPos = data.position || 0;
 
                                 try {
                                     const explicitPosStr = await AsyncStorage.getItem('player_position');
@@ -698,7 +701,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                                     positionRef.current = savedPos;
                                     console.log(`[PlayerContext] Restored position ref: ${initialPos}s`);
                                 }
-                                await TrackPlayer.skip(state.currentIndex, initialPos);
+                                await TrackPlayer.skip(data.currentIndex, initialPos);
                             }
                         }
                     }
@@ -713,6 +716,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
 
         const handleAppStateChange = (nextAppState: AppStateStatus) => {
             if (appStateRef.current.match(/active/) && nextAppState.match(/inactive|background/)) {
+                // Synchronously write the position ref to storage FIRST (no async delay)
+                // This is the most reliable save because it can't be killed by the OS mid-execution
+                const quickPos = positionRef.current;
+                if (quickPos > 0) {
+                    AsyncStorage.setItem('player_position', String(quickPos)).catch(() => { });
+                }
+                // Then do the full state save (async, best-effort)
                 saveStateShortcut();
             }
             appStateRef.current = nextAppState;
@@ -725,54 +735,53 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const saveStateShortcut = async () => {
         if (!isRestored || !currentTrack) return;
 
-        // Defer execution to avoid blocking the JS thread during critical UI updates like track changes
-        setTimeout(async () => {
+        // Execute IMMEDIATELY — no inner delay.
+        // On app kill, Android gives the JS thread only a brief window.
+        // Using positionRef (always up-to-date from PlaybackProgressUpdated) as primary source.
+        try {
+            // Use positionRef as the fastest/safest source; try the engine only if ref is zero
+            let pos = positionRef.current > 0 ? positionRef.current / 1000 : 0;
             try {
-                // Get current position from player but fallback to ref if needed
-                let playerPos = 0;
-                try {
-                    playerPos = await TrackPlayer.getPosition();
-                } catch (e) { }
+                const enginePos = await TrackPlayer.getPosition();
+                if (enginePos > 0) pos = enginePos;
+            } catch (e) { }
 
-                // Use the most accurate position we have (player > ref > backup)
-                let pos = (playerPos > 0) ? playerPos : (positionRef.current / 1000);
+            const dur = await TrackPlayer.getDuration().catch(() => 0);
 
-                console.log(`[PlayerContext] Persistence: saving at ${pos.toFixed(2)}s (Source: ${playerPos > 0 ? 'Engine' : 'Memory'})`);
+            const compactPlaylist = playlist.map(s => ({
+                id: s.id,
+                uri: s.uri,
+                title: s.title,
+                artist: s.artist,
+                albumId: s.albumId,
+                coverImage: (s.coverImage && s.coverImage.length > 500) ? undefined : s.coverImage
+            }));
 
-                const dur = await TrackPlayer.getDuration();
+            const compactCurrentTrack = {
+                ...currentTrack,
+                coverImage: (currentTrack.coverImage && currentTrack.coverImage.length > 500) ? undefined : currentTrack.coverImage
+            };
 
-                // Strip fat data from large playlists to keep stringify fast and storage lean
-                // Drop massive base64 data URIs so AsyncStorage stringify operation takes 5ms instead of 300ms
-                const compactPlaylist = playlist.map(s => ({
-                    id: s.id,
-                    uri: s.uri,
-                    title: s.title,
-                    artist: s.artist,
-                    albumId: s.albumId,
-                    coverImage: (s.coverImage && s.coverImage.length > 500) ? undefined : s.coverImage
-                }));
+            const state = {
+                currentTrack: compactCurrentTrack,
+                playlist: compactPlaylist,
+                currentIndex,
+                playlistName,
+                repeatMode,
+                position: pos * 1000,
+                duration: dur > 0 ? dur * 1000 : undefined
+            };
 
-                const compactCurrentTrack = {
-                    ...currentTrack,
-                    coverImage: (currentTrack.coverImage && currentTrack.coverImage.length > 500) ? undefined : currentTrack.coverImage
-                };
+            // Write both keys in parallel so one slow write doesn't block the other
+            await Promise.all([
+                AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state)),
+                AsyncStorage.setItem('player_position', String(pos * 1000)),
+            ]);
 
-                const state = {
-                    currentTrack: compactCurrentTrack,
-                    playlist: compactPlaylist,
-                    currentIndex,
-                    playlistName,
-                    gaplessEnabled,
-                    repeatMode,
-                    position: pos * 1000,
-                    duration: dur > 0 ? dur * 1000 : undefined
-                };
-                await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
-                await AsyncStorage.setItem('player_position', String(pos * 1000));
-            } catch (e) {
-                console.warn('[PlayerContext] Persistence failed:', e);
-            }
-        }, 500); // Wait 500ms after track change so the UI animation stays smooth
+            console.log(`[PlayerContext] Persistence: saved at ${pos.toFixed(2)}s`);
+        } catch (e) {
+            console.warn('[PlayerContext] Persistence failed:', e);
+        }
     };
 
     // Save metadata on changes
@@ -787,19 +796,58 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         if (isPlaying && isRestored) {
             interval = setInterval(async () => {
                 try {
-                    // ONLY save position to prevent stringifying massive playlists every 10s
-                    let playerPos = 0;
-                    try { playerPos = await TrackPlayer.getPosition(); } catch (e) { }
-                    const pos = (playerPos > 0) ? playerPos : (positionRef.current / 1000);
-                    await AsyncStorage.setItem('player_position', String(pos * 1000));
+                    // Save position from ref (instant, no async) and engine (accurate)
+                    const refPos = positionRef.current;
+                    let enginePos = 0;
+                    try { enginePos = await TrackPlayer.getPosition(); } catch (e) { }
+                    const pos = (enginePos > 0) ? enginePos : (refPos / 1000);
+                    if (pos > 0) {
+                        await AsyncStorage.setItem('player_position', String(pos * 1000));
+                    }
                 } catch (e) { }
-            }, 10000); // Save every 10 seconds
+            }, 5000); // Save every 5 seconds (was 10s)
         }
 
         return () => {
             if (interval) clearInterval(interval);
         };
     }, [isPlaying, isRestored]);
+
+    // Save shuffle/repeat/speed state
+    useEffect(() => {
+        if (!isPlayerReady) return;
+
+        const save = async () => {
+            try {
+                const state = {
+                    shuffle: isShuffleOn,
+                    repeat: repeatMode,
+                    speed: playbackSpeed,
+                    gapless: isGapless
+                };
+                await AsyncStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
+            } catch (e) { }
+        };
+
+        save().catch(() => { });
+    }, [isShuffleOn, repeatMode, playbackSpeed, isGapless, isPlayerReady]);
+
+    const setPlaybackSpeed = async (speed: number) => {
+        setPlaybackSpeedState(speed);
+        if (isPlayerReady) {
+            await TrackPlayer.setRate(speed);
+        }
+    };
+
+    const setGapless = async (enabled: boolean) => {
+        setIsGaplessState(enabled);
+        // Note: Full buffer changes might require player re-config, 
+        // but we'll update the state for the next setup/session.
+        // For immediate effect, we can update options if needed.
+        await TrackPlayer.updateOptions({
+            progressUpdateEventInterval: enabled ? 0.5 : 1,
+        });
+    };
 
     // Listen for remote control events (notification controls)
     useTrackPlayerEvents([
@@ -1023,8 +1071,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         playlist,
         currentIndex,
         playlistName,
-        gaplessEnabled,
-        toggleGapless: () => setGaplessEnabled(prev => !prev),
+        playbackSpeed,
+        setPlaybackSpeed,
+        isGapless,
+        setGapless,
         play: async (song: Song) => {
             await TrackPlayer.reset();
             await TrackPlayer.add([songToTrack(song)]);
@@ -1094,8 +1144,23 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         },
         playSongInPlaylist: async (songs: Song[], index: number, name?: string) => {
             const activeTrack = await TrackPlayer.getActiveTrack();
+            const currentQueue = await TrackPlayer.getQueue();
+
+            // Check if we are already playing this song
             if (songs.length > index && activeTrack && String(activeTrack.id) === String(songs[index].id)) {
                 await TrackPlayer.play();
+                setIsPlaying(true);
+                return;
+            }
+
+            // Optimization: If the playlist is already identical to the queue, just skip
+            // Matches playlist name and lengths as a quick check
+            if (playlistName === (name || '') && currentQueue.length === songs.length && songs.length > index) {
+                console.log('[PlayerContext] Playlist match, skipping instead of reset');
+                await TrackPlayer.skip(index);
+                await TrackPlayer.play();
+                setCurrentIndex(index);
+                setCurrentTrack(songs[index]);
                 setIsPlaying(true);
                 return;
             }

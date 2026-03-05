@@ -3,9 +3,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
 import { PlayerScreen } from '../screens/PlayerScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { EqualizerScreen } from '../screens/EqualizerScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { QueueScreen } from '../screens/QueueScreen';
+import { PlaylistScreen } from '../screens/PlaylistScreen';
 import { RootStackParamList } from '../types/navigation';
 import { useTheme } from '../hooks/ThemeContext';
 
@@ -50,15 +50,9 @@ export const AppNavigator = () => {
                         animation: 'slide_from_bottom'
                     }}
                 />
-                <Stack.Screen
-                    name="Equalizer"
-                    component={EqualizerScreen}
-                    options={{
-                        animation: 'slide_from_right'
-                    }}
-                />
                 <Stack.Screen name="About" component={AboutScreen} />
                 <Stack.Screen name="Queue" component={QueueScreen} />
+                <Stack.Screen name="Playlist" component={PlaylistScreen} />
             </Stack.Navigator>
             {/* 
                MiniPlayer is placed here to validly overlay on top of the Stacks (except Modal usually covers everything).

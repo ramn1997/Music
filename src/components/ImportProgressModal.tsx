@@ -150,7 +150,7 @@ export const ImportProgressModal: React.FC<ImportProgressModalProps> = ({
             statusBarTranslucent
         >
             <View style={[styles.overlay, { backgroundColor: theme.background }]}>
-                <View style={[styles.container, { backgroundColor: theme.card }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
                     {/* Header with icon */}
                     <View style={[styles.iconContainer, { backgroundColor: getPhaseColor() + '20' }]}>
                         <Animated.View style={{ transform: isComplete ? [] : [{ rotate: spin }] }}>
@@ -391,7 +391,6 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#fff'
     },
     cancelButton: {
         flexDirection: 'row',

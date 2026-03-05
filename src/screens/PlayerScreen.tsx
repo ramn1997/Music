@@ -22,6 +22,7 @@ import { LyricsModal } from '../components/LyricsModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { MarqueeText } from '../components/MarqueeText';
+import { ShareCardModal } from '../components/ShareCardModal';
 import { useProgress } from 'react-native-track-player';
 import TrackPlayer from 'react-native-track-player';
 import { Song } from '../hooks/MusicLibraryContext';
@@ -152,6 +153,8 @@ export const PlayerScreen = () => {
         toggleShuffle,
         repeatMode,
         toggleRepeat,
+        playbackSpeed,
+        setPlaybackSpeed,
     } = usePlayerContext();
 
     const { theme, themeType, playerStyle, isCarouselEnabled, isSwipeEnabled } = useTheme();
@@ -190,6 +193,8 @@ export const PlayerScreen = () => {
     const [optionsModalVisible, setOptionsModalVisible] = useState(false);
     const [activeModalSong, setActiveModalSong] = useState<Song | null>(null);
     const [isAddingQueue, setIsAddingQueue] = useState(false);
+    const [speedModalVisible, setSpeedModalVisible] = useState(false);
+    const [shareModalVisible, setShareModalVisible] = useState(false);
 
     const likeScale = useRef(new Animated.Value(1)).current;
     const shuffleScale = useSharedValue(1);
@@ -267,10 +272,74 @@ export const PlayerScreen = () => {
         setTimeout(() => { playPauseScale.value = 1; }, 150);
         playPause();
     };
-
     const [feedback, setFeedback] = useState<'forward' | 'backward' | null>(null);
     const feedbackOpacity = useSharedValue(0);
     const feedbackScale = useSharedValue(0);
+    const seekIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const isLongPressRef = useRef(false);
+    const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const startSeeking = (direction: 'forward' | 'backward') => {
+        if (seekIntervalRef.current) return;
+        seekIntervalRef.current = setInterval(async () => {
+            await TrackPlayer.seekBy(direction === 'forward' ? 5 : -5);
+        }, 200);
+    };
+
+    const stopSeeking = () => {
+        if (seekIntervalRef.current) {
+            clearInterval(seekIntervalRef.current);
+            seekIntervalRef.current = null;
+        }
+    };
+
+    const handleNextIn = () => {
+        nextScale.value = 0.8;
+        isLongPressRef.current = false;
+        longPressTimeoutRef.current = setTimeout(() => {
+            isLongPressRef.current = true;
+            nextScale.value = 1.2;
+            startSeeking('forward');
+        }, 500);
+    };
+
+    const handleNextOut = () => {
+        if (longPressTimeoutRef.current) {
+            clearTimeout(longPressTimeoutRef.current);
+            longPressTimeoutRef.current = null;
+        }
+        if (isLongPressRef.current) {
+            stopSeeking();
+            nextScale.value = 1;
+        } else {
+            handleNext();
+            nextScale.value = 1;
+        }
+    };
+
+    const handlePrevIn = () => {
+        prevScale.value = 0.8;
+        isLongPressRef.current = false;
+        longPressTimeoutRef.current = setTimeout(() => {
+            isLongPressRef.current = true;
+            prevScale.value = 1.2;
+            startSeeking('backward');
+        }, 500);
+    };
+
+    const handlePrevOut = () => {
+        if (longPressTimeoutRef.current) {
+            clearTimeout(longPressTimeoutRef.current);
+            longPressTimeoutRef.current = null;
+        }
+        if (isLongPressRef.current) {
+            stopSeeking();
+            prevScale.value = 1;
+        } else {
+            handlePrev();
+            prevScale.value = 1;
+        }
+    };
 
     const showFeedback = (type: 'forward' | 'backward') => {
         setFeedback(type);
@@ -352,7 +421,7 @@ export const PlayerScreen = () => {
                                                     />
                                                     <View style={styles.feedbackContent}>
                                                         <Ionicons
-                                                            name={feedback === 'forward' ? "play-forward" : "play-back"}
+                                                            name={feedback === 'forward' ? "play-forward-sharp" : "play-back-sharp"}
                                                             size={50}
                                                             color="#fff"
                                                         />
@@ -384,7 +453,7 @@ export const PlayerScreen = () => {
                                                 />
                                                 <View style={styles.feedbackContent}>
                                                     <Ionicons
-                                                        name={feedback === 'forward' ? "play-forward" : "play-back"}
+                                                        name={feedback === 'forward' ? "play-forward-sharp" : "play-back-sharp"}
                                                         size={60}
                                                         color="#fff"
                                                     />
@@ -443,28 +512,36 @@ export const PlayerScreen = () => {
                         <View style={styles.controlsContainer}>
                             <TouchableOpacity onPress={handleShufflePress}>
                                 <ReAnimated.View style={animeShuffle}>
-                                    <Ionicons name="shuffle" size={26} color={isShuffleOn ? theme.primary : theme.textSecondary} />
+                                    <Ionicons name="shuffle-outline" size={24} color={isShuffleOn ? theme.primary : theme.textSecondary} />
                                 </ReAnimated.View>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={handlePrev}>
+                            <TouchableOpacity
+                                onPressIn={handlePrevIn}
+                                onPressOut={handlePrevOut}
+                                activeOpacity={0.7}
+                            >
                                 <ReAnimated.View style={animatePrev}>
-                                    <Ionicons name="play-skip-back" size={32} color={theme.text} />
+                                    <Ionicons name="play-skip-back-sharp" size={30} color={theme.text} />
                                 </ReAnimated.View>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.playButton, { backgroundColor: 'transparent' }]} onPress={handlePlayPausePress}>
+                            <TouchableOpacity style={styles.playButton} onPress={handlePlayPausePress}>
                                 <ReAnimated.View style={animatePlayPause}>
-                                    <Ionicons name={isPlaying ? "pause" : "play"} size={48} color={theme.text} />
+                                    <Ionicons name={isPlaying ? "pause-sharp" : "play-sharp"} size={52} color={theme.text} />
                                 </ReAnimated.View>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={handleNext}>
+                            <TouchableOpacity
+                                onPressIn={handleNextIn}
+                                onPressOut={handleNextOut}
+                                activeOpacity={0.7}
+                            >
                                 <ReAnimated.View style={animateNext}>
-                                    <Ionicons name="play-skip-forward" size={32} color={theme.text} />
+                                    <Ionicons name="play-skip-forward-sharp" size={30} color={theme.text} />
                                 </ReAnimated.View>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={handleRepeatPress}>
                                 <ReAnimated.View style={animeRepeat}>
                                     <View style={{ position: 'relative' }}>
-                                        <Ionicons name="repeat" size={26} color={repeatMode !== 'off' ? theme.primary : theme.textSecondary} />
+                                        <Ionicons name="repeat-outline" size={24} color={repeatMode !== 'off' ? theme.primary : theme.textSecondary} />
                                         {repeatMode === 'one' && (
                                             <View style={{
                                                 position: 'absolute',
@@ -477,7 +554,7 @@ export const PlayerScreen = () => {
                                                 justifyContent: 'center',
                                                 alignItems: 'center'
                                             }}>
-                                                <Text style={{ fontSize: 7, color: '#fff', fontWeight: 'bold' }}>1</Text>
+                                                <Text style={{ fontSize: 7, color: theme.textOnPrimary, fontWeight: 'bold' }}>1</Text>
                                             </View>
                                         )}
                                     </View>
@@ -486,22 +563,22 @@ export const PlayerScreen = () => {
                         </View>
                     </View>
 
-                    {nextSong && (
-                        <TouchableOpacity
-                            style={styles.upNextContainer}
-                            onPress={() => navigation.navigate('Queue')}
-                        >
-                            <View style={styles.upNextLeft}>
-                                <Text style={[styles.upNextLabel, { color: theme.textSecondary }]}>
-                                    {repeatMode === 'one' ? 'Repeating' : 'Up next'}
-                                </Text>
-                                <Text style={[styles.upNextSong, { color: theme.text }]} numberOfLines={1}>
-                                    {nextSong.title} — {nextSong.artist}
-                                </Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                        style={styles.upNextContainer}
+                        onPress={() => navigation.navigate('Queue')}
+                    >
+                        <View style={styles.upNextLeft}>
+                            <Text style={[styles.upNextLabel, { color: theme.textSecondary }]}>
+                                {repeatMode === 'one' ? 'Repeating' : 'Up next'}
+                            </Text>
+                            <Text style={[styles.upNextSong, { color: theme.text }]} numberOfLines={1}>
+                                {nextSong
+                                    ? `${nextSong.title} — ${nextSong.artist}`
+                                    : 'End of queue'}
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
 
@@ -509,12 +586,65 @@ export const PlayerScreen = () => {
                 visible={optionsModalVisible}
                 onClose={() => setOptionsModalVisible(false)}
                 song={currentSong}
+                currentSpeed={playbackSpeed}
+                onPlaybackSpeedPress={() => { setOptionsModalVisible(false); setTimeout(() => setSpeedModalVisible(true), 100); }}
+                onSharePress={() => { setOptionsModalVisible(false); setTimeout(() => setShareModalVisible(true), 100); }}
                 onRequestPlaylistAdd={() => { setActiveModalSong(currentSong); setOptionsModalVisible(false); setTimeout(() => setPlaylistModalVisible(true), 100); }}
                 onEditDetails={() => { setActiveModalSong(currentSong); setOptionsModalVisible(false); setTimeout(() => setEditModalVisible(true), 100); }}
             />
 
             <EditSongModal visible={editModalVisible} onClose={() => setEditModalVisible(false)} song={activeModalSong || currentSong} onSave={updateSongMetadata} />
             <LyricsModal visible={lyricsModalVisible} onClose={() => setLyricsModalVisible(false)} song={currentSong} />
+            <ShareCardModal visible={shareModalVisible} onClose={() => setShareModalVisible(false)} song={currentSong} />
+
+            {/* Playback Speed Modal */}
+            <Modal
+                visible={speedModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setSpeedModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setSpeedModalVisible(false)}
+                >
+                    <View style={[styles.speedModalContent, { backgroundColor: theme.menuBackground || theme.card }]}>
+                        <Text style={[styles.speedModalTitle, { color: theme.text }]}>Playback Speed</Text>
+                        <View style={styles.speedOptionsContainer}>
+                            {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((s) => (
+                                <TouchableOpacity
+                                    key={s}
+                                    style={[
+                                        styles.speedOption,
+                                        playbackSpeed === s && { backgroundColor: theme.primary + '33' }
+                                    ]}
+                                    onPress={() => {
+                                        setPlaybackSpeed(s);
+                                        setSpeedModalVisible(false);
+                                    }}
+                                >
+                                    <Text style={[
+                                        styles.speedOptionText,
+                                        { color: playbackSpeed === s ? theme.primary : theme.text }
+                                    ]}>
+                                        {s === 1.0 ? 'Normal (1x)' : `${s}x`}
+                                    </Text>
+                                    {playbackSpeed === s && (
+                                        <Ionicons name="checkmark" size={20} color={theme.primary} />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                        <TouchableOpacity
+                            style={[styles.closeButton, { backgroundColor: theme.cardBorder }]}
+                            onPress={() => setSpeedModalVisible(false)}
+                        >
+                            <Text style={[styles.closeButtonText, { color: theme.text }]}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
 
             <AddToPlaylistModal
                 visible={playlistModalVisible}
@@ -587,6 +717,56 @@ const styles = StyleSheet.create({
     sideArtCard: {
         overflow: 'hidden',
         backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    speedModalContent: {
+        width: '100%',
+        maxWidth: 300,
+        borderRadius: 24,
+        padding: 20,
+        elevation: 10,
+    },
+    speedModalTitle: {
+        fontSize: 18,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        marginBottom: 15,
+        textAlign: 'center'
+    },
+    speedOptionsContainer: {
+        marginBottom: 10
+    },
+    speedOption: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+        borderRadius: 12,
+        marginBottom: 4
+    },
+    speedOptionText: {
+        fontSize: 15,
+        fontFamily: 'PlusJakartaSans_600SemiBold'
+    },
+    closeButton: {
+        marginTop: 10,
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center'
+    },
+    closeButtonText: {
+        fontSize: 14,
+        fontFamily: 'PlusJakartaSans_700Bold'
+    },
+    speedButton: {
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     feedbackOverlay: {
         ...StyleSheet.absoluteFillObject,

@@ -33,6 +33,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     const [artist, setArtist] = useState('');
     const [album, setAlbum] = useState('');
     const [year, setYear] = useState('');
+    const [genre, setGenre] = useState('');
     const [lyrics, setLyrics] = useState('');
     const [coverImage, setCoverImage] = useState<string | null>(null);
     const [isArtModified, setIsArtModified] = useState(false);
@@ -46,6 +47,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             setArtist(song.artist || '');
             setAlbum(song.album || '');
             setYear(song.year || '');
+            setGenre(song.genre || '');
             setLyrics(song.lyrics || '');
             setCoverImage(song.coverImage || null);
             setIsArtModified(false);
@@ -104,6 +106,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             artist: artist.trim() || song.artist,
             album: album.trim() || song.album,
             year: year.trim() || song.year,
+            genre: genre.trim() || undefined,
             lyrics: lyrics.trim() || undefined,
         };
 
@@ -133,6 +136,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             if (localMeta.title) setTitle(localMeta.title);
             if (localMeta.artist) setArtist(localMeta.artist);
             if (localMeta.album) setAlbum(localMeta.album);
+            if (localMeta.genre) setGenre(localMeta.genre);
             if (localArt) {
                 setCoverImage(localArt);
                 setIsArtModified(true);
@@ -152,6 +156,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     if (result.trackName) setTitle(result.trackName);
                     if (result.artistName) setArtist(result.artistName);
                     if (result.collectionName) setAlbum(result.collectionName);
+                    if (result.primaryGenreName) setGenre(result.primaryGenreName);
                     if (result.releaseDate) setYear(new Date(result.releaseDate).getFullYear().toString());
 
                     // High-res artwork (convert 100x100 to 600x600)
@@ -243,6 +248,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
         { label: 'Title', value: title, setValue: setTitle, placeholder: 'Song title' },
         { label: 'Artist', value: artist, setValue: setArtist, placeholder: 'Artist name' },
         { label: 'Album', value: album, setValue: setAlbum, placeholder: 'Album name' },
+        { label: 'Genre', value: genre, setValue: setGenre, placeholder: 'Genre' },
         { label: 'Year', value: year, setValue: setYear, placeholder: 'Year', keyboardType: 'numeric' as const },
     ];
 
@@ -257,7 +263,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.overlay}
             >
-                <View style={[styles.container, { backgroundColor: theme.card }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
                     {/* Header */}
                     <View style={styles.header}>
                         <TouchableOpacity onPress={onClose} style={styles.headerButton}>
