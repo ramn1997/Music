@@ -435,14 +435,34 @@ export const HomeScreen = () => {
     const { sectionVisibility } = useHomeSettings();
 
     const allFavorites = useMemo(() => {
-        const findImageForType = (name: string, type: 'artist' | 'album' | 'genre') => {
-            const song = (songs || []).find(s =>
-                (type === 'artist' && s.artist === name) ||
-                (type === 'album' && s.album === name) ||
-                (type === 'genre' && s.genre === name)
-            );
-            return song?.coverImage;
-        };
+        const favAlbumsSet = new Set(favoriteAlbums || []);
+        const favGenresSet = new Set(favoriteGenres || []);
+        const favArtistsSet = new Set(favoriteArtists || []);
+
+        const albumSongsMap = new Map<string, Song[]>();
+        const genreSongsMap = new Map<string, Song[]>();
+        const artistImageMap = new Map<string, string>();
+        const albumImageMap = new Map<string, string>();
+        const genreImageMap = new Map<string, string>();
+
+        // SINGLE O(N) pass to gather all required assets and arrays
+        for (const s of (songs || [])) {
+            if (s.album && favAlbumsSet.has(s.album)) {
+                let arr = albumSongsMap.get(s.album);
+                if (!arr) { arr = []; albumSongsMap.set(s.album, arr); }
+                arr.push(s);
+                if (!albumImageMap.has(s.album) && s.coverImage) albumImageMap.set(s.album, s.coverImage);
+            }
+            if (s.genre && favGenresSet.has(s.genre)) {
+                let arr = genreSongsMap.get(s.genre);
+                if (!arr) { arr = []; genreSongsMap.set(s.genre, arr); }
+                arr.push(s);
+                if (!genreImageMap.has(s.genre) && s.coverImage) genreImageMap.set(s.genre, s.coverImage);
+            }
+            if (s.artist && favArtistsSet.has(s.artist)) {
+                if (!artistImageMap.has(s.artist) && s.coverImage) artistImageMap.set(s.artist, s.coverImage);
+            }
+        }
 
         const favoritedPlaylists = (playlists || []).filter(p => p.isFavorite).map(p => ({
             id: p.id,
@@ -458,7 +478,7 @@ export const HomeScreen = () => {
             id: artist,
             name: artist,
             type: 'Artist',
-            image: findImageForType(artist, 'artist'),
+            image: artistImageMap.get(artist) || null,
             screen: 'Playlist',
             params: { id: artist, name: artist, type: 'artist' }
         }));
@@ -467,8 +487,8 @@ export const HomeScreen = () => {
             id: album,
             name: album,
             type: 'Album',
-            image: findImageForType(album, 'album'),
-            songs: (songs || []).filter(s => s.album === album),
+            image: albumImageMap.get(album) || null,
+            songs: albumSongsMap.get(album) || [],
             screen: 'Playlist',
             params: { id: album, name: album, type: 'album' }
         }));
@@ -477,8 +497,8 @@ export const HomeScreen = () => {
             id: genre,
             name: genre,
             type: 'Genre',
-            image: findImageForType(genre, 'genre'),
-            songs: (songs || []).filter(s => s.genre === genre),
+            image: genreImageMap.get(genre) || null,
+            songs: genreSongsMap.get(genre) || [],
             screen: 'Playlist',
             params: { id: genre, name: genre, type: 'genre' }
         }));
@@ -529,16 +549,35 @@ export const HomeScreen = () => {
 
     const searchInputRef = useRef<TextInput>(null);
 
+    const sortedMostPlayed = useMemo(() => {
+        const played: Song[] = [];
+        for (const s of (songs || [])) {
+            if ((s.playCount || 0) > 0) played.push(s);
+        }
+        played.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+        return played.slice(0, 50);
+    }, [songs]);
+
+    const sortedTopSongs = useMemo(() => {
+        const played: Song[] = [];
+        const unplayed: Song[] = [];
+        for (const s of (songs || [])) {
+            if ((s.playCount || 0) > 0) played.push(s);
+            else if (unplayed.length < 10) unplayed.push(s);
+        }
+        played.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+        return [...played, ...unplayed].slice(0, 10);
+    }, [songs]);
+
     const collectionsWithSongs = useMemo(() => {
         return COLLECTIONS.map(item => {
             if (item.id === 'liked') return { ...item, songs: likedSongs || [] };
             if (item.id === 'most_played') {
-                const sorted = [...(songs || [])].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 50);
-                return { ...item, songs: sorted };
+                return { ...item, songs: sortedMostPlayed };
             }
             return { ...item, songs: [] };
         });
-    }, [songs, likedSongs]);
+    }, [sortedMostPlayed, likedSongs]);
 
     useEffect(() => {
         const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
@@ -677,11 +716,8 @@ export const HomeScreen = () => {
     }, [recentlyPlayed, recentlyAdded, neverPlayed]);
 
     const topSongs = useMemo(() => {
-        const played = songs.filter(s => (s.playCount || 0) > 0)
-            .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
-        const unplayed = songs.filter(s => !(s.playCount || 0) || s.playCount === 0);
-        return [...played, ...unplayed].slice(0, 10);
-    }, [songs]);
+        return sortedTopSongs;
+    }, [sortedTopSongs]);
 
     const displayTopArtists = useMemo(() => {
         if (topArtists && topArtists.length > 0) {
@@ -803,7 +839,7 @@ export const HomeScreen = () => {
     };
 
     const renderOverviewContent = () => {
-        if (!loading && songs.length === 0 && savedFolders.length === 0) {
+        if (!loading && savedFolders.length === 0) {
             return (
                 <View style={styles.emptyStateContainer}>
                     <View style={styles.emptyStateIconWrap}>

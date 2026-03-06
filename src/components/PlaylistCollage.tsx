@@ -35,9 +35,39 @@ export const PlaylistCollage = ({
     forceSingleImage = false
 }: PlaylistCollageProps) => {
     const containerWidth = width ?? size;
-    const displaySongs = (collageSongs && collageSongs.length > 0) ? collageSongs : (songs && songs.length > 0 ? songs : []);
-    const collageItems = displaySongs.slice(0, 4);
-    const hasCollage = !forceSingleImage && collageItems.length >= 4;
+
+    // Stable 4-image extraction logic:
+    // Finds 4 unique cover arts from the list based on a stable ID sort.
+    // This ensures the collage stays EXACTLY the same and doesn't flicker 
+    // or re-render even if the playlist order constantly shifts (like Most Played).
+    const collageItems = React.useMemo(() => {
+        if (forceSingleImage) return [];
+
+        // If explicitly provided via collageSongs, try to use those first
+        if (collageSongs && collageSongs.length >= 4) return collageSongs.slice(0, 4);
+
+        if (songs && songs.length >= 4) {
+            const stableSongs = [...songs].sort((a, b) => a.id.localeCompare(b.id));
+            const unique = [];
+            const seen = new Set();
+            for (const s of stableSongs) {
+                // Focus on picking 4 DIFFERENT cover arts for visual variety
+                if (s.coverImage && !seen.has(s.coverImage)) {
+                    unique.push(s);
+                    seen.add(s.coverImage);
+                }
+                if (unique.length === 4) break;
+            }
+
+            // Fallback if there aren't 4 different images available
+            if (unique.length === 4) return unique;
+            return stableSongs.slice(0, 4);
+        }
+        return [];
+    }, [songs?.length, forceSingleImage]);
+
+    const hasCollage = !forceSingleImage && collageItems.length === 4;
+    const fallbackDisplays = (collageSongs && collageSongs.length > 0) ? collageSongs : (songs && songs.length > 0 ? songs : []);
 
     return (
         <View style={{
@@ -71,19 +101,19 @@ export const PlaylistCollage = ({
                         </View>
                     ))}
                 </View>
-            ) : displaySongs.length > 0 ? (
+            ) : fallbackDisplays.length > 0 ? (
                 <View style={[StyleSheet.absoluteFill, { opacity }]}>
                     <MusicImage
-                        uri={displaySongs[0].coverImage}
-                        id={displaySongs[0].id}
+                        uri={fallbackDisplays[0].coverImage}
+                        id={fallbackDisplays[0].id}
                         style={{ width: '100%', height: '100%' }}
-                        assetUri={displaySongs[0].uri}
+                        assetUri={fallbackDisplays[0].uri}
                     />
                 </View>
             ) : null}
 
             {/* Only darken when there are songs behind the overlay */}
-            {displaySongs.length > 0 && (
+            {(hasCollage || fallbackDisplays.length > 0) && (
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor }]} />
             )}
 

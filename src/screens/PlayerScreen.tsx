@@ -21,6 +21,7 @@ import { EditSongModal } from '../components/EditSongModal';
 import { LyricsModal } from '../components/LyricsModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
+import { RecommendationsModal } from '../components/RecommendationsModal';
 import { MarqueeText } from '../components/MarqueeText';
 import { ShareCardModal } from '../components/ShareCardModal';
 import { useProgress } from 'react-native-track-player';
@@ -195,6 +196,7 @@ export const PlayerScreen = () => {
     const [isAddingQueue, setIsAddingQueue] = useState(false);
     const [speedModalVisible, setSpeedModalVisible] = useState(false);
     const [shareModalVisible, setShareModalVisible] = useState(false);
+    const [recommendationsVisible, setRecommendationsVisible] = useState(false);
 
     const likeScale = useRef(new Animated.Value(1)).current;
     const shuffleScale = useSharedValue(1);
@@ -492,6 +494,12 @@ export const PlayerScreen = () => {
                             </View>
                             <View style={{ flexDirection: 'row', gap: 15, alignItems: 'center' }}>
                                 <TouchableOpacity
+                                    onPress={() => setRecommendationsVisible(true)}
+                                    style={styles.lyricsButton}
+                                >
+                                    <Ionicons name="color-wand-outline" size={24} color={theme.textSecondary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
                                     onPress={() => setLyricsModalVisible(true)}
                                     style={styles.lyricsButton}
                                 >
@@ -596,6 +604,7 @@ export const PlayerScreen = () => {
             <EditSongModal visible={editModalVisible} onClose={() => setEditModalVisible(false)} song={activeModalSong || currentSong} onSave={updateSongMetadata} />
             <LyricsModal visible={lyricsModalVisible} onClose={() => setLyricsModalVisible(false)} song={currentSong} />
             <ShareCardModal visible={shareModalVisible} onClose={() => setShareModalVisible(false)} song={currentSong} />
+            <RecommendationsModal visible={recommendationsVisible} onClose={() => setRecommendationsVisible(false)} song={currentSong} />
 
             {/* Playback Speed Modal */}
             <Modal

@@ -137,7 +137,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     }, [searchQuery]);
 
     // Group songs by album
-    const albums = useMemo(() => {
+    const allAlbums = useMemo(() => {
         const map = new Map();
         songs.forEach(song => {
             const albumName = song.album || 'Unknown Album';
@@ -154,16 +154,16 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             }
             map.get(albumName).count++;
         });
+        return Array.from(map.values());
+    }, [songs]);
 
-        const albumList = Array.from(map.values());
-
-        // Filter by search query
+    const albums = useMemo(() => {
         const filtered = debouncedQuery.trim()
-            ? albumList.filter(a =>
+            ? allAlbums.filter(a =>
                 a.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()) ||
                 (a.artist && a.artist.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
             )
-            : albumList;
+            : allAlbums;
 
         return filtered.sort((a, b) => {
             const aIsUnknown = a.name === 'Unknown Album';
@@ -177,7 +177,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             if (nameA > nameB) return 1;
             return 0;
         });
-    }, [songs, debouncedQuery]);
+    }, [allAlbums, debouncedQuery]);
 
 
 

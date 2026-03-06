@@ -670,12 +670,18 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
                 await new Promise(r => setTimeout(r, 10)); // Yield
 
-                // 2. Calculate Recently Added
-                let added = [...songs]
-                    .sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+                // 2. Calculate Recently Added — only songs added in last 30 days
+                const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+                const cutoff = Date.now() - THIRTY_DAYS;
+                let addedSorted = [...songs].sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+                let added = addedSorted.filter(s => (s.dateAdded || 0) > cutoff);
+
+                // Fallback: if very few recent songs (e.g. fresh library), show top 50 newest
+                if (added.length < 10) {
+                    added = addedSorted.slice(0, 50);
+                }
 
                 added = mergeSongData(added, customMetadataRef.current, songMetadataRef.current);
-                added = added.slice(0, 200); // Cap same as recentlyPlayed
                 setRecentlyAdded(added);
                 AsyncStorage.setItem('cached_recently_added', JSON.stringify(added)).catch(() => { });
 
@@ -987,11 +993,16 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
 
 
                 // 2. Instant Load from DB (Fast-Pass)
-                const [cachedSongs] = await Promise.all([
+                const [allCachedSongs] = await Promise.all([
                     databaseService.getAllSongs() as Promise<Song[]>
                 ]);
 
-                if (cachedSongs && Array.isArray(cachedSongs) && cachedSongs.length > 0) {
+                // Filter out songs from folders the user has unselected
+                const cachedSongs = folderNames && folderNames.length > 0
+                    ? allCachedSongs.filter(s => s.folder && folderNames.includes(s.folder))
+                    : [];
+
+                if (cachedSongs && cachedSongs.length > 0) {
                     console.log(`[MusicLibrary] Instant loading ${cachedSongs.length} songs from DB...`);
                     const merged = mergeSongData(cachedSongs, loadedCustom, loadedStats);
                     if (merged && merged.length > 0) {
@@ -1005,7 +1016,11 @@ export const MusicLibraryProvider = ({ children }: { children: ReactNode }) => {
                     setLoading(true);
                 }
 
-                // 3. Trigger Sync (Quiet if we already have songs)
+                // 3. Re-mark incomplete songs as pending so enhancement re-processes them
+                //    (This handles songs that were wrongly marked 'enhanced' in previous sessions)
+                await databaseService.markIncompleteSongsAsPending().catch(() => { });
+
+                // 4. Trigger Sync (Quiet if we already have songs)
                 const isQuiet = Array.isArray(cachedSongs) && cachedSongs.length > 0;
                 await loadSongsFromFolders(folderNames, false, false, false, isQuiet);
 

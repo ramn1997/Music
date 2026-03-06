@@ -74,21 +74,37 @@ export const FavoritesScreen = () => {
     const { theme } = useTheme();
     const { songs, playlists, favoriteArtists, favoriteAlbums, favoriteGenres, likedSongs, favoriteSpecialPlaylists } = useMusicLibrary();
     const { playSongInPlaylist } = usePlayerContext();
-    const [layoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
+    const [layoutMode] = useState<'grid2' | 'list'>('grid2');
 
     const allFavorites = useMemo(() => {
-        const findImageForType = (name: string, type: 'artist' | 'album' | 'playlist' | 'genre') => {
-            if (type === 'playlist') {
-                const pl = playlists.find(p => p.name === name);
-                return pl?.songs[0]?.coverImage;
+        const favAlbumsSet = new Set(favoriteAlbums || []);
+        const favGenresSet = new Set(favoriteGenres || []);
+        const favArtistsSet = new Set(favoriteArtists || []);
+
+        const albumSongsMap = new Map<string, any[]>();
+        const genreSongsMap = new Map<string, any[]>();
+        const artistImageMap = new Map<string, string>();
+        const albumImageMap = new Map<string, string>();
+        const genreImageMap = new Map<string, string>();
+
+        // SINGLE O(N) pass to gather all required assets and arrays
+        for (const s of (songs || [])) {
+            if (s.album && favAlbumsSet.has(s.album)) {
+                let arr = albumSongsMap.get(s.album);
+                if (!arr) { arr = []; albumSongsMap.set(s.album, arr); }
+                arr.push(s);
+                if (!albumImageMap.has(s.album) && s.coverImage) albumImageMap.set(s.album, s.coverImage);
             }
-            const song = (songs || []).find(s =>
-                (type === 'artist' && s.artist === name) ||
-                (type === 'album' && s.album === name) ||
-                (type === 'genre' && s.genre === name)
-            );
-            return song?.coverImage;
-        };
+            if (s.genre && favGenresSet.has(s.genre)) {
+                let arr = genreSongsMap.get(s.genre);
+                if (!arr) { arr = []; genreSongsMap.set(s.genre, arr); }
+                arr.push(s);
+                if (!genreImageMap.has(s.genre) && s.coverImage) genreImageMap.set(s.genre, s.coverImage);
+            }
+            if (s.artist && favArtistsSet.has(s.artist)) {
+                if (!artistImageMap.has(s.artist) && s.coverImage) artistImageMap.set(s.artist, s.coverImage);
+            }
+        }
 
         const favoritedPlaylists = (playlists || []).filter(p => p.isFavorite).map(p => ({
             id: p.id,
@@ -104,7 +120,7 @@ export const FavoritesScreen = () => {
             id: artist,
             name: artist,
             type: 'Artist',
-            image: findImageForType(artist, 'artist'),
+            image: artistImageMap.get(artist) || null,
             screen: 'Playlist',
             params: { id: artist, name: artist, type: 'artist' }
         }));
@@ -113,8 +129,8 @@ export const FavoritesScreen = () => {
             id: album,
             name: album,
             type: 'Album',
-            image: findImageForType(album, 'album'),
-            songs: (songs || []).filter(s => s.album === album),
+            image: albumImageMap.get(album) || null,
+            songs: albumSongsMap.get(album) || [],
             screen: 'Playlist',
             params: { id: album, name: album, type: 'album' }
         }));
@@ -123,8 +139,8 @@ export const FavoritesScreen = () => {
             id: genre,
             name: genre,
             type: 'Genre',
-            image: findImageForType(genre, 'genre'),
-            songs: (songs || []).filter(s => s.genre === genre),
+            image: genreImageMap.get(genre) || null,
+            songs: genreSongsMap.get(genre) || [],
             screen: 'Playlist',
             params: { id: genre, name: genre, type: 'genre' }
         }));
@@ -146,10 +162,9 @@ export const FavoritesScreen = () => {
 
     const renderItem = React.useCallback(({ item, index }: { item: any, index: number }) => {
         const isArtist = item.type === 'Artist';
-        const isGrid3 = layoutMode === 'grid3';
         const isList = layoutMode === 'list';
         const { width } = Dimensions.get('window');
-        const gridCardWidth = (width - 40 - (isGrid3 ? 20 : 10)) / (isGrid3 ? 3 : 2);
+        const gridCardWidth = (width - 40 - 16) / 2; // 40 horizontal padding, 16 gap
         const cardWidth = isList ? '100%' : gridCardWidth;
 
         // Consistent height for non-artist cards (Square aspect ratio)
@@ -158,26 +173,35 @@ export const FavoritesScreen = () => {
         return (
             <View
                 style={{
-                    width: isList ? '100%' : cardWidth,
-                    marginBottom: 15,
-                    alignItems: isList ? 'stretch' : (isArtist ? 'center' : 'flex-start')
+                    flex: isList ? 1 : 1 / 2,
+                    paddingHorizontal: isList ? 0 : 8,
+                    marginBottom: isList ? 15 : 24,
+                    alignItems: isList ? 'stretch' : 'center'
                 }}
             >
                 <TouchableOpacity
+                    style={isList ? styles.listItem : { width: '100%', alignItems: 'center' }}
+                    activeOpacity={0.7}
                     onPress={() => navigation.navigate('Playlist', {
                         id: item.params.id,
                         name: item.params.name,
                         type: item.params.type as any
                     })}
-                    style={isList ? styles.listItem : undefined}
                 >
                     <View style={[
-                        // Only apply card shadows/elevation to NON-artists
-                        !isArtist && styles.cardContainer,
+                        !isList && styles.cardContainer,
                         !isList && {
-                            height: isArtist ? (isGrid3 ? 80 : 120) : cardHeight,
-                            width: isArtist ? (isGrid3 ? 80 : 120) : '100%',
-                            borderRadius: isArtist ? (isGrid3 ? 40 : 60) : 16,
+                            height: isArtist ? cardHeight : cardHeight,
+                            width: '100%',
+                            aspectRatio: 1,
+                            borderRadius: isArtist ? cardHeight / 2 : 20,
+                            marginBottom: 10,
+                            elevation: 8,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 5,
+                            backgroundColor: theme.card
                         },
                         isList && {
                             width: 50,
@@ -189,9 +213,10 @@ export const FavoritesScreen = () => {
                     ]}>
                         {!isArtist && (
                             <PlaylistCollage
-                                songs={item.songs}
-                                size={isList ? 50 : (isArtist ? (isGrid3 ? 80 : 120) : cardHeight)}
-                                iconSize={isList ? 24 : 32}
+                                songs={item.songs || []}
+                                size={isList ? 50 : cardHeight}
+                                width={(!isList ? '100%' : undefined) as any}
+                                iconSize={isList ? 24 : 40}
                                 iconName={
                                     item.id === 'most_played' ? "refresh" :
                                         item.id === 'liked' ? "heart" :
@@ -199,9 +224,10 @@ export const FavoritesScreen = () => {
                                                 item.type === 'Genre' ? "pricetags" :
                                                     "musical-notes"
                                 }
-                                borderRadius={isList ? 8 : 16}
+                                borderRadius={isList ? 8 : 0}
                                 gradientColors={getGradientColors(item.id)}
                                 forceSingleImage={item.type === 'Album'}
+                                showBubbles={!isList}
                             />
                         )}
 
@@ -211,16 +237,21 @@ export const FavoritesScreen = () => {
                                 name={item.name}
                                 id={item.id}
                                 isList={isList}
-                                isGrid3={isGrid3}
+                                isGrid3={false}
                             />
                         )}
                     </View>
 
                     {/* Item Name outside for Grid */}
                     {!isList && (
-                        <View style={{ marginTop: 8, alignItems: isArtist ? 'center' : 'flex-start', paddingHorizontal: isArtist ? 0 : 4, width: '100%' }}>
-                            <Text style={[styles.artistName, { color: theme.text, marginTop: 0 }]} numberOfLines={1}>{item.name}</Text>
-                        </View>
+                        <>
+                            <Text style={{ color: theme.text, fontSize: 15, fontWeight: 'bold', textAlign: 'center', width: '100%' }} numberOfLines={1}>
+                                {item.name}
+                            </Text>
+                            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 4, textAlign: 'center', width: '100%' }} numberOfLines={1}>
+                                {item.type}
+                            </Text>
+                        </>
                     )}
 
                     {/* List View Details */}
@@ -247,8 +278,8 @@ export const FavoritesScreen = () => {
                     key={layoutMode}
                     data={allFavorites}
                     renderItem={renderItem}
-                    numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
-                    estimatedItemSize={layoutMode === 'list' ? 60 : 150}
+                    numColumns={layoutMode === 'list' ? 1 : 2}
+                    estimatedItemSize={layoutMode === 'list' ? 60 : 220}
                     keyExtractor={(item: any) => item.id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}

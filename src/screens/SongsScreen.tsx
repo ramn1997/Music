@@ -66,25 +66,27 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         setSelectedSongIds(new Set());
     };
 
+    const sortedSongs = React.useMemo(() => {
+        const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+        return [...songs].sort((a, b) => {
+            const cmp = collator.compare(a.title || '', b.title || '');
+            return sortOrder === 'asc' ? cmp : -cmp;
+        });
+    }, [songs, sortOrder]);
+
     const filteredSongs = React.useMemo(() => {
-        let result = songs;
+        let result = sortedSongs;
         if (debouncedQuery) {
             const query = debouncedQuery.toLowerCase();
-            result = songs.filter(song =>
+            result = sortedSongs.filter(song =>
                 (song.title && song.title.toLowerCase().includes(query)) ||
                 (song.artist && song.artist.toLowerCase().includes(query))
             );
         }
 
-        const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
-        const sorted = [...result].sort((a, b) => {
-            const cmp = collator.compare(a.title || '', b.title || '');
-            return sortOrder === 'asc' ? cmp : -cmp;
-        });
-
-        filteredSongsRef.current = sorted;
-        return sorted;
-    }, [songs, debouncedQuery, sortOrder]);
+        filteredSongsRef.current = result;
+        return result;
+    }, [sortedSongs, debouncedQuery]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
         const index = filteredSongsRef.current.findIndex(s => s.id === song.id);
@@ -253,9 +255,6 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         maxToRenderPerBatch={10}
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}
-                        drawDistance={250} // Reduced from 500 for memory efficiency
-                        removeClippedSubviews={true}
-                        decelerationRate="fast"
                         ListEmptyComponent={
                             <View style={{ alignItems: 'center', marginTop: 50 }}>
                                 <Text style={{ color: theme.textSecondary }}>No songs found.</Text>

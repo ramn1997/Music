@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../hooks/ThemeContext';
@@ -32,15 +32,11 @@ export const AboutScreen = () => {
 
     const features = [
         { icon: 'musical-notes', title: 'High-Fidelity Audio', desc: 'Symphonic audio engine optimized for local playback with crystal clear resolution.' },
-        { icon: 'search', title: 'Deep Metadata Scan', desc: 'Professional-grade ID3 tag extraction. Identifies missing genres and artwork directly from your music files.' },
-        { icon: 'finger-print', title: 'Gesture Controls', desc: 'Double-tap artwork to seek ±10s with animated feedback and fluid swipe navigation.' },
-        { icon: 'options', title: 'Home Dashboard', desc: 'Customize your Home dashboard by toggling sections like Playlists, Favorites, and History.' },
+        { icon: 'color-wand', title: 'Smart Recommendations', desc: 'Analyzes your currently playing music to instantly find tracks with the same album, artist, or genre in your local library.' },
         { icon: 'color-palette', title: 'Refined Aesthetics', desc: 'Highly-polished themes including Fire, Water, Forest, Nebula, Cyber, Dark, and Light.' },
     ];
 
-    const handleLink = (url: string) => {
-        Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
-    };
+
 
     return (
         <ScreenContainer variant="default">
@@ -58,7 +54,8 @@ export const AboutScreen = () => {
                     <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>About</Text>
-                <View style={{ width: 44 }} /> {/* Spacer to center title */}
+                {/* Spacer to center title */}
+                <View style={{ width: 44 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -76,30 +73,14 @@ export const AboutScreen = () => {
                         </LinearGradient>
                     </Animated.View>
 
-                    <Text style={[styles.appName, { color: theme.text }]}>Music App</Text>
-                    <Text style={[styles.appVersion, { color: theme.primary }]}>Version 1.0.0</Text>
+                    <Text style={[styles.appName, { color: theme.text }]}>Music</Text>
+                    <Text style={[styles.appVersion, { color: theme.primary }]}>Version 1.2.0</Text>
                     <Text style={[styles.appDescription, { color: theme.textSecondary }]}>
                         A premium local music player designed for audiophiles who value both aesthetics and performance.
                         No ads, no subscriptions, just your pure music.
                     </Text>
 
-                    <View style={styles.socialButtonsContainer}>
-                        <TouchableOpacity
-                            style={[styles.socialButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
-                            onPress={() => handleLink('https://github.com/')}
-                        >
-                            <Ionicons name="logo-github" size={20} color={theme.text} />
-                            <Text style={[styles.socialButtonText, { color: theme.text }]}>GitHub</Text>
-                        </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.socialButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
-                            onPress={() => handleLink('mailto:support@musicapp.to')}
-                        >
-                            <Ionicons name="mail" size={20} color={theme.text} />
-                            <Text style={[styles.socialButtonText, { color: theme.text }]}>Support</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
 
                 <View style={styles.featuresSection}>
@@ -117,14 +98,7 @@ export const AboutScreen = () => {
                     ))}
                 </View>
 
-                <View style={styles.footerSection}>
-                    <Text style={[styles.copyrightText, { color: theme.textSecondary }]}>
-                        Made with ❤️ by the open-source community
-                    </Text>
-                    <Text style={[styles.disclaimerText, { color: theme.textSecondary, opacity: 0.5 }]}>
-                        © {new Date().getFullYear()} Music App. All rights reserved.
-                    </Text>
-                </View>
+
             </ScrollView>
         </ScreenContainer>
     );

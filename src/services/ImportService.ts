@@ -175,11 +175,20 @@ class ImportService {
         if (album === 'Unknown Album') album = parsedAlbum;
 
         const albumId = asset.albumId || asset.album_id;
+        const genre = asset.genre as string | undefined;
 
         let systemArtUri: string | undefined = undefined;
         if (Platform.OS === 'android' && albumId && !['null', 'undefined', '-1', '0'].includes(String(albumId))) {
             systemArtUri = `content://media/external/audio/albumart/${albumId}`;
         }
+
+        // Determine if this song actually needs enhancement
+        const needsEnhancement =
+            !artist || artist === 'Unknown Artist' ||
+            !album || album === 'Unknown Album' ||
+            !genre || genre === 'Unknown Genre' ||
+            !title || title === asset.filename ||
+            title === asset.filename.replace(/\.[^/.]+$/, '');
 
         return {
             id: asset.id,
@@ -189,10 +198,11 @@ class ImportService {
             title: title,
             artist: artist,
             album: album,
-            genre: asset.genre,
+            genre: genre,
             albumId,
             coverImage: systemArtUri,
-            scanStatus: 'enhanced', // Pre-enhanced by native module since it pulls ID3 text!
+            // Mark pending if metadata is incomplete so enhancement actually runs
+            scanStatus: needsEnhancement ? 'pending' : 'enhanced',
             folder: this.getRootFolder(asset.uri) || undefined,
             dateAdded: (asset.dateAdded ? asset.dateAdded * 1000 : (asset.creationTime || Date.now())),
             playCount: 0,
@@ -202,6 +212,9 @@ class ImportService {
     }
 
     private async startEnhancement(callbacks: ImportCallbacks, forceDeepScan = false) {
+        // Reset guard — if a previous run failed/cancelled, allow restart
+        this.isEnhancing = false;
+
         if (this.isEnhancing) return;
         this.isEnhancing = true;
 
@@ -541,7 +554,7 @@ class ImportService {
                     const folder = this.getRootFolder(asset.uri);
                     return folder && folderNames.includes(folder);
                 })
-                : allAssets;
+                : [];
 
             const total = filteredAssets.length;
 

@@ -27,7 +27,7 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     }, [searchQuery]);
 
     // Group songs by genre
-    const genres = useMemo(() => {
+    const allGenres = useMemo(() => {
         const map = new Map();
         songs.forEach(song => {
             const genreName = song.genre || 'Unknown Genre';
@@ -40,13 +40,13 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             }
             map.get(genreName).count++;
         });
+        return Array.from(map.values());
+    }, [songs]);
 
-        const genreList = Array.from(map.values());
-
-        // Filter by search query
+    const genres = useMemo(() => {
         const filtered = debouncedQuery.trim()
-            ? genreList.filter(g => g.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
-            : genreList;
+            ? allGenres.filter(g => g.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
+            : allGenres;
 
         return filtered.sort((a, b) => {
             const aIsUnknown = a.name === 'Unknown Genre';
@@ -60,7 +60,7 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             if (nameA > nameB) return 1;
             return 0;
         });
-    }, [songs, debouncedQuery]);
+    }, [allGenres, debouncedQuery]);
 
     const toggleLayout = () => {
         if (layoutMode === 'grid3') setLayoutMode('grid2');

@@ -91,19 +91,21 @@ export const PlaylistsScreen = () => {
     };
 
     const { width } = require('react-native').Dimensions.get('window');
-    const itemWidth = (width - 30 - 24) / 3; // 30 = horizontal padding (15*2), 24 = gap (12*2)
+    const itemWidth = (width - 30 - 16) / 2; // 30 = generic horizontal padding, 16 = gap
 
     const renderItem = React.useCallback(({ item }: { item: any }) => {
         return (
             <View
                 style={{
-                    width: itemWidth,
-                    marginBottom: 15,
-                    alignItems: 'stretch'
+                    flex: 1 / 2,
+                    paddingHorizontal: 8,
+                    marginBottom: 24,
+                    alignItems: 'center'
                 }}
             >
                 <TouchableOpacity
-                    activeOpacity={0.8}
+                    style={{ width: '100%', alignItems: 'center' }}
+                    activeOpacity={0.7}
                     onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: item.id === 'liked' ? 'playlist' : 'playlist' })}
                     onLongPress={() => confirmDelete(item)}
                     delayLongPress={500}
@@ -111,56 +113,58 @@ export const PlaylistsScreen = () => {
                     <View style={[
                         styles.cardContainer,
                         {
-                            height: 115,
                             width: '100%',
-                            borderRadius: 16,
+                            aspectRatio: 1,
+                            borderRadius: 20,
                             overflow: 'hidden',
                             justifyContent: 'center',
                             alignItems: 'center',
+                            marginBottom: 10,
+                            elevation: 8,
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 5,
                             backgroundColor: theme.card
                         }
                     ]}>
                         <PlaylistCollage
-                            songs={item.id === 'liked' ? [] : (item.isSpecial ? [] : (userPlaylists.find(p => p.id === item.id)?.songs || []))}
-                            size={115}
-                            iconSize={34}
+                            songs={item.id === 'liked' ? likedSongs : (userPlaylists.find(p => p.id === item.id)?.songs || [])}
+                            size={itemWidth}
+                            width={'100%' as any}
+                            iconSize={40}
                             iconName={item.id === 'liked' ? "heart" : item.id === 'recently_played' ? "time" : "musical-notes"}
                             gradientColors={getGradientColors(item.id)}
                             showBubbles={true}
+                            borderRadius={0}
                         />
-                        <View style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            paddingVertical: 8,
-                            paddingHorizontal: 6,
-                            alignItems: 'center',
-                            zIndex: 10,
-                        }}>
-                            <Text
-                                numberOfLines={1}
-                                style={[styles.cardTitle]}
-                            >
-                                {item.name}
-                            </Text>
-                            <Text style={{
-                                color: 'rgba(255,255,255,0.7)',
-                                fontSize: 9,
-                                fontWeight: '600',
-                                textShadowColor: 'rgba(0, 0, 0, 0.5)',
-                                textShadowOffset: { width: 0, height: 1 },
-                                textShadowRadius: 3,
-                                marginTop: 1,
-                            }}>
-                                {item.count} {item.count === 1 ? 'song' : 'songs'}
-                            </Text>
-                        </View>
                     </View>
+
+                    <Text
+                        numberOfLines={1}
+                        style={{
+                            color: theme.text,
+                            fontSize: 15,
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            width: '100%'
+                        }}
+                    >
+                        {item.name}
+                    </Text>
+                    <Text style={{
+                        color: theme.textSecondary,
+                        fontSize: 12,
+                        marginTop: 4,
+                        textAlign: 'center',
+                        width: '100%'
+                    }}>
+                        {item.count} {item.count === 1 ? 'song' : 'songs'}
+                    </Text>
                 </TouchableOpacity>
             </View>
         );
-    }, [theme, navigation, confirmDelete, itemWidth]);
+    }, [theme, navigation, confirmDelete, itemWidth, userPlaylists]);
 
     return (
         <ScreenContainer variant="default">
@@ -180,8 +184,8 @@ export const PlaylistsScreen = () => {
                     data={displayPlaylists}
                     keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
-                    numColumns={3}
-                    estimatedItemSize={120}
+                    numColumns={2}
+                    estimatedItemSize={220}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={{ padding: 50, alignItems: 'center' }}>

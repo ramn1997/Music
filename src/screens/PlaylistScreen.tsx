@@ -430,12 +430,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         } else if (type === 'year') {
             filtered = filtered.filter(s => (s.year || 'Unknown Year') === name);
         } else if (type === 'most_played') {
-            const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-            filtered = filtered.filter(s => {
-                const playsToday = s.playHistory?.filter(t => t > oneDayAgo).length || 0;
-                return playsToday > 2;
-            });
-            filtered.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+            filtered = filtered.filter(s => (s.playCount || 0) > 0)
+                .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+                .slice(0, 50);
         } else if (type === 'recently_played') {
             filtered = [...recentlyPlayed];
         } else if (type === 'recently_added' || (id === 'recently_added')) {
@@ -720,7 +717,6 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             extraData={[currentSong?.id, theme, viewMode]}
                             getItemType={(item) => viewMode === 'songs' ? 'song' : 'item'}
                             drawDistance={500}
-                            removeClippedSubviews={true}
                             ListEmptyComponent={
                                 <View style={{ alignItems: 'center', marginTop: 50 }}>
                                     <Text style={{ color: theme.textSecondary }}>No {viewMode} found in this playlist.</Text>
