@@ -2,7 +2,7 @@
 
 A premium, comprehensive, and feature-rich music player application built with React Native and Expo. Designed for audiophiles who value aesthetics, performance, and complete control over their local library.
 
-## ✨ New in v1.1.0
+##  New in v1.1.0
 
 -   **Artist Image Customization**: Personalize your library by picking artist images from your gallery, searching the web (Deezer API), or resetting to defaults.
 -   **Deep Meta-Scan**: Enhanced metadata engine that fetches high-resolution (600x600px) artwork and detailed song info from the iTunes API.
@@ -20,7 +20,7 @@ A premium, comprehensive, and feature-rich music player application built with R
     *   Overhauled list rendering (via `overrideItemLayout` on `FlashList`) and sorting operations, drastically improving load times for massive libraries.
     *   Removed arbitrary limits on 'Recently Added' and 'Never Played' lists to accurately display all relevant music.
 
-## 🚀 Features
+##  Features
 
 -   **Music Library Management**: Automatically scans and organizes local music by Artists, Albums, and Genres.
 -   **Smart Library Engine**: High-performance background metadata enhancement and instant loading for heavy collections.
@@ -36,7 +36,7 @@ A premium, comprehensive, and feature-rich music player application built with R
     *   Deep folder scanning for Internal and External SD Card storage.
 -   **Native Experience**: High-quality audio playback with `react-native-track-player`, supporting notifications and lock-screen controls.
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 -   **Framework**: [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/)
 -   **Language**: [TypeScript](https://www.typescriptlang.org/)
@@ -48,7 +48,7 @@ A premium, comprehensive, and feature-rich music player application built with R
     *   **LRCLIB / OVH**: Lyrics search.
 -   **Storage**: `AsyncStorage` for user preferences and metadata persistence.
 
-## 📦 Installation
+##  Installation
 
 1.  **Clone the repository**:
     ```bash
@@ -68,7 +68,7 @@ A premium, comprehensive, and feature-rich music player application built with R
     -   Scan the QR code with the Expo Go app.
     -   Press `a` for Android or `i` for iOS.
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
