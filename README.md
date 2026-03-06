@@ -2,7 +2,13 @@
 
 A premium, comprehensive, and feature-rich music player application built with React Native and Expo. Designed for audiophiles who value aesthetics, performance, and complete control over their local library.
 
-## ✨ New in v1.3.0
+## ✨ New Features & Optimizations
+
+-   **Smart Recommendations**: Instantly generate smart playlists of visually and sonically matching tracks across your entire library using the new "magic wand" tool, sorting by identical genre, artist, and album.
+-   **Hyper-Optimized Library Engine**: Completely overhauled the React render cycle on key screens. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(N)` algorithmic maps and indexing, eliminating scrolling framerate lockups on very large thousands-of-songs libraries.
+-   **Dynamic 4-Grid Collages**: Beautifully stable 4-image grid collages for playlists.
+
+## ✨ Highlights from v1.3.0
 
 -   **Gapless Playback**: Experience completely seamless transitions between tracks with optimized ExoPlayer buffering capabilities.
 -   **Playback Speed Control**: Fine-tune your listening experience by adjusting audio playback speed from 0.5x up to 2.0x, seamlessly integrated into the song options menu.
