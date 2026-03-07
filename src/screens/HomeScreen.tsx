@@ -209,7 +209,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                     <Text style={{ color: theme.textSecondary, fontSize: 13 }} numberOfLines={1}>
                         {isArtist ? 'Artist' : (item.id === 'liked' ? 'Favorites' :
                             item.id === 'most_played' ? 'Smart Playlist' :
-                                ['Songs', 'Albums', 'Artists', 'Genres'].includes(item.id) ? 'Library' : 'Playlist')}
+                                ['Songs', 'Albums', 'Artists', 'Genres'].includes(item.id) ? 'Library' : (item.type || 'Playlist'))}
                     </Text>
                 </View>
                 <TouchableOpacity
@@ -345,7 +345,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                 <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '500' }}>
                                     {item.id === 'liked' ? 'Favorites' :
                                         item.id === 'most_played' ? 'Smart Playlist' :
-                                            ['Songs', 'Albums', 'Artists', 'Genres'].includes(item.id) ? 'Library' : 'Playlist'}
+                                            ['Songs', 'Albums', 'Artists', 'Genres'].includes(item.id) ? 'Library' : (item.type || 'Playlist')}
                                 </Text>
                             )}
                         </View>
