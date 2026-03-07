@@ -17,8 +17,8 @@ import { scanAudioFilesAsync } from 'music-scanner';
 
 import { databaseService } from './DatabaseService';
 
-// Hack for expo-music-info-2 compatibility
-const getMusicInfoAsync = (MusicInfo as any)?.getMusicInfoAsync || MusicInfo;
+// Hack for expo-music-info-2 compatibility across dev/release boundaries
+const getMusicInfoAsync = (MusicInfo as any)?.getMusicInfoAsync || (MusicInfo as any)?.default?.getMusicInfoAsync || MusicInfo;
 
 export interface Song {
     id: string;
