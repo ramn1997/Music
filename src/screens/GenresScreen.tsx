@@ -44,10 +44,12 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 map.set(genreName, {
                     id: genreName,
                     name: genreName,
-                    count: 0
+                    count: 0,
+                    songs: []
                 });
             }
             map.get(genreName).count++;
+            map.get(genreName).songs.push(song);
         });
         return Array.from(map.values());
     }, [songs, isNavigated]);

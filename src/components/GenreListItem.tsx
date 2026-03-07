@@ -4,12 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MarqueeText } from './MarqueeText';
+import { PlaylistCollage } from './PlaylistCollage';
+import { Song } from '../hooks/useLocalMusic';
 
 interface GenreListItemProps {
     item: {
         id: string;
         name: string;
         count: number;
+        songs?: Song[];
     };
     layoutMode: 'list' | 'grid2' | 'grid3';
     onPress: () => void;
@@ -41,14 +44,17 @@ export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemP
             {isList ? (
                 <TouchableOpacity style={styles.listItem} onPress={onPress}>
                     <View style={styles.row}>
-                        <LinearGradient
-                            colors={colors}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.listIcon}
-                        >
-                            <Ionicons name="musical-notes" size={20} color="white" />
-                        </LinearGradient>
+                        <View style={styles.listIcon}>
+                            <PlaylistCollage
+                                songs={item.songs || []}
+                                size={56}
+                                iconSize={26}
+                                iconName="pricetags"
+                                borderRadius={12}
+                                showBubbles={false}
+                                gradientColors={colors}
+                            />
+                        </View>
                         <View style={styles.info}>
                             <MarqueeText text={item.name} style={[styles.title, { color: theme.text, textAlign: 'left', fontSize: 16 }]} />
                             <Text style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]}>
@@ -65,30 +71,32 @@ export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemP
                     activeOpacity={0.8}
                 >
                     <View style={{ width: '100%' }}>
-                        <LinearGradient
-                            colors={colors}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={[
-                                styles.card,
-                                {
-                                    aspectRatio: 1,
-                                    width: '100%',
-                                    borderRadius: 24,
-                                    elevation: 8,
-                                    shadowColor: colors[0],
-                                    shadowOffset: { width: 0, height: 4 },
-                                    shadowOpacity: 0.3,
-                                    shadowRadius: 8,
-                                }
-                            ]}
-                        >
-                            <View style={styles.cardDesign}>
-                                <View style={[styles.circle, { top: -20, right: -20, width: 80, height: 80, opacity: 0.15 }]} />
-                                <View style={[styles.circle, { bottom: -10, left: -10, width: 60, height: 60, opacity: 0.1 }]} />
+                        <View style={[
+                            styles.card,
+                            {
+                                width: '100%',
+                                aspectRatio: 1,
+                                borderRadius: 24,
+                                elevation: 8,
+                                shadowColor: colors[0],
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 8,
+                            }
+                        ]}>
+                            <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+                                <PlaylistCollage
+                                    songs={item.songs || []}
+                                    size="100%"
+                                    width="100%"
+                                    iconSize={isGrid3 ? 32 : 40}
+                                    iconName="pricetags"
+                                    gradientColors={colors}
+                                    borderRadius={0}
+                                    showBubbles={true}
+                                />
                             </View>
-                            <Ionicons name="musical-notes" size={isGrid3 ? 32 : 40} color="white" style={{ opacity: 0.9 }} />
-                        </LinearGradient>
+                        </View>
                         <View style={{ marginTop: 8, paddingHorizontal: 4 }}>
                             <MarqueeText
                                 text={item.name}
@@ -130,9 +138,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     listIcon: {
-        width: 45,
-        height: 45,
-        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
@@ -148,17 +153,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     card: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        overflow: 'hidden',
-    },
-    cardDesign: {
-        ...StyleSheet.absoluteFillObject,
-        overflow: 'hidden',
-    },
-    circle: {
-        position: 'absolute',
-        borderRadius: 100,
-        backgroundColor: 'white',
+        width: '100%',
+        aspectRatio: 1,
     }
 });
