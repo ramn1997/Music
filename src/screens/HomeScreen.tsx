@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Keyboard, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -1077,12 +1077,17 @@ export const HomeScreen = () => {
                     <>
                         <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 10 }]}>
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Favorites</Text>
+                            {allFavorites.length > 6 && (
+                                <TouchableOpacity onPress={() => navigation.navigate('Favorites' as any)}>
+                                    <Text style={[{ color: appTheme.primary, fontWeight: '600' }]}>See All</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                         <View
                             style={{ paddingHorizontal: 20, paddingBottom: 5 }}
                         >
-                            {allFavorites.map((item) => (
+                            {allFavorites.slice(0, 6).map((item) => (
                                 <FavoriteItemCard
                                     key={item.id}
                                     item={item}
@@ -1113,23 +1118,23 @@ export const HomeScreen = () => {
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Playlists</Text>
                         </View>
 
-                        <ScrollView
+                        <FlatList
+                            data={displayUserPlaylists}
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 15 }}
                             decelerationRate="fast"
-                        >
-                            {displayUserPlaylists.map((item) => (
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={({ item }) => (
                                 <SmartPlaylistCard
-                                    key={item.id}
                                     item={item}
                                     isSmall
                                     onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.title, type: 'playlist' })}
                                     onPlayPress={handleSmartPlaylistPlay}
                                     onShufflePress={handleSmartPlaylistShuffle}
                                 />
-                            ))}
-                        </ScrollView>
+                            )}
+                        />
                     </>
                 )}
                 {sectionVisibility.history && (
@@ -1184,22 +1189,22 @@ export const HomeScreen = () => {
                         <View style={styles.sectionHeader}>
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Artists</Text>
                         </View>
-                        <ScrollView
+                        <FlatList
+                            data={displayTopArtists}
                             horizontal
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
                             decelerationRate="fast"
-                        >
-                            {displayTopArtists.map((artist) => (
+                            keyExtractor={(artist) => artist.name}
+                            renderItem={({ item: artist }) => (
                                 <TopArtistCard
-                                    key={artist.name}
                                     artist={artist}
                                     appTheme={appTheme}
                                     customImage={artistMetadata[artist.name]?.coverImage}
                                     onPress={handleTopArtistPress}
                                 />
-                            ))}
-                        </ScrollView>
+                            )}
+                        />
                     </>
                 )}
 
