@@ -76,7 +76,7 @@ const getGradientColors = (id: string): [string, string] => {
 
 const HistoryCardDesign = () => null;
 
-const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal }: { item: any, theme: any, navigation: any, isHorizontal?: boolean }) => {
+const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean }) => {
     const isArtist = item.type === 'Artist' || (item.params as any)?.type === 'artist';
     const artistImage = useArtistImage(isArtist ? item.name : '');
     const displayImage = isArtist ? artistImage : item.image;
@@ -147,7 +147,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal }: 
 
     return (
         <TouchableOpacity
-            style={styles.favoriteItemWrapperGrid}
+            style={[styles.favoriteItemWrapperGrid, isListView && { width: '100%', marginBottom: 12 }]}
             activeOpacity={0.9}
             onPressIn={() => scale.value = withSpring(0.95)}
             onPressOut={() => scale.value = withSpring(1)}
@@ -941,11 +941,8 @@ export const HomeScreen = () => {
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Favorites</Text>
                         </View>
 
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 15 }}
-                            decelerationRate="fast"
+                        <View
+                            style={{ paddingHorizontal: 20, paddingBottom: 5 }}
                         >
                             {allFavorites.map((item) => (
                                 <FavoriteItemCard
@@ -953,10 +950,10 @@ export const HomeScreen = () => {
                                     item={item}
                                     theme={appTheme}
                                     navigation={navigation}
-                                    isHorizontal
+                                    isListView
                                 />
                             ))}
-                        </ScrollView>
+                        </View>
                     </>
                 )}
 

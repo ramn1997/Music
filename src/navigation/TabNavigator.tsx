@@ -77,8 +77,17 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
 };
 
 import { BlurView } from 'expo-blur';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 
 const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) => {
+    const route = state.routes[state.index];
+    const focusedName = getFocusedRouteNameFromRoute(route) ?? route.name;
+    const hideOnScreens = ['Albums', 'Artists']; // Hide bottom tab bar in these full-page screens
+
+    if (hideOnScreens.includes(focusedName)) {
+        return null;
+    }
+
     const { navigationStyle } = useTheme();
     const isLight = theme.background === '#ffffff';
     const isPill = navigationStyle === 'pill';
