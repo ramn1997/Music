@@ -47,12 +47,13 @@ export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemP
                         <View style={styles.listIcon}>
                             <PlaylistCollage
                                 songs={item.songs || []}
-                                size={56}
-                                iconSize={26}
+                                size={64}
+                                iconSize={20}
                                 iconName="pricetags"
                                 borderRadius={12}
                                 showBubbles={false}
                                 gradientColors={colors}
+                                opacity={0.6}
                             />
                         </View>
                         <View style={styles.info}>
@@ -89,11 +90,12 @@ export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemP
                                     songs={item.songs || []}
                                     size="100%"
                                     width="100%"
-                                    iconSize={isGrid3 ? 32 : 40}
+                                    iconSize={isGrid3 ? 24 : 32}
                                     iconName="pricetags"
                                     gradientColors={colors}
                                     borderRadius={0}
                                     showBubbles={true}
+                                    opacity={0.6}
                                 />
                             </View>
                         </View>
