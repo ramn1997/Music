@@ -172,21 +172,21 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
             >
                 <View style={{ marginRight: 15 }}>
                     {isArtist ? (
-                        <View style={{ width: 45, height: 45, borderRadius: 22.5, overflow: 'hidden', backgroundColor: theme.card }}>
+                        <View style={{ width: 56, height: 56, borderRadius: 28, overflow: 'hidden', backgroundColor: theme.card }}>
                             <MusicImage
                                 uri={displayImage}
                                 id={item.id}
                                 assetUri={(item as any).assetUri}
                                 style={StyleSheet.absoluteFill}
-                                iconSize={24}
+                                iconSize={28}
                                 iconName="person"
                             />
                         </View>
                     ) : (
                         <PlaylistCollage
                             songs={item.songs || []}
-                            size={45}
-                            iconSize={20}
+                            size={56}
+                            iconSize={26}
                             iconName={
                                 item.icon || (
                                     item.id === 'most_played' ? "refresh" :
@@ -196,7 +196,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                                     "musical-notes"
                                 ) as any
                             }
-                            borderRadius={10}
+                            borderRadius={12}
                             showBubbles={false}
                             gradientColors={getGradientColors(item.id)}
                             forceSingleImage={item.type === 'Album' || (item.params as any)?.type === 'album'}
