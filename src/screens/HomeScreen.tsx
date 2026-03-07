@@ -76,7 +76,7 @@ const getGradientColors = (id: string): [string, string] => {
 
 const HistoryCardDesign = () => null;
 
-const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean }) => {
+const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void }) => {
     const isArtist = item.type === 'Artist' || (item.params as any)?.type === 'artist';
     const artistImage = useArtistImage(isArtist ? item.name : '');
     const displayImage = isArtist ? artistImage : item.image;
@@ -212,7 +212,15 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                 ['Songs', 'Albums', 'Artists', 'Genres'].includes(item.id) ? 'Library' : 'Playlist')}
                     </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                <TouchableOpacity
+                    style={{ padding: 10, marginRight: -5 }}
+                    onPress={(e) => {
+                        e.stopPropagation();
+                        onPlayPress?.(item);
+                    }}
+                >
+                    <Ionicons name="play" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
             </TouchableOpacity>
         );
     }
@@ -1023,6 +1031,18 @@ export const HomeScreen = () => {
                                     theme={appTheme}
                                     navigation={navigation}
                                     isListView
+                                    onPlayPress={(favItem) => {
+                                        let playSongs: any[] = [];
+                                        if (favItem.type === 'Artist') {
+                                            playSongs = songs.filter((s: any) => s.artist === favItem.name);
+                                        } else {
+                                            playSongs = favItem.songs || [];
+                                        }
+                                        if (playSongs.length > 0) {
+                                            playSongInPlaylist(playSongs, 0, favItem.name);
+                                            navigation.navigate('Player', { trackIndex: 0 });
+                                        }
+                                    }}
                                 />
                             ))}
                         </View>
