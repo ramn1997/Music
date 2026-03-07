@@ -611,7 +611,7 @@ export const HomeScreen = () => {
             count: p.songs.length,
             color: getPlaylistColor(p.id),
             cardColor: 'rgba(255,255,255,0.05)',
-            icon: 'library'
+            icon: 'musical-notes'
         }));
     }, [playlists]);
 
