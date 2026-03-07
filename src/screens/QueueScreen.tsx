@@ -101,7 +101,7 @@ export const QueueScreen = ({ navigation }: Props) => {
         <ScreenContainer variant="default">
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                         <Ionicons name="chevron-back" size={28} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, { color: theme.text }]}>Queue</Text>

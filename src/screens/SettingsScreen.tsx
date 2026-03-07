@@ -90,7 +90,7 @@ export const SettingsScreen = () => {
     return (
         <ScreenContainer variant="settings">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={28} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
