@@ -48,7 +48,6 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         return () => clearTimeout(handler);
     }, [searchQuery]);
 
-    // Multi-select state
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedSongIds, setSelectedSongIds] = useState<Set<string>>(new Set());
 
@@ -66,15 +65,27 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         setSelectedSongIds(new Set());
     };
 
+    // Performance fix: Prevents UI stagger during screen navigation transitions
+    const [isNavigated, setIsNavigated] = useState(false);
+    React.useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
+
     const sortedSongs = React.useMemo(() => {
-        const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+        if (!isNavigated) return [];
         return [...songs].sort((a, b) => {
-            const cmp = collator.compare(a.title || '', b.title || '');
+            const A = a.title?.toLowerCase() || '';
+            const B = b.title?.toLowerCase() || '';
+            const cmp = A < B ? -1 : A > B ? 1 : 0;
             return sortOrder === 'asc' ? cmp : -cmp;
         });
-    }, [songs, sortOrder]);
+    }, [songs, sortOrder, isNavigated]);
 
     const filteredSongs = React.useMemo(() => {
+        if (!isNavigated) return [];
         let result = sortedSongs;
         if (debouncedQuery) {
             const query = debouncedQuery.toLowerCase();
@@ -86,7 +97,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
         filteredSongsRef.current = result;
         return result;
-    }, [sortedSongs, debouncedQuery]);
+    }, [sortedSongs, debouncedQuery, isNavigated]);
 
     const handlePlaySong = React.useCallback((song: Song) => {
         const index = filteredSongsRef.current.findIndex(s => s.id === song.id);

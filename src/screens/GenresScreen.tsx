@@ -26,8 +26,17 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         return () => clearTimeout(handler);
     }, [searchQuery]);
 
+    const [isNavigated, setIsNavigated] = useState(false);
+    React.useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
+
     // Group songs by genre
     const allGenres = useMemo(() => {
+        if (!isNavigated) return [];
         const map = new Map();
         songs.forEach(song => {
             const genreName = song.genre || 'Unknown Genre';
@@ -41,9 +50,10 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             map.get(genreName).count++;
         });
         return Array.from(map.values());
-    }, [songs]);
+    }, [songs, isNavigated]);
 
     const genres = useMemo(() => {
+        if (!isNavigated) return [];
         const filtered = debouncedQuery.trim()
             ? allGenres.filter(g => g.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
             : allGenres;
@@ -56,11 +66,9 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
             const nameA = a.name.toLowerCase();
             const nameB = b.name.toLowerCase();
-            if (nameA < nameB) return -1;
-            if (nameA > nameB) return 1;
-            return 0;
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
         });
-    }, [allGenres, debouncedQuery]);
+    }, [allGenres, debouncedQuery, isNavigated]);
 
     const toggleLayout = () => {
         if (layoutMode === 'grid3') setLayoutMode('grid2');

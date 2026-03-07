@@ -46,8 +46,17 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         return () => clearTimeout(handler);
     }, [searchQuery]);
 
+    const [isNavigated, setIsNavigated] = useState(false);
+    React.useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
+
     // Group songs by artist
     const allArtists = useMemo(() => {
+        if (!isNavigated) return [];
         const map = new Map();
         songs.forEach(song => {
             const artistName = song.artist || 'Unknown Artist';
@@ -61,9 +70,10 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             map.get(artistName).count++;
         });
         return Array.from(map.values());
-    }, [songs]);
+    }, [songs, isNavigated]);
 
     const artists = useMemo(() => {
+        if (!isNavigated) return [];
         const filtered = debouncedQuery.trim()
             ? allArtists.filter(a => a.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
             : allArtists;
@@ -76,11 +86,9 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
             const nameA = a.name.toLowerCase();
             const nameB = b.name.toLowerCase();
-            if (nameA < nameB) return -1;
-            if (nameA > nameB) return 1;
-            return 0;
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
         });
-    }, [allArtists, debouncedQuery]);
+    }, [allArtists, debouncedQuery, isNavigated]);
 
 
 

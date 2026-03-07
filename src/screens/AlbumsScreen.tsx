@@ -136,8 +136,17 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         return () => clearTimeout(handler);
     }, [searchQuery]);
 
+    const [isNavigated, setIsNavigated] = useState(false);
+    React.useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
+
     // Group songs by album
     const allAlbums = useMemo(() => {
+        if (!isNavigated) return [];
         const map = new Map();
         songs.forEach(song => {
             const albumName = song.album || 'Unknown Album';
@@ -155,9 +164,10 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             map.get(albumName).count++;
         });
         return Array.from(map.values());
-    }, [songs]);
+    }, [songs, isNavigated]);
 
     const albums = useMemo(() => {
+        if (!isNavigated) return [];
         const filtered = debouncedQuery.trim()
             ? allAlbums.filter(a =>
                 a.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()) ||
@@ -173,11 +183,9 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
             const nameA = a.name.toLowerCase();
             const nameB = b.name.toLowerCase();
-            if (nameA < nameB) return -1;
-            if (nameA > nameB) return 1;
-            return 0;
+            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
         });
-    }, [allAlbums, debouncedQuery]);
+    }, [allAlbums, debouncedQuery, isNavigated]);
 
 
 
