@@ -369,71 +369,76 @@ const SmartPlaylistCard = React.memo(({
     onShufflePress?: (item: any) => void,
     isSmall?: boolean
 }) => {
-    const cardWidth = isSmall ? 140 : 160;
-    const cardHeight = isSmall ? 195 : 235;
-    const imageHeight = Math.round(cardHeight * 0.65);
-    const infoHeight = cardHeight - imageHeight;
+    const cardSize = isSmall ? 140 : 160;
 
     return (
         <TouchableOpacity
             style={{
-                width: cardWidth,
-                height: cardHeight,
-                borderRadius: isSmall ? 16 : 20,
+                width: cardSize,
+                height: cardSize,
+                borderRadius: 16,
                 overflow: 'hidden',
                 marginRight: 15,
-                backgroundColor: '#111'
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                justifyContent: 'flex-end'
             }}
             onPress={() => onPress(item)}
             activeOpacity={0.9}
         >
-            {/* Image / Collage Area — fills full card width, 65% card height */}
-            <PlaylistCollage
-                songs={item.songs || []}
-                collageSongs={item.collageSongs}
-                size={imageHeight}
-                width={cardWidth}
-                iconSize={isSmall ? 28 : 38}
-                iconName={item.icon || "musical-notes"}
-                borderRadius={0}
-                opacity={0.85}
-                overlayColor="rgba(0,0,0,0.15)"
+            <View style={StyleSheet.absoluteFill}>
+                <PlaylistCollage
+                    songs={item.songs || []}
+                    collageSongs={item.collageSongs}
+                    size={cardSize}
+                    width={cardSize}
+                    iconSize={isSmall ? 28 : 38}
+                    iconName={item.icon || "musical-notes"}
+                    borderRadius={0}
+                    opacity={0.8}
+                    showBubbles={false}
+                />
+            </View>
+
+            <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,1)']}
+                style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: cardSize * 0.6,
+                }}
             />
 
-            {/* Info Area */}
             <View style={{
-                height: infoHeight,
-                backgroundColor: item.cardColor || 'rgba(255,255,255,0.05)',
-                padding: isSmall ? 8 : 10,
-                justifyContent: 'center',
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                flexDirection: 'row',
+                gap: 6
             }}>
-                <Text
-                    style={[styles.historyTitle, { fontSize: isSmall ? 11 : 13, marginBottom: isSmall ? 4 : 6 }]}
-                    numberOfLines={1}
+                <TouchableOpacity
+                    style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                    onPress={(e) => { e.stopPropagation(); onPlayPress?.(item); }}
                 >
+                    <Ionicons name="play" size={14} color="#fff" style={{ marginLeft: 2 }} />
+                </TouchableOpacity>
+            </View>
+
+            <View style={{ padding: 12 }}>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold', marginBottom: 2 }} numberOfLines={1}>
                     {item.title}
                 </Text>
-                <View style={styles.historyActionGroup}>
-                    <TouchableOpacity
-                        style={[styles.historyActionBtn, { width: isSmall ? 26 : 30, height: isSmall ? 26 : 30 }]}
-                        onPress={(e) => { e.stopPropagation(); onPlayPress?.(item); }}
-                    >
-                        <Ionicons name="play" size={isSmall ? 12 : 14} color="#000" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.historyActionBtn, {
-                            marginLeft: 7,
-                            backgroundColor: 'rgba(255,255,255,0.15)',
-                            elevation: 0,
-                            shadowOpacity: 0,
-                            width: isSmall ? 26 : 30,
-                            height: isSmall ? 26 : 30,
-                        }]}
-                        onPress={(e) => { e.stopPropagation(); onShufflePress?.(item); }}
-                    >
-                        <Ionicons name="shuffle" size={isSmall ? 12 : 15} color="#fff" />
-                    </TouchableOpacity>
-                </View>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }} numberOfLines={1}>
+                    {item.count || (item.songs?.length ?? 0)} songs
+                </Text>
             </View>
         </TouchableOpacity>
     );
