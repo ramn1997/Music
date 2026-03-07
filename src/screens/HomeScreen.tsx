@@ -145,9 +145,81 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
         );
     }
 
+    if (isListView) {
+        return (
+            <TouchableOpacity
+                style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 12,
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: 'rgba(255,255,255,0.05)'
+                }}
+                activeOpacity={0.7}
+                onPress={() => {
+                    const p = item.params as any;
+                    if (item.id === 'Songs') return navigation.navigate('Songs');
+                    if (item.id === 'Albums') return navigation.navigate('Albums');
+                    if (item.id === 'Artists') return navigation.navigate('Artists');
+                    if (item.id === 'playlists') return navigation.navigate('Playlists' as any);
+
+                    navigation.navigate('Playlist', {
+                        id: p.id,
+                        name: p.name,
+                        type: p.type
+                    });
+                }}
+            >
+                <View style={{ marginRight: 15 }}>
+                    {isArtist ? (
+                        <View style={{ width: 45, height: 45, borderRadius: 22.5, overflow: 'hidden', backgroundColor: theme.card }}>
+                            <MusicImage
+                                uri={displayImage}
+                                id={item.id}
+                                assetUri={(item as any).assetUri}
+                                style={StyleSheet.absoluteFill}
+                                iconSize={24}
+                                iconName="person"
+                            />
+                        </View>
+                    ) : (
+                        <PlaylistCollage
+                            songs={item.songs || []}
+                            size={45}
+                            iconSize={20}
+                            iconName={
+                                item.icon || (
+                                    item.id === 'most_played' ? "refresh" :
+                                        item.id === 'liked' ? "heart" :
+                                            (item.params as any)?.type === 'album' ? "disc" :
+                                                (item.params as any)?.type === 'genre' ? "pricetags" :
+                                                    "musical-notes"
+                                ) as any
+                            }
+                            borderRadius={10}
+                            showBubbles={false}
+                            gradientColors={getGradientColors(item.id)}
+                        />
+                    )}
+                </View>
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <Text style={{ color: theme.text, fontSize: 16, fontWeight: '500', marginBottom: 4 }} numberOfLines={1}>
+                        {item.name}
+                    </Text>
+                    <Text style={{ color: theme.textSecondary, fontSize: 13 }} numberOfLines={1}>
+                        {isArtist ? 'Artist' : (item.id === 'liked' ? 'Favorites' :
+                            item.id === 'most_played' ? 'Smart Playlist' :
+                                ['Songs', 'Albums', 'Artists', 'Genres'].includes(item.id) ? 'Library' : 'Playlist')}
+                    </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+        );
+    }
+
     return (
         <TouchableOpacity
-            style={[styles.favoriteItemWrapperGrid, isListView && { width: '100%', marginBottom: 12 }]}
+            style={styles.favoriteItemWrapperGrid}
             activeOpacity={0.9}
             onPressIn={() => scale.value = withSpring(0.95)}
             onPressOut={() => scale.value = withSpring(1)}
