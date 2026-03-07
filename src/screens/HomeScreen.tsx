@@ -74,7 +74,12 @@ const getGradientColors = (id: string): [string, string] => {
     }
 };
 
-const HistoryCardDesign = () => null;
+const HistoryCardDesign = () => (
+    <>
+        <View style={{ position: 'absolute', top: -15, right: -15, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+        <View style={{ position: 'absolute', bottom: -5, left: -5, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)' }} />
+    </>
+);
 
 const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void }) => {
     const isArtist = item.type === 'Artist' || (item.params as any)?.type === 'artist';
@@ -199,6 +204,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                             borderRadius={10}
                             showBubbles={false}
                             gradientColors={getGradientColors(item.id)}
+                            forceSingleImage={item.type === 'Album' || (item.params as any)?.type === 'album'}
                         />
                     )}
                 </View>
@@ -353,6 +359,87 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                 </View>
             </Animated.View>
         </TouchableOpacity >
+    );
+});
+
+const HistoryPlaylistCard = React.memo(({
+    item,
+    onPress,
+    onPlayPress,
+    onShufflePress
+}: {
+    item: any,
+    onPress: () => void,
+    onPlayPress?: () => void,
+    onShufflePress?: () => void
+}) => {
+    // Get unique album arts from songs for collage
+    const collageSongs = React.useMemo(() => {
+        if (!item.songs) return [];
+        const seen = new Set();
+        const unique = [];
+        for (const s of item.songs) {
+            const art = s.coverImage || s.uri; // fallback to uri if no coverImage
+            if (art && !seen.has(art)) {
+                seen.add(art);
+                unique.push(s);
+            }
+            if (unique.length >= 4) break;
+        }
+        return unique;
+    }, [item.songs]);
+
+    return (
+        <TouchableOpacity style={styles.historyCard} onPress={onPress} activeOpacity={0.9}>
+            <View style={[styles.historyImageContainer, { backgroundColor: item.color, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }]}>
+                {/* Subtle Collage Background */}
+                <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', opacity: 0.25 }]}>
+                    {collageSongs.map((song: any, i: number) => (
+                        <View key={song.id + i} style={{ width: '50%', height: '50%' }}>
+                            <MusicImage
+                                uri={song.coverImage}
+                                id={song.id}
+                                style={{ width: '100%', height: '100%' }}
+                                assetUri={song.uri}
+                            />
+                        </View>
+                    ))}
+                </View>
+
+                <HistoryCardDesign />
+                <Ionicons
+                    name={item.icon || "musical-notes"}
+                    size={44}
+                    color="#fff"
+                    style={{
+                        zIndex: 1,
+                        textShadowColor: 'rgba(0,0,0,0.5)',
+                        textShadowOffset: { width: 0, height: 2 },
+                        textShadowRadius: 6
+                    }}
+                />
+            </View>
+            <View style={[styles.historyInfoContainer, { backgroundColor: item.cardColor || '#1a1a1a' }]}>
+                <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
+
+                <View style={styles.historyStatsRow}>
+                    <View style={styles.historyActionGroup}>
+                        <TouchableOpacity
+                            style={styles.historyActionBtn}
+                            onPress={(e) => { e.stopPropagation(); onPlayPress?.(); }}
+                        >
+                            <Ionicons name="play" size={16} color="#000" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.historyActionBtn, { marginLeft: 8 }]}
+                            onPress={(e) => { e.stopPropagation(); onShufflePress?.(); }}
+                        >
+                            <Ionicons name="shuffle" size={16} color="#000" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </TouchableOpacity>
     );
 });
 
@@ -1093,12 +1180,12 @@ export const HomeScreen = () => {
                             decelerationRate="fast"
                         >
                             {listeningHistoryPlaylists.map((item) => (
-                                <SmartPlaylistCard
+                                <HistoryPlaylistCard
                                     key={item.id}
                                     item={item}
-                                    onPress={handleSmartPlaylistPress}
-                                    onPlayPress={handleSmartPlaylistPlay}
-                                    onShufflePress={handleSmartPlaylistShuffle}
+                                    onPress={() => handleSmartPlaylistPress(item)}
+                                    onPlayPress={() => handleSmartPlaylistPlay(item)}
+                                    onShufflePress={() => handleSmartPlaylistShuffle(item)}
                                 />
                             ))}
                         </ScrollView>

@@ -1,0 +1,84 @@
+0276504 fix: favorite albums incorrectly displaying 'Playlist' instead of 'Album' text
+a9f733d style: changed homescreen playlist cards to modern full width square design
+2cac3ed fix: corrected incorrect library icon showing for custom user playlists
+89d9dcb feat: added quick-play button replacing the chevron in favorites list items
+294e3ca style: redesign favorites list view layout to match unified song item look
+849f325 style: changed homescreen favorites section to listview and hid bottom tabs on album and artist screens
+849ba16 perf: heavily optimize library screen navigations by deferring large array sorts with InteractionManager
+6982dd9 fix: Unhandled goBack error on Settings and Queue screens
+8aec6ef Optimize native genre extraction via MediaStore HashMap to fix splash screen hang
+7757b05 Fix metadata enhancement in release and make genre extracting native
+7a573e7 docs: update README with new smart recommendations and optimizations
+3ec390a feat: implement smart recommendations and optimize performance
+f8199dd ui: Improve Library screens layout and Artist/Album hero design - Restore original side-by-side artwork layout for Artist and Album screens - Move artwork card below back button, no longer overlapping - Add search bar in header row for Artist and Album screens - Genres screen now defaults to list view - Fix extra closing View tag in PlaylistScreen
+86c1447 feat: Add Gapless Playback, Playback Speed, and UI Enhancements
+0362e55 feat: v1.2.0 updates - Dolby Codec, Equalizer overhaul, and performance optimizations
+eef5826 Library: Remove Genres section and implement focus-reset to Songs tab
+1143ea7 HomeScreen: Implement direct search and remove dedicated Search screen
+a6dffb2 Library: Add Genres tab and support embedding for GenresScreen
+637db29 Navigation: Refactor to include Library screen and move Search to stack
+ddbc641 HomeScreen: Integrate search bar into header
+c5753b9 Theming: Create 'Forest' and 'Glass' elemental themes with top-glow styling
+f17ff8e Theming: Fix crash caused by outdated theme names in AsyncStorage
+47b09c4 Theming: Rename Blue to 'Water' and update styling to match Fire layout
+6976b2a Theming: Remove purple theme from available options
+b9ae3bd Fire Theme: Darken colors for a moody burnt aesthetic
+bcb0545 Cyber Theme: Match background gradient to yellowish lime highlights
+90dc7f0 Theming: Fix theme update lag and brighten standard theme gradients
+89db999 Theming: Enable global background transparency and enhance gradients for all themes
+2beb3ad Fire Theme: Darken background glow and concentrate top gradient
+bce2f71 Settings: Add 'Fire' theme to selection dropdown
+5630a06 Theming: Implement new 'Fire' theme with top red glow
+0cdf7cc Cyber Theme: Restore yellowish lime highlights
+6bbf245 Theming: Restrict background transparency to Cyber theme logic
+82e96f8 Cyber Theme: Match green streak from screenshot and fix Home background
+a7dd47c HomeScreen: Remove hardcoded background for consistent gradient glow
+8fda9b5 Implement Cyber theme streak effect with color locations
+8babee7 Update cyber theme gradient to match screenshot
+55cdcf6 Add Cyber theme
+18ef93d Optimize search screen text input and list rendering performance
+5c2fd1c Optimize audio import and metadata extraction with native module
+4f61af2 fix: navigation bug, improve list performance, uniform playlist modal, and fix listening history and UI icons
+36a52e7 Optimize background enhancement and fix performance issues
+33c1e4c fix(widget & player): Resolve release parcel inflation exceptions by averting arbitrary Vector drawable injection into RemoteViews. Revert PlayerContext URI payloads to stable tracked asset references.
+2a30d4a feat: Enhanced Android Widget & UI Navigation Fixes
+46fccdc feat: add About screen and enhance Settings UI
+beb610a feat: enhance UI aesthetics and navigation usability
+db72391 fix: widget controls not working due to stale closure
+936dd50 feat: UI refinements, bug fixes, and playback improvements
+373b7a0 chore: update metadata, performance optimizations, and UI refinements v1.1.0
+ad3bd51 Docs: Add README.md with project overview and installation instructions
+b7274ec Refactor: Update UI screens, enhance database service, and add library sync
+850fcd8 Add recent searches feature to SearchScreen using AsyncStorage
+bf629bd Remove top border from Up Next sheet in PlayerScreen
+674ca10 Set player screen background to black regardless of theme
+60abd85 Show icons only (no album art) for glass cards in HomeScreen favorites
+fc2646f Fix scrolling in LyricsModal and cover art in EditSongModal
+f04d51d Fix UI clipping in Favorites Screen
+ff528d3 Replace Light/White themes with Forest Green theme
+7b62fe1 Add Light and White themes
+76847c9 Remove glass card effect for artists in home favorites section
+e49a640 Fix bottom nav colors and Artist image in Favorites
+f0225b1 Fix metadata enhancement in production and improve fallback logic
+ff54386 Fix notification widget visibility and Android 14 compatibility
+2bba908 Fix metadata enhancement in production by implementing content URI fallback
+848243a Fix UI visibility, restore listening history, and implement pill-style navigation
+41a6398 Fix album art visibility in Android notification controls
+5d46a69 Remove old track player initialization code from index.js
+d0b74f5 Add playPause, nextTrack, and prevTrack methods to stub PlayerContext
+b0724aa Add missing methods to stub PlayerContext
+dc8748e Remove react-native-track-player due to New Architecture runtime issues
+6c137d1 Add EAS Build hook to apply react-native-track-player patch
+d7d85ae Link project to ram1997 EAS account
+87c4543 Update EAS owner to ram1997 account
+904e9e2 Revert invalid prebuild hooks - rely on postinstall script
+908d49b Add EAS build hooks to ensure patch-package runs before builds
+eaef104 Fix static constant references in track-player patch
+13ab748 Fix react-native-track-player New Architecture compatibility (corrected patch)
+7b5a5f3 Fix react-native-track-player New Architecture lateinit issue
+c5f122a Fix react-native-track-player New Architecture compatibility with patch
+d7e953e Enable New Architecture to support Reanimated 4 and React Native 0.81
+fcf7b37 Remove manual Kotlin version override
+8a6b9ad Fix build issues and update kotlin version to 2.0.21
+4491238 Fix audio permissions and fetch logic
+25516d0 Initial commit
