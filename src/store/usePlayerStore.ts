@@ -187,10 +187,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                     await TrackPlayer.setupPlayer({
                         waitForBuffer: true,
                         autoHandleInterruptions: true,
-                        minBuffer: (isGapless ? 20 : 15) * qualityMultiplier,
-                        maxBuffer: (isGapless ? 60 : 50) * qualityMultiplier,
-                        playBuffer: (isGapless ? 3 : 2.5) * qualityMultiplier,
-                        backBuffer: (isGapless ? 15 : 10) * qualityMultiplier,
+                        // Extreme buffers for true gapless: ensures next track is fully loaded
+                        minBuffer: (isGapless ? 60 : 30) * qualityMultiplier,
+                        maxBuffer: (isGapless ? 120 : 80) * qualityMultiplier,
+                        playBuffer: (isGapless ? 5 : 3) * qualityMultiplier,
+                        backBuffer: (isGapless ? 30 : 15) * qualityMultiplier,
                     });
                 }
 
@@ -207,7 +208,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                         Capability.SeekTo,
                     ],
                     compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext, Capability.SkipToPrevious],
-                    progressUpdateEventInterval: 1,
+                    progressUpdateEventInterval: isGapless ? 0.25 : 1, // High precision updates for gapless
                 });
 
                 await TrackPlayer.setRepeatMode(RepeatMode.Queue);
@@ -670,38 +671,52 @@ export const initializePlayerEvents = () => {
                     useLibraryStore.getState().incrementPlayCount(String(song.id));
                 }
 
-                // GAPLESS PRE-BUFFER: Ensure next virtual track is in native queue
+                // ENHANCED GAPLESS PRE-BUFFER: Ensure next 2 tracks are ready
                 const playlist = state.playlist;
                 const nextVirtualIdx = virtualIndex + 1;
+
                 if (nextVirtualIdx < playlist.length) {
-                    const nextSong = playlist[nextVirtualIdx];
                     try {
                         const nativeQueue = await TrackPlayer.getQueue();
-                        const isAlreadyBuffered = nativeQueue.some(t => String(t.id) === String(nextSong.id));
-                        if (!isAlreadyBuffered) {
-                            await TrackPlayer.add([songToTrack(nextSong)]);
-                        }
-                        // Prune tracks before current to keep native queue lean
-                        const activeNativeIdx = await TrackPlayer.getActiveTrackIndex();
-                        if (activeNativeIdx !== null && activeNativeIdx !== undefined && activeNativeIdx > 2) {
-                            // Remove tracks more than 2 behind current from native queue
-                            const toRemove = Array.from({ length: activeNativeIdx - 1 }, (_, i) => i);
-                            if (toRemove.length > 0) {
-                                for (const idx of toRemove) {
-                                    await TrackPlayer.remove(0);
+                        const activeNativeIdx = await TrackPlayer.getActiveTrackIndex() ?? 0;
+
+                        // Buffer up to 2 tracks ahead for super smooth transitions
+                        const tracksToBuffer = [];
+                        for (let offset = 1; offset <= 2; offset++) {
+                            const targetIdx = virtualIndex + offset;
+                            if (targetIdx < playlist.length) {
+                                const song = playlist[targetIdx];
+                                const isBuffered = nativeQueue.some(t => String(t.id) === String(song.id));
+                                if (!isBuffered) {
+                                    tracksToBuffer.push(songToTrack(song));
                                 }
                             }
                         }
+
+                        if (tracksToBuffer.length > 0) {
+                            await TrackPlayer.add(tracksToBuffer);
+                            console.log(`[PlayerStore] Gapless: buffered ${tracksToBuffer.length} tracks`);
+                        }
+
+                        // Optimize performance: Prune tracks that are no longer needed
+                        // BUT: don't prune too aggressively or it causes native index shifts that break gapless logic in some versions
+                        if (activeNativeIdx > 5) {
+                            const indicesToRemove = Array.from({ length: activeNativeIdx - 3 }, (_, i) => i);
+                            if (indicesToRemove.length > 0) {
+                                await TrackPlayer.remove(indicesToRemove);
+                            }
+                        }
                     } catch (e) {
-                        // Ignore pre-buffer errors — not critical
+                        console.warn('[PlayerStore] Gapless management error:', e);
                     }
                 } else if (state.repeatMode === 'all' && playlist.length > 0) {
-                    // Wrap around: pre-buffer track 0
+                    // Wrap around pre-buffering
                     try {
                         const nativeQueue = await TrackPlayer.getQueue();
-                        const isAlreadyBuffered = nativeQueue.some(t => String(t.id) === String(playlist[0].id));
-                        if (!isAlreadyBuffered) {
-                            await TrackPlayer.add([songToTrack(playlist[0])]);
+                        const firstSong = playlist[0];
+                        const isBuffered = nativeQueue.some(t => String(t.id) === String(firstSong.id));
+                        if (!isBuffered) {
+                            await TrackPlayer.add([songToTrack(firstSong)]);
                         }
                     } catch (e) { }
                 }

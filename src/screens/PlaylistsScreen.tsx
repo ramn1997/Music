@@ -224,8 +224,8 @@ export const PlaylistsScreen = () => {
                     visible={modalVisible}
                     onRequestClose={() => setModalVisible(false)}
                 >
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                    <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
+                        <View style={[styles.modalContent, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
                             <TouchableOpacity
                                 style={styles.headerCloseButton}
                                 onPress={() => setModalVisible(false)}

@@ -47,22 +47,21 @@ export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemP
                         <View style={styles.listIcon}>
                             <PlaylistCollage
                                 songs={item.songs || []}
-                                size={64}
-                                iconSize={20}
+                                size={72}
+                                iconSize={24}
                                 iconName="pricetags"
-                                borderRadius={12}
+                                borderRadius={16}
                                 showBubbles={false}
                                 gradientColors={colors}
                                 opacity={0.6}
                             />
                         </View>
                         <View style={styles.info}>
-                            <MarqueeText text={item.name} style={[styles.title, { color: theme.text, textAlign: 'left', fontSize: 16 }]} />
+                            <MarqueeText text={item.name} style={[styles.title, { color: theme.text, textAlign: 'left', fontSize: 17 }]} />
                             <Text style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]}>
                                 {item.count} Songs
                             </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                     </View>
                 </TouchableOpacity>
             ) : (
@@ -132,8 +131,6 @@ const styles = StyleSheet.create({
     listItem: {
         width: '100%',
         paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
     },
     row: {
         flexDirection: 'row',

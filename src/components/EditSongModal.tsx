@@ -263,7 +263,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.overlay}
             >
-                <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder, borderWidth: 1, borderBottomWidth: 0 }]}>
                     {/* Header */}
                     <View style={styles.header}>
                         <TouchableOpacity onPress={onClose} style={styles.headerButton}>

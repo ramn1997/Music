@@ -21,6 +21,7 @@ import { EditSongModal } from '../components/EditSongModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
 import { MarqueeText } from '../components/MarqueeText';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
+import { SortOptionsModal, SortOption } from '../components/SortOptionsModal';
 
 
 import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
@@ -51,7 +52,8 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
     const [selectedSong, setSelectedSong] = useState<Song | null>(null);
     const [songsToAddToPlaylist, setSongsToAddToPlaylist] = useState<Song[]>([]);
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortOption, setSortOption] = useState<SortOption>('az');
+    const [sortModalVisible, setSortModalVisible] = useState(false);
     const flatListRef = React.useRef<any>(null);
     const filteredSongsRef = React.useRef<Song[]>([]);
 
@@ -92,10 +94,16 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
     const sortedSongs = React.useMemo(() => {
         if (!isNavigated) return [];
-        if (sortOrder === 'asc') return preSortedSongs;
-        // Simple O(N) reverse instead of O(N log N) sort
-        return [...preSortedSongs].reverse();
-    }, [preSortedSongs, sortOrder, isNavigated]);
+        if (sortOption === 'az') return preSortedSongs;
+
+        let result = [...preSortedSongs];
+        if (sortOption === 'za') {
+            return result.reverse();
+        } else if (sortOption === 'duration') {
+            return result.sort((a, b) => (b.duration || 0) - (a.duration || 0));
+        }
+        return result;
+    }, [preSortedSongs, sortOption, isNavigated]);
 
 
 
@@ -190,15 +198,28 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
     const content = (
         <>
+            <SortOptionsModal
+                visible={sortModalVisible}
+                onClose={() => setSortModalVisible(false)}
+                currentSort={sortOption}
+                onSelect={setSortOption}
+                options={[
+                    { label: 'A-Z', value: 'az', icon: 'text' },
+                    { label: 'Z-A', value: 'za', icon: 'text' },
+                    { label: 'Duration', value: 'duration', icon: 'time-outline' },
+                ]}
+            />
             {/* Header */}
-            {!isEmbedded && (
-                <View style={styles.header}>
-                    {isSelectionMode ? (
+            <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: isEmbedded ? 0 : 20 }]}>
+                {!isEmbedded ? (
+                    isSelectionMode ? (
                         <>
-                            <TouchableOpacity onPress={cancelSelection} style={styles.backButton}>
-                                <Ionicons name="close" size={24} color={theme.text} />
-                            </TouchableOpacity>
-                            <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedSongIds.size} Selected</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <TouchableOpacity onPress={cancelSelection} style={styles.backButton}>
+                                    <Ionicons name="close" size={24} color={theme.text} />
+                                </TouchableOpacity>
+                                <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedSongIds.size} Selected</Text>
+                            </View>
                             <TouchableOpacity
                                 onPress={() => {
                                     if (selectedSongIds.size > 0) {
@@ -214,15 +235,18 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         </>
                     ) : (
                         <>
-                            <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                                <Ionicons name="arrow-back" size={24} color={theme.text} />
-                            </TouchableOpacity>
-                            <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
-                            <View style={{ width: 40 }} />
+                            <View style={styles.headerLeft}>
+                                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                                    <Ionicons name="arrow-back" size={24} color={theme.text} />
+                                </TouchableOpacity>
+                                <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
+                            </View>
                         </>
-                    )}
-                </View>
-            )}
+                    )
+                ) : (
+                    <View style={{ flex: 1 }} />
+                )}
+            </View>
 
             {/* Search Bar & Sort */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10 }}>
@@ -236,15 +260,8 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         onChangeText={setSearchQuery}
                     />
                 </View>
-                <TouchableOpacity
-                    onPress={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    style={styles.sortButton}
-                >
-                    <Ionicons
-                        name="swap-vertical"
-                        size={16}
-                        color={theme.primary}
-                    />
+                <TouchableOpacity onPress={() => setSortModalVisible(true)} style={styles.sortButton}>
+                    <Ionicons name="options-outline" size={22} color={theme.primary} />
                 </TouchableOpacity>
             </View>
 
@@ -387,6 +404,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 20,
         backgroundColor: 'transparent',
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15
     },
     headerTitle: {
         fontSize: 18,

@@ -105,7 +105,7 @@ export const SongSelectionModal: React.FC<SongSelectionModalProps> = ({
             >
                 <View style={styles.overlay}>
                     <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-                    <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
+                    <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
 
                         <View style={styles.handleContainer}>
                             <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
@@ -184,7 +184,8 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 36,
         borderTopRightRadius: 36,
         overflow: 'hidden',
-        backgroundColor: '#000', // Usually black in these themes
+        borderWidth: 1,
+        borderBottomWidth: 0,
     },
     handleContainer: {
         alignItems: 'center',

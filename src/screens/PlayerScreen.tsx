@@ -611,11 +611,11 @@ export const PlayerScreen = () => {
                 onRequestClose={() => setSpeedModalVisible(false)}
             >
                 <TouchableOpacity
-                    style={styles.modalOverlay}
+                    style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}
                     activeOpacity={1}
                     onPress={() => setSpeedModalVisible(false)}
                 >
-                    <View style={[styles.speedModalContent, { backgroundColor: theme.menuBackground || theme.card }]}>
+                    <View style={[styles.speedModalContent, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                         <Text style={[styles.speedModalTitle, { color: theme.text }]}>Playback Speed</Text>
                         <View style={styles.speedOptionsContainer}>
                             {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((s) => (
@@ -643,7 +643,7 @@ export const PlayerScreen = () => {
                             ))}
                         </View>
                         <TouchableOpacity
-                            style={[styles.closeButton, { backgroundColor: theme.cardBorder }]}
+                            style={[styles.closeButton, { backgroundColor: theme.textSecondary + '10' }]}
                             onPress={() => setSpeedModalVisible(false)}
                         >
                             <Text style={[styles.closeButtonText, { color: theme.text }]}>Close</Text>

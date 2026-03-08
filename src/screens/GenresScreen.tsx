@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-nativ
 import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
 import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 import { Ionicons } from '@expo/vector-icons';
+import { SortOptionsModal, SortOption } from '../components/SortOptionsModal';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
 import { useLibraryStore } from '../store/useLibraryStore';
@@ -19,6 +20,8 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [sortOption, setSortOption] = useState<SortOption>('az');
+    const [sortModalVisible, setSortModalVisible] = useState(false);
 
     React.useEffect(() => {
         const handler = setTimeout(() => {
@@ -46,11 +49,16 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     id: genreName,
                     name: genreName,
                     count: 0,
+                    duration: 0,
                     songs: []
                 });
             }
-            map.get(genreName).count++;
-            map.get(genreName).songs.push(song);
+            const entry = map.get(genreName);
+            entry.count++;
+            entry.duration += (song.duration || 0);
+            if (entry.songs.length < 4) {
+                entry.songs.push(song);
+            }
         });
         return Array.from(map.values());
     }, [songs, isNavigated]);
@@ -62,7 +70,10 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             ? allGenres.filter(g => g.name.toLowerCase().includes(query))
             : allGenres;
 
-        return [...filtered].sort((a, b) => {
+        const sorted = [...filtered].sort((a, b) => {
+            if (sortOption === 'duration') {
+                return (b.duration || 0) - (a.duration || 0);
+            }
             const aIsUnknown = a.name === 'Unknown Genre';
             const bIsUnknown = b.name === 'Unknown Genre';
             if (aIsUnknown && !bIsUnknown) return 1;
@@ -70,15 +81,16 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
             const nameA = a.name.toLowerCase();
             const nameB = b.name.toLowerCase();
-            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+            return nameA.localeCompare(nameB);
         });
-    }, [allGenres, debouncedQuery, isNavigated]);
 
-    const toggleLayout = () => {
-        if (layoutMode === 'grid3') setLayoutMode('grid2');
-        else if (layoutMode === 'grid2') setLayoutMode('list');
-        else setLayoutMode('grid3');
-    };
+        if (sortOption === 'za') {
+            return sorted.reverse();
+        }
+
+        return sorted;
+    }, [allGenres, debouncedQuery, isNavigated, sortOption]);
+
 
     const renderItem = React.useCallback(({ item }: { item: any }) => {
         return (
@@ -97,42 +109,34 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     });
 
     const content = (
-        <View style={{ flex: 1 }}>
-            {!isEmbedded && (
-                <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: 20 }]}>
+        <View style={{ flex: 1, position: 'relative' }}>
+            <SortOptionsModal
+                visible={sortModalVisible}
+                onClose={() => setSortModalVisible(false)}
+                currentSort={sortOption}
+                onSelect={setSortOption}
+                options={[
+                    { label: 'A-Z', value: 'az', icon: 'text' },
+                    { label: 'Z-A', value: 'za', icon: 'text' },
+                    { label: 'Duration', value: 'duration', icon: 'time-outline' },
+                ]}
+            />
+            <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: isEmbedded ? 0 : 20 }]}>
+                {!isEmbedded ? (
                     <View style={styles.headerLeft}>
                         <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Genres</Text>
                     </View>
+                ) : <View style={{ flex: 1 }} />}
+            </View>
 
-                    <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                        <Ionicons
-                            name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                            size={24}
-                            color={theme.primary}
-                        />
-                    </TouchableOpacity>
-                </View>
-            )}
-
-            <View style={{
-                paddingHorizontal: 20,
-                marginBottom: 10,
-                marginTop: isEmbedded ? 10 : 0
-            }}>
-                <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.card,
-                    borderRadius: 20,
-                    paddingHorizontal: 15,
-                    height: 40
-                }}>
-                    <Ionicons name="search" size={16} color={theme.textSecondary} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10, marginTop: isEmbedded ? 10 : 0 }}>
+                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, marginRight: 10, marginHorizontal: 0, marginVertical: 0, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                    <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
                     <TextInput
-                        style={{ flex: 1, color: theme.text, marginLeft: 8, fontSize: 14, paddingVertical: 0 }}
+                        style={[styles.searchInput, { color: theme.text }]}
                         placeholder="Search genres..."
                         placeholderTextColor={theme.textSecondary}
                         value={searchQuery}
@@ -144,6 +148,9 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         </TouchableOpacity>
                     )}
                 </View>
+                <TouchableOpacity onPress={() => setSortModalVisible(true)} style={styles.layoutButton}>
+                    <Ionicons name="options-outline" size={22} color={theme.primary} />
+                </TouchableOpacity>
             </View>
 
             <View style={{ flex: 1 }}>
@@ -154,7 +161,7 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     data={genres}
                     keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
-                    numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
+                    numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
                     estimatedItemSize={150}
                     drawDistance={250}
                     contentContainerStyle={styles.listContent}
@@ -204,6 +211,20 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center'
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        height: 38,
+        borderRadius: 19,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        marginLeft: 8,
+        height: '100%',
+        paddingVertical: 0,
     },
     listContent: {
         paddingHorizontal: 15,

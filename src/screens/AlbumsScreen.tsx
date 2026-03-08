@@ -8,6 +8,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { GlassCard } from '../components/GlassCard';
 import { MusicImage } from '../components/MusicImage';
+import { SortOptionsModal, SortOption } from '../components/SortOptionsModal';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -132,6 +133,8 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [sortOption, setSortOption] = useState<SortOption>('az');
+    const [sortModalVisible, setSortModalVisible] = useState(false);
 
     React.useEffect(() => {
         const handler = setTimeout(() => {
@@ -160,12 +163,15 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     name: albumName,
                     artist: song.artist,
                     coverImage: song.coverImage,
-                    count: 0
+                    count: 0,
+                    duration: 0
                 });
             } else if (!map.get(albumName).coverImage && song.coverImage) {
                 map.get(albumName).coverImage = song.coverImage;
             }
-            map.get(albumName).count++;
+            const entry = map.get(albumName);
+            entry.count++;
+            entry.duration += (song.duration || 0);
         });
         return Array.from(map.values());
     }, [songs, isNavigated]);
@@ -180,25 +186,29 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             )
             : allAlbums;
 
-        return [...filtered].sort((a, b) => {
+        const sorted = [...filtered].sort((a, b) => {
+            if (sortOption === 'duration') {
+                return (b.duration || 0) - (a.duration || 0);
+            }
             const aIsUnknown = a.name === 'Unknown Album';
             const bIsUnknown = b.name === 'Unknown Album';
-            if (aIsUnknown && !bIsUnknown) return -1;
-            if (!aIsUnknown && bIsUnknown) return 1;
+            if (aIsUnknown && !bIsUnknown) return 1;
+            if (!aIsUnknown && bIsUnknown) return -1;
 
             const nameA = a.name.toLowerCase();
             const nameB = b.name.toLowerCase();
-            return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+            return nameA.localeCompare(nameB);
         });
-    }, [allAlbums, debouncedQuery, isNavigated]);
+
+        if (sortOption === 'za') {
+            return sorted.reverse();
+        }
+
+        return sorted;
+    }, [allAlbums, debouncedQuery, isNavigated, sortOption]);
 
 
 
-    const toggleLayout = () => {
-        if (layoutMode === 'grid3') setLayoutMode('grid2');
-        else if (layoutMode === 'grid2') setLayoutMode('list');
-        else setLayoutMode('grid3');
-    };
 
     const handlePress = React.useCallback((item: any) => {
         navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'album' });
@@ -216,28 +226,51 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
     const content = (
         <View style={{ flex: 1, position: 'relative' }}>
-            {!isEmbedded && (
-                <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: 20 }]}>
+            <SortOptionsModal
+                visible={sortModalVisible}
+                onClose={() => setSortModalVisible(false)}
+                currentSort={sortOption}
+                onSelect={setSortOption}
+                options={[
+                    { label: 'A-Z', value: 'az', icon: 'text' },
+                    { label: 'Z-A', value: 'za', icon: 'text' },
+                    { label: 'Duration', value: 'duration', icon: 'time-outline' },
+                ]}
+            />
+            <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: isEmbedded ? 0 : 20 }]}>
+                {!isEmbedded ? (
                     <View style={styles.headerLeft}>
                         <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>Albums</Text>
                     </View>
+                ) : <View style={{ flex: 1 }} />}
+            </View>
 
-                    <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                        <Ionicons
-                            name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                            size={24}
-                            color={theme.primary}
-                        />
-                    </TouchableOpacity>
+            {/* Search Bar & Sort Menu Toggle Row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10 }}>
+                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, marginRight: 10, marginHorizontal: 0, marginVertical: 0, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                    <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+                    <TextInput
+                        style={[styles.searchInput, { color: theme.text }]}
+                        placeholder="Search albums..."
+                        placeholderTextColor={theme.textSecondary}
+                        value={searchQuery}
+                        onChangeText={(text) => setSearchQuery(text)}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                    )}
                 </View>
-            )}
+                <TouchableOpacity onPress={() => setSortModalVisible(true)} style={styles.layoutButton}>
+                    <Ionicons name="options-outline" size={22} color={theme.primary} />
+                </TouchableOpacity>
+            </View>
 
-            {/* Search removed as requested */}
-
-            <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : 0 }}>
+            <View style={{ flex: 1, paddingTop: isEmbedded ? 10 : 0 }}>
                 <SafeAnimatedFlashList
                     onScroll={scrollHandler}
                     scrollEventThrottle={16}
@@ -246,7 +279,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     data={albums}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
-                    numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid3' ? 3 : 2)}
+                    numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid2' ? 2 : 3)}
                     estimatedItemSize={150}
                     drawDistance={250}
                     contentContainerStyle={styles.listContent}
@@ -396,5 +429,18 @@ const styles = StyleSheet.create({
     alphabetText: {
         fontSize: 10,
         fontWeight: '900',
-    }
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        height: 34,
+        borderRadius: 17,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 13,
+        height: '100%',
+        paddingVertical: 0,
+    },
 });

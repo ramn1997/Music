@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 36,
         borderTopRightRadius: 36,
         paddingBottom: 40,
-        backgroundColor: '#000',
         borderWidth: 1,
         borderBottomWidth: 0,
     },

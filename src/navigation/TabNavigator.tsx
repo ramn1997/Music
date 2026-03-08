@@ -102,12 +102,12 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
                 styles.tabBarContainer,
                 {
                     backgroundColor: 'transparent',
-                    height: 70 + (isPill ? 0 : (insets?.bottom || 0)),
+                    height: 85 + (isPill ? 0 : (insets?.bottom || 0)),
                     paddingBottom: isPill ? 0 : (insets?.bottom || 0),
                     overflow: 'hidden',
                     borderTopWidth: isPill ? 0 : 1,
                     borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'),
-                    borderRadius: isPill ? 35 : 0,
+                    borderRadius: isPill ? 42 : 0,
                 }
             ]}>
                 <BlurView
@@ -126,7 +126,7 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
                         }
                     ]}
                 />
-                <View style={styles.tabBarInner}>
+                <View style={[styles.tabBarInner, { height: 85 }]}>
                     {state.routes.map((route: any, index: number) => {
                         const { options } = descriptors[route.key];
                         const label = options.tabBarLabel !== undefined

@@ -1,74 +1,74 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../hooks/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
+import { Song } from '../hooks/useLocalMusic';
 
-interface ConfirmationModalProps {
+interface DeleteConfirmationModalProps {
     visible: boolean;
-    title: string;
-    message: string;
+    onClose: () => void;
     onConfirm: () => void;
-    onCancel: () => void;
-    confirmText?: string;
-    cancelText?: string;
-    isDestructive?: boolean;
+    song: Song | null;
+    isDeleting?: boolean;
 }
 
 const { width } = Dimensions.get('window');
 
-export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
     visible,
-    title,
-    message,
+    onClose,
     onConfirm,
-    onCancel,
-    confirmText = 'Confirm',
-    cancelText = 'Cancel',
-    isDestructive = false
+    song,
+    isDeleting = false,
 }) => {
     const { theme } = useTheme();
 
+    if (!song) return null;
+
     return (
         <Modal
-            animationType="fade"
-            transparent={true}
             visible={visible}
-            onRequestClose={onCancel}
+            transparent
+            animationType="fade"
+            onRequestClose={onClose}
         >
             <TouchableOpacity
                 style={styles.overlay}
                 activeOpacity={1}
-                onPress={onCancel}
+                onPress={isDeleting ? undefined : onClose}
             >
 
                 <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
                     <View style={styles.iconContainer}>
-                        <View style={[styles.iconWrapper, { backgroundColor: isDestructive ? '#ef444420' : theme.primary + '20' }]}>
-                            <Ionicons
-                                name={isDestructive ? "trash-outline" : "help-circle-outline"}
-                                size={32}
-                                color={isDestructive ? "#ef4444" : theme.primary}
-                            />
+                        <View style={[styles.warningIcon, { backgroundColor: '#ef444420' }]}>
+                            <Ionicons name="trash-outline" size={32} color="#ef4444" />
                         </View>
                     </View>
 
-                    <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-                    <Text style={[styles.message, { color: theme.textSecondary }]}>{message}</Text>
+                    <Text style={[styles.title, { color: theme.text }]}>Delete from Device?</Text>
+                    <Text style={[styles.message, { color: theme.textSecondary }]}>
+                        <Text style={{ color: theme.text, fontFamily: 'PlusJakartaSans_700Bold' }}>"{song.title}"</Text> will be permanently removed from your device. This action cannot be undone.
+                    </Text>
 
-                    <View style={styles.buttonContainer}>
+                    <View style={styles.actions}>
                         <TouchableOpacity
-                            style={[styles.button, { backgroundColor: theme.textSecondary + '10' }]}
-                            onPress={onCancel}
+                            style={[styles.button, styles.cancelButton, { backgroundColor: theme.textSecondary + '10' }]}
+                            onPress={onClose}
+                            disabled={isDeleting}
                         >
-                            <Text style={[styles.buttonText, { color: theme.text }]}>{cancelText}</Text>
+                            <Text style={[styles.buttonText, { color: theme.text }]}>Cancel</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.button, { backgroundColor: isDestructive ? '#ef4444' : theme.primary }]}
+                            style={[styles.button, styles.deleteButton]}
                             onPress={onConfirm}
+                            disabled={isDeleting}
                         >
-                            <Text style={[styles.buttonText, { color: isDestructive ? '#fff' : theme.textOnPrimary }]}>{confirmText}</Text>
+                            {isDeleting ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Text style={[styles.buttonText, { color: '#fff' }]}>Delete</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     iconContainer: {
         marginBottom: 20,
     },
-    iconWrapper: {
+    warningIcon: {
         width: 64,
         height: 64,
         borderRadius: 20,
@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontFamily: 'PlusJakartaSans_700Bold',
-        marginBottom: 12,
         textAlign: 'center',
+        marginBottom: 12,
         letterSpacing: -0.5,
     },
     message: {
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
         marginBottom: 32,
         paddingHorizontal: 10,
     },
-    buttonContainer: {
+    actions: {
         flexDirection: 'row',
         gap: 12,
         width: '100%',
@@ -134,8 +134,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    cancelButton: {
+        // Subtle background
+    },
+    deleteButton: {
+        backgroundColor: '#ef4444',
+    },
     buttonText: {
-        fontFamily: 'PlusJakartaSans_700Bold',
         fontSize: 16,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
 });

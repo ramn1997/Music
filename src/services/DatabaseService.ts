@@ -41,11 +41,11 @@ class DatabaseService {
                 console.log('[DatabaseService] Opening database...');
                 this.db = await SQLite.openDatabaseAsync('music_library.db');
 
-                // PRAGMAs (using execAsync for these is fine as they are single simple statements)
+                // Optimized PRAGMAs for performance and concurrency
                 await this.db.execAsync('PRAGMA journal_mode = WAL;');
                 await this.db.execAsync('PRAGMA synchronous = NORMAL;');
-                await this.db.execAsync('PRAGMA temp_store = MEMORY;');
-                await this.db.execAsync('PRAGMA cache_size = -10000;');
+                await this.db.execAsync('PRAGMA busy_timeout = 30000;'); // 30s timeout
+                await this.db.execAsync('PRAGMA cache_size = -20000;'); // 20MB cache
 
                 console.log('[DatabaseService] Creating tables...');
                 // Schema creation (Use individual calls to avoid NPE in multi-statement parsing on some Android devices)
@@ -111,62 +111,74 @@ class DatabaseService {
         if (songs.length === 0) return;
         const db = await this.getDb();
 
-        // Use a lock to prevent concurrent transactions
-        const release = await this.acquireLock();
-        try {
-            await db.withTransactionAsync(async () => {
-                const query = `
-                    INSERT OR REPLACE INTO songs 
-                    (id, filename, uri, duration, title, artist, album, genre, year, albumId, coverImage, dateAdded, playCount, lastPlayed, scanStatus, folder)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                `;
+        const BATCH_SIZE = 500;
+        const query = `
+            INSERT OR REPLACE INTO songs 
+            (id, filename, uri, duration, title, artist, album, genre, year, albumId, coverImage, dateAdded, playCount, lastPlayed, scanStatus, folder)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        `;
 
-                // Use Prepared Statements to avoid slow reparsing for thousands of songs
-                const statement = await db.prepareAsync(query);
+        for (let i = 0; i < songs.length; i += BATCH_SIZE) {
+            const release = await this.acquireLock();
+            try {
+                const batch = songs.slice(i, i + BATCH_SIZE);
+                let retries = 3;
+                let success = false;
 
-                try {
-                    let i = 0;
-                    for (const s of songs) {
-                        try {
-                            await statement.executeAsync([
-                                this.sanitize(s.id),
-                                this.sanitize(s.filename),
-                                this.sanitize(s.uri),
-                                this.sanitize(s.duration),
-                                this.sanitize(s.title),
-                                this.sanitize(s.artist),
-                                this.sanitize(s.album),
-                                this.sanitize(s.genre),
-                                this.sanitize(s.year),
-                                this.sanitize(s.albumId),
-                                this.sanitize(s.coverImage),
-                                this.sanitize(s.dateAdded),
-                                this.sanitize(s.playCount),
-                                this.sanitize(s.lastPlayed),
-                                this.sanitize(s.scanStatus),
-                                this.sanitize(s.folder)
-                            ]);
-                        } catch (itemErr) {
-                            console.warn(`[DatabaseService] Failed to insert song ${s.id}`, itemErr);
-                        }
-
-                        i++;
-                        if (i % 250 === 0) {
-                            // Yield to main thread for large imports to prevent UI freeze
-                            await new Promise(r => setTimeout(r, 0));
+                while (retries > 0 && !success) {
+                    try {
+                        await db.withTransactionAsync(async () => {
+                            const statement = await db.prepareAsync(query);
+                            try {
+                                for (const s of batch) {
+                                    await statement.executeAsync([
+                                        this.sanitize(s.id),
+                                        this.sanitize(s.filename),
+                                        this.sanitize(s.uri),
+                                        this.sanitize(s.duration),
+                                        this.sanitize(s.title),
+                                        this.sanitize(s.artist),
+                                        this.sanitize(s.album),
+                                        this.sanitize(s.genre),
+                                        this.sanitize(s.year),
+                                        this.sanitize(s.albumId),
+                                        this.sanitize(s.coverImage),
+                                        this.sanitize(s.dateAdded),
+                                        this.sanitize(s.playCount),
+                                        this.sanitize(s.lastPlayed),
+                                        this.sanitize(s.scanStatus),
+                                        this.sanitize(s.folder)
+                                    ]);
+                                }
+                            } finally {
+                                try {
+                                    await statement.finalizeAsync();
+                                } catch (finalizeErr) {
+                                    // Non-critical cleanup failure
+                                }
+                            }
+                        });
+                        success = true;
+                    } catch (txErr: any) {
+                        if (txErr.message?.includes('database is locked') && retries > 1) {
+                            console.warn(`[DatabaseService] Batch locked, retrying... (${retries} left)`);
+                            retries--;
+                            await new Promise(r => setTimeout(r, 1000));
+                        } else {
+                            throw txErr;
                         }
                     }
-                } finally {
-                    await statement.finalizeAsync();
                 }
-            });
-            console.log(`[DatabaseService] Successfully upserted ${songs.length} songs.`);
-        } catch (e: any) {
-            console.error('[DatabaseService] Bulk Transaction Failed:', e);
-            throw e;
-        } finally {
-            release();
+            } finally {
+                release();
+            }
+
+            // Yield significantly to UI thread BETWEEN transactions
+            if (i + BATCH_SIZE < songs.length) {
+                await new Promise(r => setTimeout(r, 200));
+            }
         }
+        console.log(`[DatabaseService] Successfully upserted ${songs.length} songs.`);
     }
 
     private async acquireLock(): Promise<() => void> {
@@ -250,13 +262,14 @@ class DatabaseService {
             await db.runAsync(`
                 UPDATE songs 
                 SET scanStatus = 'pending' 
-                WHERE album = 'Unknown Album' 
+                WHERE scanStatus != 'enhanced'
+                  AND (album = 'Unknown Album' 
                    OR artist = 'Unknown Artist' 
                    OR genre IS NULL 
                    OR genre = 'undefined'
                    OR genre = 'Unknown Genre'
                    OR title = 'Unknown Title'
-                   OR title = filename
+                   OR title = filename)
             `);
             console.log('[DatabaseService] Marked incomplete metadata songs as pending for resync.');
         } finally {
@@ -264,8 +277,12 @@ class DatabaseService {
         }
     }
 
-    async getAllSongs() {
+    async getAllSongs(folderNames?: string[]) {
         const db = await this.getDb();
+        if (folderNames && folderNames.length > 0) {
+            const placeholders = folderNames.map(() => '?').join(', ');
+            return await db.getAllAsync(`SELECT * FROM songs WHERE folder IN (${placeholders}) ORDER BY dateAdded DESC`, folderNames);
+        }
         return await db.getAllAsync('SELECT * FROM songs ORDER BY dateAdded DESC');
     }
 

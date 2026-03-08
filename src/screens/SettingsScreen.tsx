@@ -438,7 +438,7 @@ export const SettingsScreen = () => {
                 onRequestClose={() => setFolderModalVisible(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContainer, { backgroundColor: theme.background, borderColor: theme.cardBorder }]}>
+                    <View style={[styles.modalContainer, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
                         <View style={[styles.modalHeader, { borderBottomColor: theme.cardBorder }]}>
                             <Text style={[styles.modalTitle, { color: theme.text }]}>
                                 {pickerStep === 'storage' ? 'Select Storage' : 'Select Folders'}

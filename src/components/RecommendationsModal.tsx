@@ -73,32 +73,6 @@ export const RecommendationsModal = ({ visible, onClose, song }: Recommendations
                         </TouchableOpacity>
                     </View>
 
-                    {hasRecommendations && (
-                        <View style={{ paddingHorizontal: 25, marginBottom: 20 }}>
-                            <TouchableOpacity
-                                style={[styles.mixButton, { backgroundColor: theme.primary }]}
-                                onPress={() => {
-                                    const allRecommended = [
-                                        ...(song ? [song] : []),
-                                        ...recommended.sameAlbum,
-                                        ...recommended.sameArtist,
-                                        ...recommended.sameGenre
-                                    ];
-                                    // Deduplicate and shuffle
-                                    const uniqueMap = new Map();
-                                    allRecommended.forEach(s => uniqueMap.set(s.id, s));
-                                    const uniqueList = Array.from(uniqueMap.values());
-                                    const shuffled = uniqueList.sort(() => Math.random() - 0.5);
-
-                                    playSongInPlaylist(shuffled, 0, `${song?.title || 'Smart'} Mix`);
-                                    onClose();
-                                }}
-                            >
-                                <Ionicons name="shuffle" size={20} color={theme.textOnPrimary || '#ffffff'} style={{ marginRight: 8 }} />
-                                <Text style={[styles.mixButtonText, { color: theme.textOnPrimary || '#ffffff' }]} numberOfLines={1} ellipsizeMode="tail">Start {song?.title ? `${song.title} ` : 'Smart '}Mix</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
 
                     <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
                         {!hasRecommendations && (
@@ -145,7 +119,7 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
     },
     modalContent: {
         width: '100%',
@@ -237,22 +211,4 @@ const styles = StyleSheet.create({
         marginTop: 15,
         textAlign: 'center',
     },
-    mixButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        elevation: 4,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-    },
-    mixButtonText: {
-        fontSize: 16,
-        fontFamily: 'PlusJakartaSans_700Bold',
-        flexShrink: 1,
-    }
 });

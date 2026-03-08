@@ -34,17 +34,25 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ visible, onClose
         }
     };
 
-    const handleShareImage = async () => {
+    const handleShareBoth = async () => {
         if (isSharing) return;
         setIsSharing(true);
         try {
-            const uri = await captureRef(cardRef, {
-                format: 'png',
-                quality: 1,
-            });
-            await Sharing.shareAsync(uri);
+            // 1. Capture card
+            const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+
+            // 2. Share card
+            await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share Card' });
+
+            // 3. Share audio
+            let audioUri = song.uri;
+            if (!audioUri.startsWith('file://') && !audioUri.startsWith('content://')) audioUri = `file://${audioUri}`;
+
+            setTimeout(async () => {
+                await Sharing.shareAsync(audioUri, { mimeType: 'audio/*', dialogTitle: `Share Audio – ${song.title}` });
+            }, 800);
         } catch (error) {
-            console.error('Error sharing image:', error);
+            console.error('Error sharing both:', error);
         } finally {
             setIsSharing(false);
         }
@@ -63,7 +71,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ visible, onClose
                 onPress={onClose}
             >
                 <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
-                    <ViewShot ref={cardRef} options={{ format: 'png', quality: 1 }} style={styles.cardWrapper}>
+                    <ViewShot ref={cardRef} options={{ format: 'png', quality: 1 }} style={[styles.cardWrapper, { backgroundColor: '#111' }]}>
                         {/* Premium Share Card */}
                         <LinearGradient
                             colors={theme.gradient as any}
@@ -114,24 +122,32 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ visible, onClose
                     {/* Actions */}
                     <View style={styles.actions}>
                         <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: theme.primary }]}
-                            onPress={handleShareImage}
+                            style={[styles.actionButton, { backgroundColor: theme.primary, flex: 2 }]}
+                            onPress={handleShareBoth}
                             disabled={isSharing}
                         >
-                            {isSharing ? (
-                                <ActivityIndicator color="#000" size="small" />
-                            ) : (
-                                <Ionicons name="image-outline" size={20} color="#000" />
-                            )}
-                            <Text style={styles.actionText}>{isSharing ? 'Capturing...' : 'Share Image'}</Text>
+                            <Ionicons name="share-social-outline" size={20} color="#000" />
+                            <Text style={styles.actionText}>Both</Text>
                         </TouchableOpacity>
+
                         <TouchableOpacity
-                            style={[styles.closeButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
-                            onPress={handleNativeShareText}
+                            style={[styles.actionButton, { backgroundColor: theme.textSecondary + '20', flex: 1.5 }]}
+                            onPress={async () => {
+                                try {
+                                    setIsSharing(true);
+                                    let audioUri = song.uri;
+                                    if (!audioUri.startsWith('file://') && !audioUri.startsWith('content://')) audioUri = `file://${audioUri}`;
+                                    await Sharing.shareAsync(audioUri, { mimeType: 'audio/*', dialogTitle: `Share Audio – ${song.title}` });
+                                } finally {
+                                    setIsSharing(false);
+                                }
+                            }}
+                            disabled={isSharing}
                         >
-                            <Ionicons name="text-outline" size={18} color={theme.text} />
-                            <Text style={[styles.closeText, { color: theme.text, marginLeft: 8 }]}>Text</Text>
+                            <Ionicons name="musical-notes-outline" size={20} color={theme.text} />
+                            <Text style={[styles.actionText, { color: theme.text }]}>Audio</Text>
                         </TouchableOpacity>
+
                         <TouchableOpacity
                             style={[styles.iconOnlyButton, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
                             onPress={onClose}
@@ -166,7 +182,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 15 },
         shadowOpacity: 0.6,
         shadowRadius: 20,
-        backgroundColor: '#111',
     },
     card: {
         flex: 1,

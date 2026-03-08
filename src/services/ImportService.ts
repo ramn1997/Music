@@ -183,12 +183,9 @@ class ImportService {
         }
 
         // Determine if this song actually needs enhancement
-        const needsEnhancement =
-            !artist || artist === 'Unknown Artist' ||
-            !album || album === 'Unknown Album' ||
-            !genre || genre === 'Unknown Genre' ||
-            !title || title === asset.filename ||
-            title === asset.filename.replace(/\.[^/.]+$/, '');
+        // Only trigger deep scan if basic text (Title/Artist) is totally missing/raw
+        const hasBasicText = artist && artist !== 'Unknown Artist' && album && album !== 'Unknown Album' && title && title !== asset.filename;
+        const needsEnhancement = !hasBasicText;
 
         return {
             id: asset.id,
@@ -212,10 +209,10 @@ class ImportService {
     }
 
     private async startEnhancement(callbacks: ImportCallbacks, forceDeepScan = false) {
-        // Reset guard — if a previous run failed/cancelled, allow restart
-        this.isEnhancing = false;
-
-        if (this.isEnhancing) return;
+        if (this.isEnhancing) {
+            console.log('[ImportService] Enhancement already in progress, skipping start.');
+            return;
+        }
         this.isEnhancing = true;
 
         console.log('[ImportService] Starting background enhancement (Optimized)...');
@@ -246,10 +243,8 @@ class ImportService {
 
                 const processedSongsForDb: Song[] = [];
 
-                // 2. Process batch with limited concurrency
-                // Reduced chunk size back to 25 to avoid locking up Android bridge 
-                // and crashing from OOM exceptions.
-                const CHUNK_SIZE = 25;
+                // Process batch with higher concurrency (32)
+                const CHUNK_SIZE = 32;
                 for (let i = 0; i < batch.length; i += CHUNK_SIZE) {
                     if (this.cancelToken.cancelled) break;
 
@@ -291,8 +286,8 @@ class ImportService {
                                         picture: forceDeepScan // SKIP massive image parsing to maintain fast sync!
                                     }, song.id, song.uri);
 
-                                    // Timeout to speed up processing for unreadable files
-                                    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
+                                    // Aggressive timeout for faster processing of stubborn files
+                                    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 600));
 
                                     const meta = await Promise.race([extractionPromise, timeoutPromise]);
 
@@ -345,8 +340,9 @@ class ImportService {
 
                     await Promise.all(chunkPromises);
 
-                    // Yield significantly to the main thread to prevent UI lag during large imports (1600+ songs)
-                    await new Promise(resolve => setTimeout(resolve, 150));
+                    // Very short yield to keep UI responsive without artificial slowdowns
+                    const yieldTime = batch.length > 500 ? 50 : 20;
+                    await new Promise(resolve => setTimeout(resolve, yieldTime));
                 }
 
                 // 3. Batch DB Update (Huge performance win)

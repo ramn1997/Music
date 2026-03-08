@@ -39,10 +39,10 @@ export const MiniPlayer = () => {
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
     // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.
-    const isPill = navigationStyle === 'pill';
+    const isPillNav = navigationStyle === 'pill';
     const bottomOffset = hasTabBar
-        ? (isPill ? 94 : (70 + insets.bottom))
-        : (isPill ? (20 + insets.bottom) : (insets.bottom));
+        ? (isPillNav ? 115 : (85 + insets.bottom))
+        : (isPillNav ? (20 + insets.bottom) : insets.bottom);
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
 
@@ -94,7 +94,7 @@ export const MiniPlayer = () => {
                 onPress={() => navigation.navigate('Player')}
                 style={[
                     styles.pillContainer,
-                    isPill && styles.floatingPill,
+                    isPillNav ? styles.floatingPill : styles.standardBar,
                     {
                         overflow: 'hidden',
                         backgroundColor: theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card
@@ -198,26 +198,30 @@ const styles = StyleSheet.create({
     },
     pillContainer: {
         width: '100%',
-        height: 60,
-        borderRadius: 0, // Rectangular shape
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.1)',
+        height: 72,
         overflow: 'hidden',
-        backgroundColor: '#121212', // Solid dark fallback for visibility
+        backgroundColor: '#121212',
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
-            height: -4, // Higher shadow
+            height: -4,
         },
         shadowOpacity: 0.3,
         shadowRadius: 4,
-        elevation: 20, // Even higher elevation
+        elevation: 20,
     },
     floatingPill: {
-        width: width - 40,
-        borderRadius: 30,
-        height: 64,
+        width: width - 30,
+        borderRadius: 36,
+        height: 74,
         borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    standardBar: {
+        width: '100%',
+        height: 72,
+        borderRadius: 0,
+        borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.1)',
     },
     blurContainer: {
@@ -244,9 +248,9 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     albumArt: {
-        width: 38,
-        height: 38,
-        borderRadius: 6,
+        width: 48, // Increased size
+        height: 48,
+        borderRadius: 10,
         marginRight: 8,
         backgroundColor: 'transparent'
     },

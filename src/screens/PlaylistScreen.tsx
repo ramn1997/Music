@@ -481,17 +481,22 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         if (!isNavigated) return [];
         let filtered = [...songs];
 
-        // Filter based on type
+        // Filter based on type - use robust, case-insensitive comparison
+        const compareName = (val: string | undefined | null, target: string, fallback: string) => {
+            const actual = (val && val.trim() !== '') ? val.trim().toLowerCase() : fallback.toLowerCase();
+            return actual === target.trim().toLowerCase();
+        };
+
         if (id === 'liked') {
             filtered = [...likedSongs];
         } else if (type === 'artist') {
-            filtered = filtered.filter(s => (s.artist || 'Unknown Artist') === name);
+            filtered = filtered.filter(s => compareName(s.artist, name, 'Unknown Artist'));
         } else if (type === 'album') {
-            filtered = filtered.filter(s => (s.album || 'Unknown Album') === name);
+            filtered = filtered.filter(s => compareName(s.album, name, 'Unknown Album'));
         } else if (type === 'genre') {
-            filtered = filtered.filter(s => (s.genre || 'Unknown Genre') === name);
+            filtered = filtered.filter(s => compareName(s.genre, name, 'Unknown Genre'));
         } else if (type === 'year') {
-            filtered = filtered.filter(s => (s.year || 'Unknown Year') === name);
+            filtered = filtered.filter(s => compareName(s.year, name, 'Unknown Year'));
         } else if (type === 'most_played') {
             filtered = filtered.filter(s => (s.playCount || 0) > 0)
                 .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
@@ -1079,11 +1084,11 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                     onRequestClose={() => setShowArtistArtOptions(false)}
                 >
                     <TouchableOpacity
-                        style={styles.modalOverlay}
+                        style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}
                         activeOpacity={1}
                         onPress={() => setShowArtistArtOptions(false)}
                     >
-                        <View style={[styles.optionsContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                        <View style={[styles.optionsContainer, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                             <View style={[styles.optionsHeader, { borderBottomColor: theme.cardBorder }]}>
                                 <Text style={[styles.optionsTitle, { color: theme.text }]}>Artist Image</Text>
                             </View>

@@ -102,22 +102,28 @@ export const FavoritesScreen = () => {
         const albumImageMap = new Map<string, string>();
         const genreImageMap = new Map<string, string>();
 
-        // SINGLE O(N) pass to gather all required assets and arrays
-        for (const s of (songs || [])) {
-            if (s.album && favAlbumsSet.has(s.album)) {
-                let arr = albumSongsMap.get(s.album);
-                if (!arr) { arr = []; albumSongsMap.set(s.album, arr); }
+        // Optimized single-pass scan
+        const allSongs = songs || [];
+        for (let i = 0; i < allSongs.length; i++) {
+            const s = allSongs[i];
+            const album = s.album;
+            const genre = s.genre;
+            const artist = s.artist;
+
+            if (album && favAlbumsSet.has(album)) {
+                let arr = albumSongsMap.get(album);
+                if (!arr) { arr = []; albumSongsMap.set(album, arr); }
                 arr.push(s);
-                if (!albumImageMap.has(s.album) && s.coverImage) albumImageMap.set(s.album, s.coverImage);
+                if (!albumImageMap.has(album) && s.coverImage) albumImageMap.set(album, s.coverImage);
             }
-            if (s.genre && favGenresSet.has(s.genre)) {
-                let arr = genreSongsMap.get(s.genre);
-                if (!arr) { arr = []; genreSongsMap.set(s.genre, arr); }
+            if (genre && favGenresSet.has(genre)) {
+                let arr = genreSongsMap.get(genre);
+                if (!arr) { arr = []; genreSongsMap.set(genre, arr); }
                 arr.push(s);
-                if (!genreImageMap.has(s.genre) && s.coverImage) genreImageMap.set(s.genre, s.coverImage);
+                if (!genreImageMap.has(genre) && s.coverImage) genreImageMap.set(genre, s.coverImage);
             }
-            if (s.artist && favArtistsSet.has(s.artist)) {
-                if (!artistImageMap.has(s.artist) && s.coverImage) artistImageMap.set(s.artist, s.coverImage);
+            if (artist && favArtistsSet.has(artist)) {
+                if (!artistImageMap.has(artist) && s.coverImage) artistImageMap.set(artist, s.coverImage);
             }
         }
 

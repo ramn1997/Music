@@ -248,6 +248,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
                         updateBufferRef[b.id] = { ...b, scanStatus: b.scanStatus as string | undefined } as Song;
                     });
                     if (!updateTimeoutRef) {
+                        // 2 seconds provides a better balance between responsiveness and battery/CPU
                         updateTimeoutRef = setTimeout(() => {
                             const currentBuffer = updateBufferRef;
                             updateBufferRef = {};
@@ -259,24 +260,38 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
                             const batchMap = new Map(mergedBatch.map(b => [b.id, b]));
 
                             set(state => {
+                                let hasSongsChange = false;
+                                let hasLikedChange = false;
+
                                 const newSongs = state.songs.map(s => {
                                     const updated = batchMap.get(s.id);
-                                    if (updated) songMapRef.set(updated.id, updated);
-                                    return updated || s;
-                                });
-                                let hasChanges = false;
-                                const newLiked = state.likedSongs.map(s => {
-                                    const updated = batchMap.get(s.id);
-                                    if (updated) { hasChanges = true; return updated; }
+                                    if (updated) {
+                                        songMapRef.set(updated.id, updated);
+                                        hasSongsChange = true;
+                                        return updated;
+                                    }
                                     return s;
                                 });
+
+                                if (!hasSongsChange) return {};
+
+                                const newLiked = state.likedSongs.map(s => {
+                                    const updated = batchMap.get(s.id);
+                                    if (updated) { hasLikedChange = true; return updated; }
+                                    return s;
+                                });
+
+                                // Also sort only when needed
+                                const sorted = hasSongsChange ? [...newSongs].sort((a, b) => (a.title || '').localeCompare(b.title || '')) : state.sortedSongs;
+
                                 return {
                                     songs: newSongs,
-                                    likedSongs: hasChanges ? newLiked : state.likedSongs
+                                    sortedSongs: sorted,
+                                    likedSongs: hasLikedChange ? newLiked : state.likedSongs
                                 };
                             });
 
-                        }, 2500);
+                        }, 2000);
                     }
                 },
                 onComplete: (finalSongs) => {
@@ -627,7 +642,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             } finally {
                 isCalculatingStats = false;
             }
-        }, 3000);
+        }, 1500);
     },
 
     initLibrary: async () => {
@@ -666,8 +681,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         }
         set({ hasPermission: true });
 
-        const allCachedSongs = await databaseService.getAllSongs() as Song[];
-        const cachedSongs = folderNames.length > 0 ? allCachedSongs.filter(s => s.folder && folderNames.includes(s.folder)) : [];
+        const cachedSongs = await databaseService.getAllSongs(folderNames) as Song[];
 
         if (cachedSongs && cachedSongs.length > 0) {
             const merged = mergeSongData(cachedSongs, customMetadataRef, songMetadataRef);

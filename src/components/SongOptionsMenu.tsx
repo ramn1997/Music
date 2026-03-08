@@ -13,6 +13,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { Image } from 'react-native';
 import { MusicImage } from './MusicImage';
 import { SongShareModal } from './SongShareModal';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 interface SongOptionsMenuProps {
     visible: boolean;
@@ -46,6 +47,8 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
     const { toggleLike, isLiked } = useMusicLibrary();
     const deleteSong = useLibraryStore(state => state.deleteSong);
     const [shareModalVisible, setShareModalVisible] = useState(false);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     if (!song) return null;
 
@@ -63,26 +66,20 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
 
     const handleDelete = () => {
         onClose();
-        setTimeout(() => {
-            Alert.alert(
-                'Delete from Device',
-                `"${song.title}" will be permanently deleted from your device. This cannot be undone.`,
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: async () => {
-                            try {
-                                await deleteSong(song);
-                            } catch (e: any) {
-                                Alert.alert('Delete Failed', e?.message || 'Could not delete the song.');
-                            }
-                        }
-                    }
-                ]
-            );
-        }, 300);
+        setTimeout(() => setDeleteModalVisible(true), 300);
+    };
+
+    const confirmDelete = async () => {
+        if (!song) return;
+        try {
+            setIsDeleting(true);
+            await deleteSong(song);
+            setDeleteModalVisible(false);
+        } catch (e: any) {
+            Alert.alert('Delete Failed', e?.message || 'Could not delete the song.');
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const menuItems = [
@@ -178,7 +175,7 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
                     activeOpacity={1}
                     onPress={onClose}
                 >
-                    <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
+                    <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder, borderWidth: 1, borderBottomWidth: 0 }]}>
                         <View style={styles.handleContainer}>
                             <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                         </View>
@@ -234,6 +231,14 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
                 onClose={() => setShareModalVisible(false)}
                 song={song}
             />
+
+            <DeleteConfirmationModal
+                visible={deleteModalVisible}
+                onClose={() => setDeleteModalVisible(false)}
+                onConfirm={confirmDelete}
+                song={song}
+                isDeleting={isDeleting}
+            />
         </>
     );
 };
@@ -248,7 +253,6 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 36,
         borderTopRightRadius: 36,
         paddingBottom: 40,
-        backgroundColor: '#000',
         borderWidth: 1,
         borderBottomWidth: 0,
         maxHeight: '85%',

@@ -149,8 +149,8 @@ export const ImportProgressModal: React.FC<ImportProgressModalProps> = ({
             animationType="fade"
             statusBarTranslucent
         >
-            <View style={[styles.overlay, { backgroundColor: theme.background }]}>
-                <View style={[styles.container, { backgroundColor: theme.menuBackground }]}>
+            <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.85)' }]}>
+                <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder, borderWidth: 1 }]}>
                     {/* Header with icon */}
                     <View style={[styles.iconContainer, { backgroundColor: getPhaseColor() + '20' }]}>
                         <Animated.View style={{ transform: isComplete ? [] : [{ rotate: spin }] }}>
