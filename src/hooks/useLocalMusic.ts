@@ -1,7 +1,7 @@
-import { useMusicLibrary, Song } from './MusicLibraryContext';
+import { useLibraryStore, Song } from '../store/useLibraryStore';
 
 export { Song };
 
 export const useLocalMusic = () => {
-    return useMusicLibrary();
+    return useLibraryStore();
 };

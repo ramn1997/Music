@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
-import { useLocalMusic, Song } from '../hooks/useLocalMusic';
+import { Song } from '../store/useLibraryStore';
+
 import { RootStackParamList } from '../types/navigation';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MusicImage } from '../components/MusicImage';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { usePlayerContext } from '../hooks/PlayerContext';
-import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import { usePlayerStore } from '../store/usePlayerStore';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { FlashList } from '@shopify/flash-list';
+
 import { SongItem } from '../components/SongItem';
 import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { EditSongModal } from '../components/EditSongModal';
@@ -21,14 +23,26 @@ import { MarqueeText } from '../components/MarqueeText';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 
 
-const FlashListAny = FlashList as any;
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
+import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
+
+// Removed top-level creation to prevent initialization race conditions
+
 
 export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
-    const { songs, loading } = useLocalMusic();
+    const songs = useLibraryStore(state => state.songs);
+    const loading = useLibraryStore(state => state.loading);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
+    const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
+    const addToQueue = usePlayerStore(state => state.addToQueue);
+    const addNext = usePlayerStore(state => state.addNext);
+    const currentSong = usePlayerStore(state => state.currentTrack);
     const { theme, themeType } = useTheme();
-    const { playlists, addToPlaylist, updateSongMetadata } = useMusicLibrary();
+
+    const playlists = useLibraryStore(state => state.playlists);
+    const addToPlaylist = useLibraryStore(state => state.addToPlaylist);
+    const updateSongMetadata = useLibraryStore(state => state.updateSongMetadata);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
@@ -74,15 +88,16 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         return () => interaction.cancel();
     }, []);
 
+    const preSortedSongs = useLibraryStore(state => state.sortedSongs);
+
     const sortedSongs = React.useMemo(() => {
         if (!isNavigated) return [];
-        return [...songs].sort((a, b) => {
-            const A = a.title?.toLowerCase() || '';
-            const B = b.title?.toLowerCase() || '';
-            const cmp = A < B ? -1 : A > B ? 1 : 0;
-            return sortOrder === 'asc' ? cmp : -cmp;
-        });
-    }, [songs, sortOrder, isNavigated]);
+        if (sortOrder === 'asc') return preSortedSongs;
+        // Simple O(N) reverse instead of O(N log N) sort
+        return [...preSortedSongs].reverse();
+    }, [preSortedSongs, sortOrder, isNavigated]);
+
+
 
     const filteredSongs = React.useMemo(() => {
         if (!isNavigated) return [];
@@ -113,47 +128,65 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         setOptionsModalVisible(true);
     }, []);
 
-    const scrollToLetter = (letter: string) => {
-        const index = filteredSongs.findIndex(song =>
-            song.title.toUpperCase().localeCompare(letter) >= 0
-        );
-        if (index !== -1 && flatListRef.current) {
-            flatListRef.current.scrollToIndex({ index, animated: true });
-        }
+
+
+    const callbacks = React.useRef({
+        toggleSelection,
+        handlePlaySong,
+        onOpenOptions,
+        setIsSelectionMode,
+        setSelectedSongIds
+    });
+    callbacks.current = {
+        toggleSelection,
+        handlePlaySong,
+        onOpenOptions,
+        setIsSelectionMode,
+        setSelectedSongIds
     };
 
-    const renderSong = React.useCallback(({ item, index }: { item: Song; index: number }) => (
-        <SongItem
-            item={item}
-            index={index}
-            isCurrent={currentSong?.id === item.id}
-            theme={theme}
-            onPress={(song) => {
-                if (isSelectionMode) toggleSelection(song.id);
-                else handlePlaySong(song);
-            }}
-            onLongPress={(song) => {
-                if (!isSelectionMode) {
-                    setIsSelectionMode(true);
-                    setSelectedSongIds(new Set([song.id]));
-                } else {
-                    toggleSelection(song.id);
-                }
-            }}
-            isSelectionMode={isSelectionMode}
-            isSelected={selectedSongIds.has(item.id)}
-            onOpenOptions={onOpenOptions}
-        />
-    ), [themeType, handlePlaySong, onOpenOptions, currentSong?.id, isSelectionMode, selectedSongIds]);
+    const renderSong = React.useCallback(({ item, index, extraData }: { item: Song; index: number, extraData?: any }) => {
+        const d = extraData || {};
+        return (
+            <SongItem
+                item={item}
+                index={index}
+                isCurrent={d.currentSongId === item.id}
+                theme={d.theme}
+                onPress={(song) => {
+                    if (d.isSelectionMode) callbacks.current.toggleSelection(song.id);
+                    else callbacks.current.handlePlaySong(song);
+                }}
+                onLongPress={(song) => {
+                    if (!d.isSelectionMode) {
+                        callbacks.current.setIsSelectionMode(true);
+                        callbacks.current.setSelectedSongIds(new Set([song.id]));
+                    } else {
+                        callbacks.current.toggleSelection(song.id);
+                    }
+                }}
+                isSelectionMode={d.isSelectionMode}
+                isSelected={d.selectedSongIds.has(item.id)}
+                onOpenOptions={callbacks.current.onOpenOptions}
+            />
+        );
+    }, []);
 
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
 
     const extraData = React.useMemo(() => ({
         currentSongId: currentSong?.id,
         isSelectionMode,
         selectedSongIds,
-        themeType
-    }), [currentSong?.id, isSelectionMode, selectedSongIds, themeType]);
+        themeType,
+        theme
+    }), [currentSong?.id, isSelectionMode, selectedSongIds, themeType, theme]);
+
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            // Empty body bypasses the JS bridge tracking
+        },
+    });
 
     const content = (
         <>
@@ -251,19 +284,22 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 </View>
             ) : (
                 <View style={{ flex: 1 }}>
-                    <FlashListAny
+                    <SafeAnimatedFlashList
+                        onScroll={scrollHandler}
+                        scrollEventThrottle={16}
                         ref={flatListRef}
                         data={filteredSongs}
                         keyExtractor={(item: any) => item.id}
                         renderItem={renderSong}
                         extraData={extraData}
                         estimatedItemSize={70}
-                        overrideItemLayout={(layout, item) => {
+                        overrideItemLayout={(layout: any) => {
                             layout.size = 70;
                         }}
                         initialScrollIndex={0}
-                        initialNumToRender={20}
-                        maxToRenderPerBatch={10}
+                        initialNumToRender={30}
+                        maxToRenderPerBatch={30}
+                        drawDistance={250} // Use default draw distance to prevent performance bottleneck
                         getItemType={() => 'song'}
                         contentContainerStyle={styles.listContent}
                         ListEmptyComponent={
@@ -274,18 +310,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         showsVerticalScrollIndicator={false}
                     />
 
-                    {/* Alphabet Filter */}
-                    <View style={styles.alphabetContainer}>
-                        {alphabet.map((letter) => (
-                            <TouchableOpacity
-                                key={letter}
-                                onPress={() => scrollToLetter(letter)}
-                                style={styles.alphabetItem}
-                            >
-                                <Text style={[styles.alphabetText, { color: theme.primary }]}>{letter}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+
 
                     {/* Options Modal - Dropdown Style Replaced with Bottom Sheet */}
                     <SongOptionsMenu
@@ -527,25 +552,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderRadius: 8
     },
-    alphabetContainer: {
-        position: 'absolute',
-        right: 2,
-        top: 60,
-        bottom: 120,
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 20,
-        backgroundColor: 'transparent',
-    },
-    alphabetItem: {
-        paddingVertical: 2,
-        width: 20,
-        alignItems: 'center',
-    },
-    alphabetText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
     sortButton: {
         width: 34,
         height: 34,
@@ -555,7 +561,7 @@ const styles = StyleSheet.create({
     actionButtonsContainer: {
         flexDirection: 'row',
         paddingLeft: 20,
-        paddingRight: 35, // Extra space to avoid alphabet sidebar
+        paddingRight: 20,
         marginBottom: 15,
     },
     actionButton: {

@@ -2,16 +2,24 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import Animated, {
+    FadeInDown,
+    useSharedValue,
+    useAnimatedStyle,
+    withRepeat,
+    withTiming,
+    Easing,
+    useAnimatedScrollHandler,
+} from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { colors } from '../theme/colors';
-import { useLocalMusic, Song } from '../hooks/useLocalMusic';
+import { Song } from '../store/useLibraryStore';
 import { GlassCard } from '../components/GlassCard';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { usePlayerContext } from '../hooks/PlayerContext';
-import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import { usePlayerStore } from '../store/usePlayerStore';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { SongOptionsMenu } from '../components/SongOptionsMenu';
 import { SongItem } from '../components/SongItem';
 import { FlashList } from '@shopify/flash-list';
@@ -34,7 +42,8 @@ try {
     console.warn('[PlaylistScreen] expo-image-picker not found');
 }
 import * as FileSystem from 'expo-file-system/legacy';
-const FlashListAny = FlashList as any;
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Playlist'>;
 
@@ -173,10 +182,54 @@ const ArtistProfileImage = ({ uri, name }: { uri?: string, name: string, primary
 export const PlaylistScreen = ({ route, navigation }: Props) => {
     const { id, name } = route.params;
     const type = route.params.type as any;
-    const { songs, loading } = useLocalMusic();
-    const { likedSongs, playlists, addToPlaylist, toggleLike, removeFromPlaylist, deletePlaylist, togglePlaylistFavorite, toggleFavoriteArtist, isFavoriteArtist, toggleFavoriteAlbum, isFavoriteAlbum, toggleFavoriteGenre, isFavoriteGenre, updateSongMetadata, renamePlaylist, isLiked, addSongsToLiked, favoriteSpecialPlaylists, toggleSpecialPlaylistFavorite, artistMetadata, updateArtistMetadata, recentlyPlayed, recentlyAdded, neverPlayed } = useMusicLibrary();
-    const { playSongInPlaylist, addToQueue, addNext, currentSong } = usePlayerContext();
+
+    // Selectors from Library Store
+    const songs = useLibraryStore(state => state.songs);
+    const loading = useLibraryStore(state => state.loading);
+    const playlists = useLibraryStore(state => state.playlists);
+    const likedSongs = useLibraryStore(state => state.likedSongs);
+    const favoriteArtists = useLibraryStore(state => state.favoriteArtists);
+    const favoriteAlbums = useLibraryStore(state => state.favoriteAlbums);
+    const favoriteGenres = useLibraryStore(state => state.favoriteGenres);
+    const favoriteSpecialPlaylists = useLibraryStore(state => state.favoriteSpecialPlaylists);
+    const artistMetadata = useLibraryStore(state => state.artistMetadata);
+    const recentlyPlayed = useLibraryStore(state => state.recentlyPlayed);
+    const recentlyAdded = useLibraryStore(state => state.recentlyAdded);
+    const neverPlayed = useLibraryStore(state => state.neverPlayed);
+
+    // Actions from Library Store
+    const addToPlaylist = useLibraryStore(state => state.addToPlaylist);
+    const toggleLike = useLibraryStore(state => state.toggleLike);
+    const removeFromPlaylist = useLibraryStore(state => state.removeFromPlaylist);
+    const deletePlaylist = useLibraryStore(state => state.deletePlaylist);
+    const togglePlaylistFavorite = useLibraryStore(state => state.togglePlaylistFavorite);
+    const toggleFavoriteArtist = useLibraryStore(state => state.toggleFavoriteArtist);
+    const toggleFavoriteAlbum = useLibraryStore(state => state.toggleFavoriteAlbum);
+    const toggleFavoriteGenre = useLibraryStore(state => state.toggleFavoriteGenre);
+    const updateSongMetadata = useLibraryStore(state => state.updateSongMetadata);
+    const renamePlaylist = useLibraryStore(state => state.renamePlaylist);
+    const addSongsToLiked = useLibraryStore(state => state.addSongsToLiked);
+    const toggleSpecialPlaylistFavorite = useLibraryStore(state => state.toggleSpecialPlaylistFavorite);
+    const updateArtistMetadata = useLibraryStore(state => state.updateArtistMetadata);
+
+    // Derived State Helpers
+    const isFavoriteArtist = (artistName: string) => (favoriteArtists || []).includes(artistName);
+    const isFavoriteAlbum = (albumName: string) => (favoriteAlbums || []).includes(albumName);
+    const isFavoriteGenre = (genreName: string) => (favoriteGenres || []).includes(genreName);
+    const isLiked = (songId: string) => (likedSongs || []).some(s => s.id === songId);
+
+    const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
+    const addToQueue = usePlayerStore(state => state.addToQueue);
+    const addNext = usePlayerStore(state => state.addNext);
+    const currentSong = usePlayerStore(state => state.currentTrack);
     const { theme, themeType } = useTheme();
+
+    const scrollY = useSharedValue(0);
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            scrollY.value = event.contentOffset.y;
+        },
+    });
 
     const artistCustomMeta = type === 'artist' ? artistMetadata[name] : null;
 
@@ -186,6 +239,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         bio: string | null;
         listeners: string | null;
     } | null>(null);
+
     const [loadingArtistInfo, setLoadingArtistInfo] = useState(false);
     const deezerArtistImage = useArtistImage(type === 'artist' ? name : '');
 
@@ -336,6 +390,14 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
     const [sortOrder, setSortOrder] = useState<'recent' | 'asc' | 'desc'>('recent');
     const [viewMode, setViewMode] = useState<'songs' | 'albums' | 'artists'>('songs');
+    const [isNavigated, setIsNavigated] = useState(false);
+
+    useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
 
     // Reset view mode to songs when navigating to a new playlist/artist/album
     useEffect(() => {
@@ -416,6 +478,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const displaySongsRef = React.useRef<Song[]>([]);
 
     const displaySongs = useMemo(() => {
+        if (!isNavigated) return [];
         let filtered = [...songs];
 
         // Filter based on type
@@ -498,7 +561,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
         displaySongsRef.current = filtered;
         return filtered;
-    }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery, recentlyPlayed, recentlyAdded, neverPlayed]);
+    }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery, recentlyPlayed, recentlyAdded, neverPlayed, isNavigated]);
 
     // For the cover art collage, most_played should show songs by play count
     // (not restricted to "played >2 today") so the collage always has artwork
@@ -522,6 +585,31 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         setSelectedSong(item);
         setOptionsModalVisible(true);
     }, []);
+
+    const groupedArtistSongsDetails = useMemo(() => {
+        if (type !== 'artist' || viewMode !== 'songs') return [];
+
+        // Group by album
+        const albumGroups = new Map<string, Song[]>();
+        displaySongs.forEach(song => {
+            const albumName = song.album && song.album !== 'Unknown Album' ? song.album : 'Singles';
+            if (!albumGroups.has(albumName)) {
+                albumGroups.set(albumName, []);
+            }
+            albumGroups.get(albumName)!.push(song);
+        });
+
+        // Flatten into an array with header items
+        const flatList: any[] = [];
+        albumGroups.forEach((songsInAlbum, albumName) => {
+            flatList.push({ type: 'album_header', name: albumName, id: `header-${albumName}` });
+            songsInAlbum.forEach(song => {
+                flatList.push({ type: 'song', song });
+            });
+        });
+
+        return flatList;
+    }, [displaySongs, type, viewMode]);
 
     const renderSong = React.useCallback(({ item, index }: { item: Song; index: number }) => (
         <SongItem
@@ -595,13 +683,29 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         <ScreenContainer variant="default">
             <View style={{ flex: 1, backgroundColor: 'transparent' }}>
                 {/* Header Bar */}
-                <View style={[styles.header, (type === 'artist' || type === 'album') && { backgroundColor: 'transparent' }]}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
+                <View style={[
+                    styles.header,
+                    (type === 'artist' || type === 'album' || type === 'genre') ? {
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 100,
+                        backgroundColor: 'transparent'
+                    } : { backgroundColor: 'transparent' }
+                ]}>
+                    <TouchableOpacity
+                        onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}
+                        style={[
+                            styles.backButton,
+                            (type === 'artist' || type === 'album' || type === 'genre') && { backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 20 }
+                        ]}
+                    >
+                        <Ionicons name="arrow-back" size={24} color={(type === 'artist' || type === 'album' || type === 'genre') ? 'white' : theme.text} />
                     </TouchableOpacity>
 
-                    {/* Search Bar in Header - shown for all types that have songs */}
-                    {(!['genre'].includes(type || '')) && (
+                    {/* Search Bar in Header - hidden for artist/album as requested */}
+                    {(!['genre', 'artist', 'album'].includes(type || '')) && (
                         <View style={{
                             flex: 1,
                             marginLeft: 15,
@@ -633,73 +737,10 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             )}
                         </View>
                     )}
-                    {/* Clean header for specific playlists */}
-                    {(!['playlist', 'most_played', 'recently_played', 'recently_added', 'never_played', 'album', 'artist', 'genre'].includes(type || '') && id !== 'liked') ? (
-                        <Text style={[styles.headerTitle, { color: theme.text }]}>{name}</Text>
-                    ) : null}
                     <View style={{ width: 40 }} />
                 </View>
 
-                {/* Artist / Album Art Card - shown BELOW the back button */}
-                {(type === 'artist' || type === 'album') && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 12 }}>
-                        <View
-                            style={[
-                                styles.playlistArtCard,
-                                (type === 'artist') && { borderRadius: 85 },
-                                type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
-                                { overflow: 'hidden', width: 150, height: 150, marginBottom: 0, marginRight: 16 }
-                            ]}
-                        >
-                            {(type === 'artist') ? (
-                                <TouchableOpacity
-                                    onPress={handleEditArtistImage}
-                                    style={StyleSheet.absoluteFill}
-                                >
-                                    <MusicImage
-                                        uri={artistCustomMeta?.coverImage || deezerArtistImage || artistInfo?.image || undefined}
-                                        id={name}
-                                        style={StyleSheet.absoluteFill}
-                                        iconSize={70}
-                                    />
-                                </TouchableOpacity>
-                            ) : (type === 'album') ? (
-                                <MusicImage
-                                    uri={displaySongs[0]?.coverImage}
-                                    id={displaySongs[0]?.id}
-                                    assetUri={displaySongs[0]?.uri}
-                                    style={{ width: '100%', height: '100%' }}
-                                    containerStyle={{ width: '100%', height: '100%', borderRadius: 16 }}
-                                />
-                            ) : null}
-                        </View>
-
-                        <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 24, fontWeight: '800', color: theme.text, marginBottom: 4 }} numberOfLines={2}>
-                                {displayName}
-                            </Text>
-
-                            {type === 'album' && (
-                                <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
-                            )}
-
-                            {type === 'artist' && artistInfo?.listeners && (
-                                <Text style={{ color: theme.textSecondary, fontSize: 11, marginTop: 4 }} numberOfLines={1}>
-                                    {parseInt(artistInfo.listeners).toLocaleString()} listeners
-                                </Text>
-                            )}
-
-                            {type === 'artist' && artistInfo?.bio && (
-                                <Text
-                                    style={{ color: theme.textSecondary, fontSize: 12, lineHeight: 17, marginTop: 6 }}
-                                    numberOfLines={3}
-                                >
-                                    {artistInfo.bio}
-                                </Text>
-                            )}
-                        </View>
-                    </View>
-                )}
+                {/* Art Card shifted to ListHeaderComponent below */}
 
 
                 {loading ? (
@@ -708,7 +749,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                     </View>
                 ) : (
                     <>
-                        <FlashListAny
+                        <SafeAnimatedFlashList
+                            onScroll={scrollHandler}
+                            scrollEventThrottle={16}
                             data={(viewMode === 'songs' ? displaySongs : groupedContent) as any[]}
                             keyExtractor={(item, index) => (item as any).id || (item as any).name || String(index)}
                             renderItem={viewMode === 'songs' ? renderSong : (viewMode === 'albums' ? renderAlbumItem : renderArtistItem)}
@@ -716,24 +759,80 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             estimatedItemSize={70}
                             extraData={[currentSong?.id, theme, viewMode]}
                             getItemType={(item) => viewMode === 'songs' ? 'song' : 'item'}
-                            drawDistance={500}
+                            drawDistance={250}
+
                             ListEmptyComponent={
                                 <View style={{ alignItems: 'center', marginTop: 50 }}>
                                     <Text style={{ color: theme.textSecondary }}>No {viewMode} found in this playlist.</Text>
                                 </View>
                             }
                             ListHeaderComponent={
-                                <View style={[styles.playlistHeader, (type === 'artist' || type === 'album') && { paddingHorizontal: 0, paddingTop: 0 }]}>
-                                    {(type === 'artist' || type === 'album') ? (
-                                        <>{/* artwork shown above, action buttons below */}</>
+                                <View style={[styles.playlistHeader, (type === 'artist' || type === 'album' || type === 'genre') && { paddingHorizontal: 0, paddingTop: 0 }]}>
+                                    {(type === 'artist' || type === 'album' || type === 'genre') ? (
+                                        <View style={{ width: '100%', aspectRatio: 1.1, marginBottom: 15 }}>
+                                            {type === 'genre' ? (
+                                                <PlaylistCollage
+                                                    songs={collageSongsForHeader}
+                                                    size="100%"
+                                                    iconSize={150}
+                                                    iconName="musical-notes"
+                                                    gradientColors={gradientColors as [string, string]}
+                                                    borderRadius={0}
+                                                />
+                                            ) : (
+                                                <MusicImage
+                                                    uri={type === 'artist' ? (artistCustomMeta?.coverImage || deezerArtistImage || artistInfo?.image) : displaySongs[0]?.coverImage}
+                                                    id={type === 'artist' ? name : displaySongs[0]?.id}
+                                                    assetUri={type === 'album' ? displaySongs[0]?.uri : undefined}
+                                                    style={StyleSheet.absoluteFill}
+                                                    iconSize={120}
+                                                />
+                                            )}
+                                            <LinearGradient
+                                                colors={['rgba(0,0,0,0.2)', 'transparent', 'rgba(0,0,0,0.8)', 'black']}
+                                                style={StyleSheet.absoluteFill}
+                                            />
+                                            {type === 'artist' && (
+                                                <TouchableOpacity
+                                                    onPress={handleEditArtistImage}
+                                                    style={{ position: 'absolute', top: 60, right: 20, padding: 8, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 20 }}
+                                                >
+                                                    <Ionicons name="camera" size={20} color="white" />
+                                                </TouchableOpacity>
+                                            )}
+
+                                            <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                    <Text style={{ fontSize: 36, fontWeight: '900', color: 'white', letterSpacing: -1 }}>
+                                                        {displayName}
+                                                    </Text>
+                                                </View>
+                                                {type === 'artist' && artistInfo?.listeners && (
+                                                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600', marginTop: 4 }}>
+                                                        {parseInt(artistInfo.listeners).toLocaleString()} MONTHLY LISTENERS
+                                                    </Text>
+                                                )}
+                                                {(type === 'album' || type === 'genre') && (
+                                                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: '600', marginTop: 4 }}>
+                                                        {displaySongs.length} Songs
+                                                    </Text>
+                                                )}
+                                                {type === 'artist' && artistInfo?.bio && (
+                                                    <Text
+                                                        style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, lineHeight: 17, marginTop: 8 }}
+                                                        numberOfLines={3}
+                                                    >
+                                                        {artistInfo.bio}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        </View>
                                     ) : (
                                         <>
-                                            {/* Unified Left-Aligned Header */}
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: (type === 'artist' || type === 'album') ? 20 : 0 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 0 }}>
                                                 <View
                                                     style={[
                                                         styles.playlistArtCard,
-                                                        type === 'album' && { backgroundColor: 'transparent', borderWidth: 0 },
                                                         { overflow: 'hidden', width: 170, height: 170, marginBottom: 0, marginRight: 20 }
                                                     ]}
                                                 >
@@ -816,26 +915,10 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     <Text style={{ color: theme.textSecondary, fontSize: 14 }}>{displaySongs.length} Songs</Text>
                                                 </View>
                                             </View>
-
-                                            {/* Artist Bio Full (Optional context) */}
-                                            {!(type === 'artist' || type === 'album') && type === 'artist' && artistInfo?.bio && (
-                                                <Text
-                                                    style={{
-                                                        color: theme.textSecondary,
-                                                        fontSize: 13,
-                                                        textAlign: 'left',
-                                                        marginTop: 15,
-                                                        lineHeight: 18,
-                                                        width: '100%'
-                                                    }}
-                                                    numberOfLines={3}
-                                                >
-                                                    {artistInfo.bio}
-                                                </Text>
-                                            )}
                                         </>
                                     )}
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, paddingHorizontal: (type === 'artist' || type === 'album') ? 20 : 0 }}>
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, paddingHorizontal: (type === 'artist' || type === 'album' || type === 'genre') ? 20 : 0 }}>
                                         <TouchableOpacity
                                             style={[styles.playAllButton, { backgroundColor: theme.primary }]}
                                             onPress={() => {
@@ -882,7 +965,6 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                         ) : null}
                                     </View>
 
-                                    {/* Add Songs Button for User Playlists */}
                                     {(type === 'playlist' || id === 'liked') && (
                                         <TouchableOpacity
                                             style={{
@@ -890,8 +972,8 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
                                                 backgroundColor: theme.card,
-                                                paddingVertical: 8, // Reduced from 10
-                                                paddingHorizontal: 20, // Reduced from 30
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 20,
                                                 marginTop: 15,
                                                 borderRadius: 25,
                                                 borderWidth: 1,
@@ -905,9 +987,6 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                             <Text style={{ color: theme.text, fontSize: 14, fontWeight: '600' }}>Add Songs</Text>
                                         </TouchableOpacity>
                                     )}
-
-                                    {/* Search Bar - Excluded for Artist/Album */}
-
 
                                     <PlaylistOptionsMenu
                                         visible={playlistOptionsVisible}
@@ -928,30 +1007,11 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                             type === 'genre' ? () => toggleFavoriteGenre(name) : undefined
                                         }
                                         onDelete={(type === 'playlist' && id !== 'liked') ? () => {
-                                            // Wait a bit for menu to close before showing modal
                                             setTimeout(() => {
                                                 setDeleteModalVisible(true);
                                             }, 300);
                                         } : undefined}
                                     />
-
-                                    <ConfirmationModal
-                                        visible={deleteModalVisible}
-                                        title="Delete Playlist"
-                                        message={`Are you sure you want to delete "${name}"? This action cannot be undone.`}
-                                        confirmText="Delete"
-                                        isDestructive={true}
-                                        onCancel={() => setDeleteModalVisible(false)}
-                                        onConfirm={async () => {
-                                            setDeleteModalVisible(false);
-                                            await deletePlaylist(id);
-                                            if (navigation.canGoBack()) navigation.goBack();
-                                            else navigation.navigate('Home');
-                                        }}
-                                    />
-
-
-
                                 </View>
                             }
                             showsVerticalScrollIndicator={false}

@@ -3,14 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Dimensions } from '
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
-import { usePlayerContext } from '../hooks/PlayerContext';
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from 'react-native-draggable-flatlist';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { useTheme } from '../hooks/ThemeContext';
-import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { MusicImage } from '../components/MusicImage';
 import { PlayingIndicator } from '../components/PlayingIndicator';
 import { ScreenContainer } from '../components/ScreenContainer';
+
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
@@ -20,23 +20,20 @@ import { Song } from '../hooks/MusicLibraryContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Queue'>;
 
-const { width } = Dimensions.get('window');
-
 export const QueueScreen = ({ navigation }: Props) => {
-    const {
-        currentSong,
-        isPlaying,
-        playlist,
-        currentIndex,
-        playSongInPlaylist,
-        playlistName,
-        isShuffleOn,
-        toggleShuffle,
-        removeFromQueue
-    } = usePlayerContext();
+    const currentSong = usePlayerStore(state => state.currentTrack);
+    const isPlaying = usePlayerStore(state => state.isPlaying);
+    const playlist = usePlayerStore(state => state.playlist);
+    const currentIndex = usePlayerStore(state => state.currentIndex);
+    const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
+    const moveTrack = usePlayerStore(state => state.moveTrack);
+    const playlistName = usePlayerStore(state => state.playlistName);
+    const isShuffleOn = usePlayerStore(state => state.isShuffleOn);
+    const toggleShuffle = usePlayerStore(state => state.toggleShuffle);
+    const removeFromQueue = usePlayerStore(state => state.removeFromQueue);
 
-    const { theme, themeType } = useTheme();
-    const { addToPlaylist, updateSongMetadata } = useMusicLibrary();
+    const { theme } = useTheme();
+    const updateSongMetadata = useLibraryStore(state => state.updateSongMetadata);
 
     const [playlistModalVisible, setPlaylistModalVisible] = useState(false);
     const [selectedQueueItem, setSelectedQueueItem] = useState<{ song: Song, index: number } | null>(null);
@@ -49,30 +46,18 @@ export const QueueScreen = ({ navigation }: Props) => {
     const scrollToCurrent = useCallback(() => {
         if (currentIndex === -1 || playlist.length === 0 || !listRef.current) return;
 
-        // Use a bit more generous timeout to ensure FlashList is fully ready
         const timer = setTimeout(() => {
             try {
                 if (listRef.current && currentIndex >= 0 && currentIndex < playlist.length) {
-                    listRef.current.scrollToIndex({
-                        index: currentIndex,
-                        animated: true,
-                        viewPosition: 0.5 // Center the playing song
+                    listRef.current.scrollToOffset({
+                        offset: Math.max(0, currentIndex * 68 - 200),
+                        animated: true
                     });
                 }
             } catch (err) {
-                console.log('[QueueScreen] Scroll failed, retrying...', err);
-                // Fallback retry
-                setTimeout(() => {
-                    if (listRef.current && currentIndex >= 0 && currentIndex < playlist.length) {
-                        listRef.current.scrollToIndex({
-                            index: currentIndex,
-                            animated: true,
-                            viewPosition: 0.5
-                        });
-                    }
-                }, 400);
+                console.log('[QueueScreen] Scroll failed', err);
             }
-        }, 250);
+        }, 400);
 
         return () => clearTimeout(timer);
     }, [currentIndex, playlist.length]);
@@ -86,16 +71,78 @@ export const QueueScreen = ({ navigation }: Props) => {
         }, [scrollToCurrent])
     );
 
-    useEffect(() => {
-        const cleanUp = scrollToCurrent();
-        return () => {
-            if (typeof cleanUp === 'function') cleanUp();
-        };
-    }, [currentIndex, scrollToCurrent]);
-
     const handleAddQueueToPlaylist = () => {
         setPlaylistModalVisible(true);
     };
+
+    const renderItem = useCallback(({ item, getIndex, drag, isActive }: RenderItemParams<Song>) => {
+        const index = getIndex();
+        const isCurrent = index === currentIndex;
+        return (
+            <ScaleDecorator>
+                <TouchableOpacity
+                    onLongPress={drag}
+                    disabled={isActive}
+                    activeOpacity={1}
+                    style={[
+                        styles.queueItem,
+                        isCurrent && { backgroundColor: theme.primary + '15' },
+                        isActive && {
+                            backgroundColor: theme.card,
+                            elevation: 8,
+                            zIndex: 100,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 4.65,
+                            transform: [{ scale: 1.02 }]
+                        }
+                    ]}
+                >
+                    <View style={styles.dragHandle} onTouchStart={drag}>
+                        <Ionicons name="reorder-two-outline" size={24} color={theme.textSecondary + '60'} />
+                    </View>
+
+                    <TouchableOpacity
+                        style={styles.itemMain}
+                        onPress={() => playSongInPlaylist(playlist, index!, playlistName)}
+                    >
+                        <View style={styles.artworkContainer}>
+                            <MusicImage
+                                uri={item.coverImage}
+                                id={item.id}
+                                style={styles.artwork}
+                                iconSize={20}
+                            />
+                            {isCurrent && isPlaying && (
+                                <View style={styles.playingOverlay}>
+                                    <PlayingIndicator color="white" size={14} isPlaying={true} />
+                                </View>
+                            )}
+                        </View>
+                        <View style={styles.info}>
+                            <Text style={[styles.title, { color: isCurrent ? theme.primary : theme.text }]} numberOfLines={1}>
+                                {item.title}
+                            </Text>
+                            <Text style={[styles.artist, { color: theme.textSecondary }]} numberOfLines={1}>
+                                {item.artist}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.optionsButton}
+                        onPress={() => {
+                            setSelectedQueueItem({ song: item, index: index! });
+                            setQueueOptionsVisible(true);
+                        }}
+                    >
+                        <Ionicons name="ellipsis-vertical" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </ScaleDecorator>
+        );
+    }, [currentIndex, isPlaying, theme, playlist, playlistName, playSongInPlaylist]);
 
     return (
         <ScreenContainer variant="default">
@@ -115,51 +162,18 @@ export const QueueScreen = ({ navigation }: Props) => {
                     </View>
                 </View>
 
-                <FlashListAny
+                <DraggableFlatList
                     ref={listRef}
                     data={playlist}
-                    extraData={currentIndex}
-                    keyExtractor={(item: Song, index: number) => `${item.id}-${index}`}
-                    estimatedItemSize={73}
-                    initialScrollIndex={currentIndex !== -1 ? currentIndex : undefined}
+                    onDragEnd={({ from, to }) => moveTrack(from, to)}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
                     contentContainerStyle={styles.listContent}
-                    decelerationRate="fast"
-                    renderItem={({ item, index }: { item: Song, index: number }) => (
-                        <View style={[styles.queueItem, index === currentIndex && { backgroundColor: theme.primary + '15' }]}>
-                            <TouchableOpacity
-                                style={styles.itemMain}
-                                onPress={() => playSongInPlaylist(playlist, index, playlistName)}
-                            >
-                                <View style={styles.artworkContainer}>
-                                    <MusicImage
-                                        uri={item.coverImage}
-                                        id={item.id}
-                                        style={styles.artwork}
-                                        iconSize={20}
-                                    />
-                                    {index === currentIndex && isPlaying && (
-                                        <View style={styles.playingOverlay}>
-                                            <PlayingIndicator color="white" size={14} isPlaying={true} />
-                                        </View>
-                                    )}
-                                </View>
-                                <View style={styles.info}>
-                                    <Text style={[styles.title, { color: index === currentIndex ? theme.primary : theme.text }]} numberOfLines={1}>
-                                        {item.title}
-                                    </Text>
-                                    <Text style={[styles.artist, { color: theme.textSecondary }]} numberOfLines={1}>
-                                        {item.artist}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.optionsButton}
-                                onPress={() => { setSelectedQueueItem({ song: item, index }); setQueueOptionsVisible(true); }}
-                            >
-                                <Ionicons name="ellipsis-vertical" size={20} color={theme.textSecondary} />
-                            </TouchableOpacity>
-                        </View>
-                    )}
+                    getItemLayout={(data, index) => ({
+                        length: 68,
+                        offset: 68 * index,
+                        index
+                    })}
                 />
 
                 <SongOptionsMenu
@@ -198,7 +212,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     backButton: { padding: 5 },
-    headerTitle: { fontSize: 20, fontWeight: 'bold' },
+    headerTitle: { fontSize: 20, fontFamily: 'PlusJakartaSans_700Bold' },
     headerActions: { flexDirection: 'row', alignItems: 'center' },
     headerActionBtn: { padding: 10 },
     listContent: { paddingHorizontal: 15, paddingBottom: 40 },
@@ -209,6 +223,11 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         paddingHorizontal: 10,
         marginBottom: 5,
+    },
+    dragHandle: {
+        paddingRight: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     itemMain: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     artworkContainer: { position: 'relative' },
@@ -221,7 +240,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     info: { flex: 1, marginLeft: 12 },
-    title: { fontSize: 16, fontWeight: '600' },
-    artist: { fontSize: 14, marginTop: 2 },
+    title: { fontSize: 16, fontFamily: 'PlusJakartaSans_600SemiBold' },
+    artist: { fontSize: 14, marginTop: 2, fontFamily: 'PlusJakartaSans_400Regular' },
     optionsButton: { padding: 10 },
 });

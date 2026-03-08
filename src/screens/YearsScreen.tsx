@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
@@ -6,7 +6,8 @@ const FlashListAny = FlashList as any;
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { useLocalMusic } from '../hooks/useLocalMusic';
+import { useLibraryStore } from '../store/useLibraryStore';
+
 import { GlassCard } from '../components/GlassCard';
 import { MusicImage } from '../components/MusicImage';
 import { useNavigation } from '@react-navigation/native';
@@ -17,12 +18,21 @@ import { PlaylistCollage } from '../components/PlaylistCollage';
 
 export const YearsScreen = () => {
     const { theme } = useTheme();
-    const { songs } = useLocalMusic();
+    const songs = useLibraryStore(state => state.songs);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
+    const [isNavigated, setIsNavigated] = useState(false);
+
+    useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
 
     // Group songs by year
     const years = useMemo(() => {
+        if (!isNavigated) return [];
         const map = new Map();
         songs.forEach(song => {
             let yearName = song.year && song.year !== '0' && song.year !== 'Unknown Year' ? song.year : 'Unknown Year';
@@ -48,9 +58,9 @@ export const YearsScreen = () => {
         return Array.from(map.values()).sort((a, b) => {
             if (a.name === 'Unknown Year') return 1;
             if (b.name === 'Unknown Year') return -1;
-            return b.name.localeCompare(a.name); // Newest years first
+            return a.name > b.name ? -1 : a.name < b.name ? 1 : 0; // Newest years first
         });
-    }, [songs]);
+    }, [songs, isNavigated]);
 
     const toggleLayout = () => {
         if (layoutMode === 'grid3') setLayoutMode('grid2');
@@ -144,6 +154,7 @@ export const YearsScreen = () => {
                     renderItem={renderItem}
                     numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
                     estimatedItemSize={layoutMode === 'list' ? 70 : 150}
+                    drawDistance={250}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>

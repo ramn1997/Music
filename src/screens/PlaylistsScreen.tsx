@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, FlatList } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
+import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard } from '../components/GlassCard';
@@ -10,7 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { useTheme } from '../hooks/ThemeContext';
-import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { MusicImage } from '../components/MusicImage';
 import { MarqueeText } from '../components/MarqueeText';
 import { ConfirmationModal } from '../components/ConfirmationModal';
@@ -41,31 +42,47 @@ const CardDesign = () => null;
 export const PlaylistsScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
-    const { likedSongs, playlists: userPlaylists, createPlaylist, deletePlaylist } = useMusicLibrary();
+    const likedSongs = useLibraryStore(state => state.likedSongs);
+    const userPlaylists = useLibraryStore(state => state.playlists);
+    const createPlaylist = useLibraryStore(state => state.createPlaylist);
+    const deletePlaylist = useLibraryStore(state => state.deletePlaylist);
 
     const [modalVisible, setModalVisible] = useState(false);
     const [newPlaylistName, setNewPlaylistName] = useState('');
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [playlistToDelete, setPlaylistToDelete] = useState<any | null>(null);
+    const [isNavigated, setIsNavigated] = useState(false);
 
-    const displayPlaylists = [
-        {
-            id: 'liked',
-            name: 'Liked Songs',
-            count: likedSongs.length,
-            isSpecial: true,
-            coverImage: likedSongs[0]?.coverImage,
-            assetUri: likedSongs[0]?.uri
-        },
-        ...userPlaylists.map(p => ({
-            id: p.id,
-            name: p.name,
-            count: p.songs.length,
-            isSpecial: false,
-            coverImage: p.songs[0]?.coverImage,
-            assetUri: p.songs[0]?.uri
-        }))
-    ];
+    React.useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
+
+    const displayPlaylists = React.useMemo(() => {
+        if (!isNavigated) return [];
+        return [
+            {
+                id: 'liked',
+                name: 'Liked Songs',
+                count: likedSongs.length,
+                isSpecial: true,
+                coverImage: likedSongs[0]?.coverImage,
+                assetUri: likedSongs[0]?.uri,
+                songs: likedSongs
+            },
+            ...userPlaylists.map(p => ({
+                id: p.id,
+                name: p.name,
+                count: p.songs.length,
+                isSpecial: false,
+                coverImage: p.songs[0]?.coverImage,
+                assetUri: p.songs[0]?.uri,
+                songs: p.songs
+            }))
+        ];
+    }, [likedSongs, userPlaylists, isNavigated]);
 
 
 
@@ -97,46 +114,41 @@ export const PlaylistsScreen = () => {
         return (
             <View
                 style={{
-                    flex: 1 / 2,
+                    flex: 1,
                     paddingHorizontal: 8,
                     marginBottom: 24,
                     alignItems: 'center'
                 }}
             >
                 <TouchableOpacity
-                    style={{ width: '100%', alignItems: 'center' }}
+                    style={{ width: '100%' }}
                     activeOpacity={0.7}
-                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: item.id === 'liked' ? 'playlist' : 'playlist' })}
+                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'playlist' })}
                     onLongPress={() => confirmDelete(item)}
                     delayLongPress={500}
                 >
                     <View style={[
-                        styles.cardContainer,
                         {
                             width: '100%',
                             aspectRatio: 1,
-                            borderRadius: 20,
+                            borderRadius: 16,
                             overflow: 'hidden',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: 10,
-                            elevation: 8,
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.35,
-                            shadowRadius: 5,
-                            backgroundColor: theme.card
+                            marginBottom: 12,
+                            backgroundColor: 'rgba(255,255,255,0.02)',
+                            borderWidth: 1,
+                            borderColor: 'rgba(255,255,255,0.06)',
                         }
                     ]}>
                         <PlaylistCollage
-                            songs={item.id === 'liked' ? likedSongs : (userPlaylists.find(p => p.id === item.id)?.songs || [])}
+                            songs={item.songs}
                             size={itemWidth}
                             width={'100%' as any}
                             iconSize={40}
-                            iconName={item.id === 'liked' ? "heart" : item.id === 'recently_played' ? "time" : "musical-notes"}
+                            iconName={item.id === 'liked' ? "heart" : "musical-notes"}
                             gradientColors={getGradientColors(item.id)}
-                            showBubbles={true}
+                            showBubbles={false}
                             borderRadius={0}
+                            opacity={0.9}
                         />
                     </View>
 
@@ -145,17 +157,19 @@ export const PlaylistsScreen = () => {
                         style={{
                             color: theme.text,
                             fontSize: 15,
-                            fontWeight: 'bold',
+                            fontFamily: 'PlusJakartaSans_700Bold',
                             textAlign: 'center',
-                            width: '100%'
+                            width: '100%',
+                            letterSpacing: 0.2
                         }}
                     >
                         {item.name}
                     </Text>
                     <Text style={{
                         color: theme.textSecondary,
-                        fontSize: 12,
+                        fontSize: 13,
                         marginTop: 4,
+                        fontFamily: 'PlusJakartaSans_500Medium',
                         textAlign: 'center',
                         width: '100%'
                     }}>
@@ -164,7 +178,13 @@ export const PlaylistsScreen = () => {
                 </TouchableOpacity>
             </View>
         );
-    }, [theme, navigation, confirmDelete, itemWidth, userPlaylists]);
+    }, [theme, navigation, confirmDelete, itemWidth]);
+
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            // Bypass JS bridge tracking for smooth scrolling
+        },
+    });
 
     return (
         <ScreenContainer variant="default">
@@ -180,12 +200,15 @@ export const PlaylistsScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                <FlashListAny
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     data={displayPlaylists}
                     keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
                     numColumns={2}
                     estimatedItemSize={220}
+                    drawDistance={250}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={{ padding: 50, alignItems: 'center' }}>

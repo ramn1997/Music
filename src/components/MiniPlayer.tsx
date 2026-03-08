@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Dimensions }
 const { width } = Dimensions.get('window');
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { useTheme } from '../hooks/ThemeContext';
 import { MusicImage } from './MusicImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +13,12 @@ import { useProgress } from 'react-native-track-player';
 
 export const MiniPlayer = () => {
     const navigation = useNavigation<any>();
-    const { currentSong, isPlaying, playPause, nextTrack, prevTrack, seek } = usePlayerContext();
+    const currentSong = usePlayerStore(state => state.currentTrack);
+    const isPlaying = usePlayerStore(state => state.isPlaying);
+    const playPause = usePlayerStore(state => state.playPause);
+    const nextTrack = usePlayerStore(state => state.nextTrack);
+    const prevTrack = usePlayerStore(state => state.prevTrack);
+    const seek = usePlayerStore(state => state.seek);
     const { theme, themeType, playerStyle, navigationStyle } = useTheme();
     const insets = useSafeAreaInsets();
     const { position, duration } = useProgress(1000); // 1s update for mini player is enough

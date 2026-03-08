@@ -10,17 +10,18 @@ import { useTheme } from '../hooks/ThemeContext';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Platform } from 'react-native';
-import { useLocalMusic, Song } from '../hooks/useLocalMusic';
+import { useLibraryStore, Song } from '../store/useLibraryStore';
+
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 
 export const MostPlayedScreen = () => {
     const { theme } = useTheme();
-    const { songs } = useLocalMusic();
+    const songs = useLibraryStore(state => state.songs);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const { playSongInPlaylist } = usePlayerContext();
+    const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
 
     // Sort songs by playCount desc
     const sortedSongs = useMemo(() => {

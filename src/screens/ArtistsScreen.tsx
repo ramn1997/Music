@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
+// SafeAnimatedFlashList will be imported below
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { useLocalMusic } from '../hooks/useLocalMusic';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { MusicImage } from '../components/MusicImage';
 import { GlassCard } from '../components/GlassCard';
 import { ArtistListItem } from '../components/ArtistListItem';
@@ -13,7 +13,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { MarqueeText } from '../components/MarqueeText';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedScrollHandler } from 'react-native-reanimated';
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const getGradientColors = (id: string): [string, string] => {
@@ -33,7 +34,8 @@ const getGradientColors = (id: string): [string, string] => {
 
 export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
-    const { songs } = useLocalMusic();
+    const songs = useLibraryStore(state => state.songs);
+    const loading = useLibraryStore(state => state.loading);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
     const [searchQuery, setSearchQuery] = useState('');
@@ -74,11 +76,12 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
     const artists = useMemo(() => {
         if (!isNavigated) return [];
-        const filtered = debouncedQuery.trim()
-            ? allArtists.filter(a => a.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
+        const query = debouncedQuery.trim().toLowerCase();
+        const filtered = query
+            ? allArtists.filter(a => a.name.toLowerCase().includes(query))
             : allArtists;
 
-        return filtered.sort((a, b) => {
+        return [...filtered].sort((a, b) => {
             const aIsUnknown = a.name === 'Unknown Artist';
             const bIsUnknown = b.name === 'Unknown Artist';
             if (aIsUnknown && !bIsUnknown) return -1;
@@ -108,6 +111,12 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         );
     }, [navigation, layoutMode]);
 
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            // Bypass JS thread
+        },
+    });
+
     const content = (
         <View style={{ flex: 1 }}>
             {!isEmbedded && (
@@ -130,40 +139,15 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             )}
 
             {/* Separate Search Bar Row */}
-            <View style={{
-                paddingHorizontal: 20,
-                marginBottom: 10,
-                marginTop: isEmbedded ? 10 : 0
-            }}>
-                <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.card,
-                    borderRadius: 20,
-                    paddingHorizontal: 15,
-                    height: 40
-                }}>
-                    <Ionicons name="search" size={16} color={theme.textSecondary} />
-                    <TextInput
-                        style={{ flex: 1, color: theme.text, marginLeft: 8, fontSize: 14, paddingVertical: 0 }}
-                        placeholder="Search artists..."
-                        placeholderTextColor={theme.textSecondary}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </View>
+            {/* Search removed as requested */}
 
             <View style={{ flex: 1 }}>
-                <FlashListAny
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     key={layoutMode}
                     data={artists}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
                     numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
                     estimatedItemSize={150}

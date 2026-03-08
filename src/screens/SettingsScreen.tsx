@@ -7,7 +7,7 @@ import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { CompactImportProgress } from '../components/CompactImportProgress';
 import { useHomeSettings } from '../hooks/HomeSettingsContext';
 
@@ -30,7 +30,8 @@ export const SettingsScreen = () => {
     const [navExpanded, setNavExpanded] = useState(false);
     const navigation = useNavigation<any>();
     const { fetchMusic, loading, scanForFolders, loadSongsFromFolders, refreshMetadata, savedFolders } = useMusicLibrary();
-    const { isGapless, setGapless } = usePlayerContext();
+    const isGapless = usePlayerStore(state => state.isGapless);
+    const setGapless = usePlayerStore(state => state.setGapless);
     const { sectionVisibility, toggleSectionVisibility } = useHomeSettings();
 
     // Folder Picker State

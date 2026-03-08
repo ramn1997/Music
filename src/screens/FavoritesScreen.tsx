@@ -1,19 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
-const FlashListAny = FlashList as any;
+import Animated, { FadeInDown, useAnimatedScrollHandler } from 'react-native-reanimated';
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { useTheme } from '../hooks/ThemeContext';
-import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassCard } from '../components/GlassCard';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { useArtistImage } from '../hooks/useArtistImage';
 import { MusicImage } from '../components/MusicImage';
 import { PlaylistCollage } from '../components/PlaylistCollage';
@@ -72,11 +72,26 @@ const ArtistAvatar = ({ name, id, isList, isGrid3 }: { name: string, id: string,
 export const FavoritesScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme } = useTheme();
-    const { songs, playlists, favoriteArtists, favoriteAlbums, favoriteGenres, likedSongs, favoriteSpecialPlaylists } = useMusicLibrary();
-    const { playSongInPlaylist } = usePlayerContext();
+    const songs = useLibraryStore(state => state.songs);
+    const playlists = useLibraryStore(state => state.playlists);
+    const favoriteArtists = useLibraryStore(state => state.favoriteArtists);
+    const favoriteAlbums = useLibraryStore(state => state.favoriteAlbums);
+    const favoriteGenres = useLibraryStore(state => state.favoriteGenres);
+    const favoriteSpecialPlaylists = useLibraryStore(state => state.favoriteSpecialPlaylists);
+    const likedSongs = useLibraryStore(state => state.likedSongs);
+    const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
     const [layoutMode] = useState<'grid2' | 'list'>('grid2');
+    const [isNavigated, setIsNavigated] = useState(false);
+
+    useEffect(() => {
+        const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
+            setIsNavigated(true);
+        });
+        return () => interaction.cancel();
+    }, []);
 
     const allFavorites = useMemo(() => {
+        if (!isNavigated) return [];
         const favAlbumsSet = new Set(favoriteAlbums || []);
         const favGenresSet = new Set(favoriteGenres || []);
         const favArtistsSet = new Set(favoriteArtists || []);
@@ -155,7 +170,7 @@ export const FavoritesScreen = () => {
         });
 
         return [...dynamicSpecial, ...favoritedPlaylists, ...favArtists, ...favAlbums, ...favGenres];
-    }, [playlists, favoriteArtists, favoriteAlbums, favoriteGenres, favoriteSpecialPlaylists, songs, likedSongs]);
+    }, [playlists, favoriteArtists, favoriteAlbums, favoriteGenres, favoriteSpecialPlaylists, songs, likedSongs, isNavigated]);
 
 
 
@@ -267,6 +282,12 @@ export const FavoritesScreen = () => {
         );
     }, [theme, navigation, layoutMode]);
 
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            // Bypass JS bridge tracking
+        },
+    });
+
     return (
         <ScreenContainer variant="default">
             <View style={styles.header}>
@@ -274,7 +295,9 @@ export const FavoritesScreen = () => {
             </View>
 
             <View style={{ flex: 1 }}>
-                <FlashListAny
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     key={layoutMode}
                     data={allFavorites}
                     renderItem={renderItem}

@@ -34,10 +34,10 @@ export const useLibrarySync = () => {
         // Initial check
         updateStatus();
 
-        // Poll every 2 seconds
+        // Poll every 5 seconds (less aggressive)
         const interval = setInterval(() => {
             updateStatus();
-        }, 2000);
+        }, 5000);
 
         return () => clearInterval(interval);
     }, []);

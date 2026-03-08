@@ -4,15 +4,15 @@ import { MusicImage } from '../components/MusicImage';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { useLocalMusic } from '../hooks/useLocalMusic';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { useNavigation } from '@react-navigation/native';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 
 export const RecentlyAddedScreen = () => {
     const { theme } = useTheme();
-    const { songs } = useLocalMusic();
+    const songs = useLibraryStore(state => state.songs);
     const navigation = useNavigation<any>();
-    const { playSongInPlaylist } = usePlayerContext();
+    const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
 
     // Group songs by Date (Newer vs Older)
     const sections = useMemo(() => {

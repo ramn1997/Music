@@ -49,11 +49,12 @@ export const PlaylistCollage = ({
         if (collageSongs && collageSongs.length >= 4) return collageSongs.slice(0, 4);
 
         if (songs && songs.length >= 4) {
-            const stableSongs = [...songs].sort((a, b) => a.id.localeCompare(b.id));
             const unique = [];
             const seen = new Set();
-            for (const s of stableSongs) {
-                // Focus on picking 4 DIFFERENT cover arts for visual variety
+
+            // Linear scan to find 4 unique cover images. 
+            // This is stable based on the input array order and avoids an expensive O(N log N) sort.
+            for (const s of songs) {
                 if (s.coverImage && !seen.has(s.coverImage)) {
                     unique.push(s);
                     seen.add(s.coverImage);
@@ -63,10 +64,10 @@ export const PlaylistCollage = ({
 
             // Fallback if there aren't 4 different images available
             if (unique.length === 4) return unique;
-            return stableSongs.slice(0, 4);
+            return songs.slice(0, 4);
         }
         return [];
-    }, [songs?.length, forceSingleImage]);
+    }, [songs, collageSongs, forceSingleImage]);
 
     const hasCollage = !forceSingleImage && collageItems.length === 4;
     const fallbackDisplays = (collageSongs && collageSongs.length > 0) ? collageSongs : (songs && songs.length > 0 ? songs : []);

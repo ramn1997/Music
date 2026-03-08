@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RootStackParamList } from '../types/navigation';
 import { colors } from '../theme/colors';
 import { GlassCard } from '../components/GlassCard';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { useTheme } from '../hooks/ThemeContext';
 import { MusicImage } from '../components/MusicImage';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
@@ -21,9 +21,9 @@ import { EditSongModal } from '../components/EditSongModal';
 import { LyricsModal } from '../components/LyricsModal';
 import { PlayingIndicator } from '../components/PlayingIndicator';
 import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
-import { RecommendationsModal } from '../components/RecommendationsModal';
 import { MarqueeText } from '../components/MarqueeText';
 import { ShareCardModal } from '../components/ShareCardModal';
+import { RecommendationsModal } from '../components/RecommendationsModal';
 import { useProgress } from 'react-native-track-player';
 import TrackPlayer from 'react-native-track-player';
 import { Song } from '../hooks/MusicLibraryContext';
@@ -140,23 +140,21 @@ const ProgressBar = React.memo(({ seek, isPlaying, theme }: { seek: (pos: number
 
 export const PlayerScreen = () => {
     const navigation = useNavigation<any>();
-    const {
-        currentSong,
-        isPlaying,
-        playPause,
-        nextTrack,
-        prevTrack,
-        seek,
-        playlist,
-        currentIndex,
-        playlistName,
-        isShuffleOn,
-        toggleShuffle,
-        repeatMode,
-        toggleRepeat,
-        playbackSpeed,
-        setPlaybackSpeed,
-    } = usePlayerContext();
+    const currentSong = usePlayerStore(state => state.currentTrack);
+    const isPlaying = usePlayerStore(state => state.isPlaying);
+    const playPause = usePlayerStore(state => state.playPause);
+    const nextTrack = usePlayerStore(state => state.nextTrack);
+    const prevTrack = usePlayerStore(state => state.prevTrack);
+    const seek = usePlayerStore(state => state.seek);
+    const playlist = usePlayerStore(state => state.playlist);
+    const currentIndex = usePlayerStore(state => state.currentIndex);
+    const playlistName = usePlayerStore(state => state.playlistName);
+    const isShuffleOn = usePlayerStore(state => state.isShuffleOn);
+    const toggleShuffle = usePlayerStore(state => state.toggleShuffle);
+    const repeatMode = usePlayerStore(state => state.repeatMode);
+    const toggleRepeat = usePlayerStore(state => state.toggleRepeat);
+    const playbackSpeed = usePlayerStore(state => state.playbackSpeed);
+    const setPlaybackSpeed = usePlayerStore(state => state.setPlaybackSpeed);
 
     const { theme, themeType, playerStyle, isCarouselEnabled, isSwipeEnabled } = useTheme();
     const { toggleLike, isLiked, updateSongMetadata } = useMusicLibrary();
@@ -604,7 +602,6 @@ export const PlayerScreen = () => {
             <EditSongModal visible={editModalVisible} onClose={() => setEditModalVisible(false)} song={activeModalSong || currentSong} onSave={updateSongMetadata} />
             <LyricsModal visible={lyricsModalVisible} onClose={() => setLyricsModalVisible(false)} song={currentSong} />
             <ShareCardModal visible={shareModalVisible} onClose={() => setShareModalVisible(false)} song={currentSong} />
-            <RecommendationsModal visible={recommendationsVisible} onClose={() => setRecommendationsVisible(false)} song={currentSong} />
 
             {/* Playback Speed Modal */}
             <Modal
@@ -663,6 +660,12 @@ export const PlayerScreen = () => {
                     setActiveModalSong(null);
                 }}
                 songs={isAddingQueue ? playlist : (activeModalSong ? [activeModalSong] : currentSong ? [currentSong] : [])}
+            />
+
+            <RecommendationsModal
+                visible={recommendationsVisible}
+                onClose={() => setRecommendationsVisible(false)}
+                song={currentSong}
             />
         </ScreenContainer>
     );

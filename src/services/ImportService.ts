@@ -345,8 +345,8 @@ class ImportService {
 
                     await Promise.all(chunkPromises);
 
-                    // Yield to the JS thread to prevent UI freezing (Give react time to process scroll events)
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                    // Yield significantly to the main thread to prevent UI lag during large imports (1600+ songs)
+                    await new Promise(resolve => setTimeout(resolve, 150));
                 }
 
                 // 3. Batch DB Update (Huge performance win)

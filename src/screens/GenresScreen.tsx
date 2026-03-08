@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
+import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { useLocalMusic } from '../hooks/useLocalMusic';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -13,7 +13,8 @@ import { GenreListItem } from '../components/GenreListItem';
 
 export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const { theme } = useTheme();
-    const { songs } = useLocalMusic();
+    const songs = useLibraryStore(state => state.songs);
+    const loading = useLibraryStore(state => state.loading);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
     const [searchQuery, setSearchQuery] = useState('');
@@ -56,11 +57,12 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
     const genres = useMemo(() => {
         if (!isNavigated) return [];
-        const filtered = debouncedQuery.trim()
-            ? allGenres.filter(g => g.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
+        const query = debouncedQuery.trim().toLowerCase();
+        const filtered = query
+            ? allGenres.filter(g => g.name.toLowerCase().includes(query))
             : allGenres;
 
-        return filtered.sort((a, b) => {
+        return [...filtered].sort((a, b) => {
             const aIsUnknown = a.name === 'Unknown Genre';
             const bIsUnknown = b.name === 'Unknown Genre';
             if (aIsUnknown && !bIsUnknown) return 1;
@@ -87,6 +89,12 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             />
         );
     }, [navigation, layoutMode]);
+
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            // Bypass JS thread
+        },
+    });
 
     const content = (
         <View style={{ flex: 1 }}>
@@ -139,13 +147,16 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
             </View>
 
             <View style={{ flex: 1 }}>
-                <FlashListAny
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     key={layoutMode}
                     data={genres}
                     keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
                     numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
                     estimatedItemSize={150}
+                    drawDistance={250}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>

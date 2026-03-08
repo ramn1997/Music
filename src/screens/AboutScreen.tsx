@@ -32,8 +32,8 @@ export const AboutScreen = () => {
 
     const features = [
         { icon: 'musical-notes', title: 'High-Fidelity Audio', desc: 'Symphonic audio engine optimized for local playback with crystal clear resolution.' },
-        { icon: 'color-wand', title: 'Smart Recommendations', desc: 'Analyzes your currently playing music to instantly find tracks with the same album, artist, or genre in your local library.' },
-        { icon: 'color-palette', title: 'Refined Aesthetics', desc: 'Highly-polished themes including Fire, Water, Forest, Nebula, Cyber, Dark, and Light.' },
+        { icon: 'play-forward', title: 'True Gapless Playback', desc: 'Seamlessly transition between music tracks without delays.' },
+        { icon: 'color-palette', title: 'Refined Aesthetics', desc: 'Highly-polished UI with dynamic glassmorphism and themes including Fire, Water, Forest, Nebula, Cyber, Dark, and Light.' },
     ];
 
 

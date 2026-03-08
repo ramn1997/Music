@@ -4,13 +4,14 @@ A premium, comprehensive, and feature-rich music player application built with R
 
 ## ✨ New Features & Optimizations
 
--   **Smart Recommendations**: Instantly generate smart playlists of visually and sonically matching tracks across your entire library using the new "magic wand" tool, sorting by identical genre, artist, and album.
--   **Hyper-Optimized Library Engine**: Completely overhauled the React render cycle on key screens. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(N)` algorithmic maps and indexing, eliminating scrolling framerate lockups on very large thousands-of-songs libraries.
--   **Dynamic 4-Grid Collages**: Beautifully stable 4-image grid collages for playlists.
+-   **Smart Mixes**: Instantly generate smart "Made For You" curations based on your Top Artists, favorite Genres, and listening history directly on the Home Screen.
+-   **Contextual Recommendations**: The new "Start Mix" engine analyzes your currently playing music to instantly find and queue tracks with the same album, artist, or genre in your local library.
+-   **Next-Gen Performance Engine**: Completely overhauled the React render cycle and background listeners. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(1)` algorithmic maps and indexing, eliminating background CPU lockups and maintaining 60fps scrolling on massive libraries.
+-   **True Gapless Playback**: Experience completely seamless transitions between tracks with optimized ExoPlayer native buffering capabilities that bypass the JavaScript bridge.
 
 ## ✨ Highlights from v1.3.0
 
--   **Gapless Playback**: Experience completely seamless transitions between tracks with optimized ExoPlayer buffering capabilities.
+-   **Dynamic 4-Grid Collages**: Beautifully stable 4-image grid collages for playlists.
 -   **Playback Speed Control**: Fine-tune your listening experience by adjusting audio playback speed from 0.5x up to 2.0x, seamlessly integrated into the song options menu.
 -   **Visual Share Cards**: Generate stunning, gradient-rich image cards of your favorite songs and easily share them to other apps directly from the player screen or track options.
 -   **Favorites Screen Dashboard Overhaul**: Fully redesigned to elegantly display Favorited Playlists, Artists, Albums, and now seamlessly integrates Favorited Genres.

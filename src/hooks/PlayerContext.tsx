@@ -805,7 +805,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                         await AsyncStorage.setItem('player_position', String(pos * 1000));
                     }
                 } catch (e) { }
-            }, 5000); // Save every 5 seconds (was 10s)
+            }, 15000); // Save every 15 seconds (was 5s) to reduce I/O bottleneck
         }
 
         return () => {

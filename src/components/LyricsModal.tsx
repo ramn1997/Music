@@ -5,7 +5,7 @@ import { useProgress } from 'react-native-track-player';
 import { Ionicons } from '@expo/vector-icons';
 import { Song } from '../hooks/useLocalMusic';
 import { useTheme } from '../hooks/ThemeContext';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { MusicImage } from './MusicImage';
 import Animated, { FadeIn, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
@@ -28,7 +28,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
     song
 }) => {
     const { theme } = useTheme();
-    const { isPlaying } = usePlayerContext();
+    const isPlaying = usePlayerStore(state => state.isPlaying);
     const { position: positionSeconds } = useProgress(200);
     const position = positionSeconds * 1000;
     const [syncedLyrics, setSyncedLyrics] = useState<LyricLine[]>([]);

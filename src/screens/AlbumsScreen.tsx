@@ -1,18 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-const FlashListAny = FlashList as any;
+// SafeAnimatedFlashList will be imported below
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { useLocalMusic } from '../hooks/useLocalMusic';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { GlassCard } from '../components/GlassCard';
 import { MusicImage } from '../components/MusicImage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+
 import { MarqueeText } from '../components/MarqueeText';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedScrollHandler } from 'react-native-reanimated';
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const getGradientColors = (id: string): [string, string] => {
@@ -122,8 +124,10 @@ const MemoizedAlbumItem = React.memo(({ item, layoutMode, theme, onPress }: { it
 });
 
 export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
+
     const { theme } = useTheme();
-    const { songs } = useLocalMusic();
+    const songs = useLibraryStore(state => state.songs);
+    const loading = useLibraryStore(state => state.loading);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
     const [searchQuery, setSearchQuery] = useState('');
@@ -168,14 +172,15 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
     const albums = useMemo(() => {
         if (!isNavigated) return [];
-        const filtered = debouncedQuery.trim()
+        const query = debouncedQuery.trim().toLowerCase();
+        const filtered = query
             ? allAlbums.filter(a =>
-                a.name.toLowerCase().includes(debouncedQuery.toLowerCase().trim()) ||
-                (a.artist && a.artist.toLowerCase().includes(debouncedQuery.toLowerCase().trim()))
+                a.name.toLowerCase().includes(query) ||
+                (a.artist && a.artist.toLowerCase().includes(query))
             )
             : allAlbums;
 
-        return filtered.sort((a, b) => {
+        return [...filtered].sort((a, b) => {
             const aIsUnknown = a.name === 'Unknown Album';
             const bIsUnknown = b.name === 'Unknown Album';
             if (aIsUnknown && !bIsUnknown) return -1;
@@ -203,6 +208,12 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         return <MemoizedAlbumItem item={item} layoutMode={layoutMode} theme={theme} onPress={handlePress} />;
     }, [theme, layoutMode, handlePress]);
 
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            // Bypass JS thread
+        },
+    });
+
     const content = (
         <View style={{ flex: 1, position: 'relative' }}>
             {!isEmbedded && (
@@ -224,37 +235,12 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 </View>
             )}
 
-            <View style={{
-                paddingHorizontal: 20,
-                marginBottom: 10,
-                marginTop: isEmbedded ? 10 : 0
-            }}>
-                <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.card,
-                    borderRadius: 20,
-                    paddingHorizontal: 15,
-                    height: 40
-                }}>
-                    <Ionicons name="search" size={16} color={theme.textSecondary} />
-                    <TextInput
-                        style={{ flex: 1, color: theme.text, marginLeft: 8, fontSize: 14, paddingVertical: 0 }}
-                        placeholder="Search albums..."
-                        placeholderTextColor={theme.textSecondary}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                    )}
-                </View>
-            </View>
+            {/* Search removed as requested */}
 
             <View style={{ flex: 1, flexDirection: 'row', paddingTop: isEmbedded ? 10 : 0 }}>
-                <FlashListAny
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     key={layoutMode}
                     style={{ flex: 1 }} // Force FlashList to take available width
                     data={albums}

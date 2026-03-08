@@ -10,6 +10,7 @@ import Animated, {
     withSequence,
     withTiming,
     interpolate,
+    useAnimatedScrollHandler,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -18,8 +19,8 @@ import { MusicImage } from '../components/MusicImage';
 import { MarqueeText } from '../components/MarqueeText';
 import { useArtistImage } from '../hooks/useArtistImage';
 import { useTheme } from '../hooks/ThemeContext';
-import { useMusicLibrary, Song } from '../hooks/MusicLibraryContext';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { useLibraryStore, Song } from '../store/useLibraryStore';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { FlashList } from '@shopify/flash-list';
@@ -31,7 +32,8 @@ import { useHomeSettings } from '../hooks/HomeSettingsContext';
 import { useVoiceCommand } from '../hooks/useVoiceCommand';
 import { PlaylistCollage } from '../components/PlaylistCollage';
 
-const FlashListAny = FlashList as any;
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
+
 
 const COLLECTIONS = [
     { id: 'liked', name: 'Liked Songs', icon: 'heart', params: { id: 'liked', name: 'Liked Songs', type: 'playlist' } },
@@ -551,28 +553,36 @@ const TopArtistCard = React.memo(({ artist, appTheme, onPress, customImage }: an
 export const HomeScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { theme: appTheme, themeType } = useTheme();
-    const {
-        songs,
-        loading,
-        savedFolders,
-        topArtists,
-        recentlyPlayed,
-        recentlyAdded,
-        neverPlayed,
-        artistMetadata,
-        incrementPlayCount,
-        updateSongMetadata,
-        playlists,
-        favoriteArtists,
-        favoriteAlbums,
-        favoriteGenres,
-        favoriteSpecialPlaylists,
-        likedSongs
-    } = useMusicLibrary();
-    const { playSongInPlaylist, currentSong, isPlaying } = usePlayerContext();
+    const songs = useLibraryStore(state => state.songs);
+    const loading = useLibraryStore(state => state.loading);
+    const savedFolders = useLibraryStore(state => state.savedFolders);
+    const topArtists = useLibraryStore(state => state.topArtists);
+    const recentlyPlayed = useLibraryStore(state => state.recentlyPlayed);
+    const recentlyAdded = useLibraryStore(state => state.recentlyAdded);
+    const neverPlayed = useLibraryStore(state => state.neverPlayed);
+    const artistMetadata = useLibraryStore(state => state.artistMetadata);
+    const incrementPlayCount = useLibraryStore(state => state.incrementPlayCount);
+    const updateSongMetadata = useLibraryStore(state => state.updateSongMetadata);
+    const playlists = useLibraryStore(state => state.playlists);
+    const favoriteArtists = useLibraryStore(state => state.favoriteArtists);
+    const favoriteAlbums = useLibraryStore(state => state.favoriteAlbums);
+    const favoriteGenres = useLibraryStore(state => state.favoriteGenres);
+    const favoriteSpecialPlaylists = useLibraryStore(state => state.favoriteSpecialPlaylists);
+    const likedSongs = useLibraryStore(state => state.likedSongs);
+    const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
+    const currentSong = usePlayerStore(state => state.currentTrack);
+    const isPlaying = usePlayerStore(state => state.isPlaying);
     const { sectionVisibility } = useHomeSettings();
 
+    const scrollY = useSharedValue(0);
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            scrollY.value = event.contentOffset.y;
+        },
+    });
+
     const allFavorites = useMemo(() => {
+
         const favAlbumsSet = new Set(favoriteAlbums || []);
         const favGenresSet = new Set(favoriteGenres || []);
         const favArtistsSet = new Set(favoriteArtists || []);
@@ -878,6 +888,8 @@ export const HomeScreen = () => {
         return [];
     }, [topArtists, songs]);
 
+    const smartMixes: any[] = [];
+
     const handleClearSearch = () => {
         setSearchQuery('');
         setDeferredQuery('');
@@ -992,7 +1004,9 @@ export const HomeScreen = () => {
         // Show search results if query exists
         if (searchQuery.trim().length > 0) {
             return (
-                <FlashListAny
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     data={filteredSongs}
                     keyExtractor={(item: Song) => item.id}
                     renderItem={({ item, index }: { item: Song, index: number }) => (
@@ -1020,7 +1034,9 @@ export const HomeScreen = () => {
         // Show recent searches if bar is focused but empty
         if (isSearchFocused && recentSearches.length > 0) {
             return (
-                <FlashListAny
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     data={recentSearches}
                     keyExtractor={(item: Song) => `recent-${item.id}`}
                     renderItem={({ item, index }: { item: Song, index: number }) => (
@@ -1058,7 +1074,13 @@ export const HomeScreen = () => {
 
         // Default overview
         return (
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 150 }}>
+            <Animated.ScrollView
+                onScroll={scrollHandler}
+                scrollEventThrottle={16}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 150 }}
+            >
+
                 {sectionVisibility.collections && (
                     <>
                         <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
@@ -1137,31 +1159,43 @@ export const HomeScreen = () => {
                         />
                     </>
                 )}
-                {sectionVisibility.history && (
+
+                {sectionVisibility.history && listeningHistoryPlaylists.length > 0 && (
                     <>
-                        <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionHeader, { marginBottom: 16, marginTop: 10 }]}>
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Listening History</Text>
                         </View>
-
-                        <ScrollView
+                        <FlatList
+                            data={listeningHistoryPlaylists}
                             horizontal
                             showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
-                            style={{ marginBottom: 10 }}
+                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
                             decelerationRate="fast"
-                        >
-                            {listeningHistoryPlaylists.map((item) => (
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => (
                                 <HistoryPlaylistCard
-                                    key={item.id}
                                     item={item}
-                                    onPress={() => handleSmartPlaylistPress(item)}
-                                    onPlayPress={() => handleSmartPlaylistPlay(item)}
-                                    onShufflePress={() => handleSmartPlaylistShuffle(item)}
+                                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.title, type: item.type } as any)}
+                                    onPlayPress={() => {
+                                        if (item.songs && item.songs.length > 0) {
+                                            playSongInPlaylist(item.songs, 0, item.title);
+                                            navigation.navigate('Player', { trackIndex: 0 });
+                                        }
+                                    }}
+                                    onShufflePress={() => {
+                                        if (item.songs && item.songs.length > 0) {
+                                            const shuffled = [...item.songs].sort(() => Math.random() - 0.5);
+                                            playSongInPlaylist(shuffled, 0, item.title);
+                                            navigation.navigate('Player', { trackIndex: 0 });
+                                        }
+                                    }}
                                 />
-                            ))}
-                        </ScrollView>
+                            )}
+                        />
                     </>
                 )}
+
+                {/* Mix features removed as requested */}
 
                 {sectionVisibility.topSongs && (
                     <>
@@ -1208,9 +1242,10 @@ export const HomeScreen = () => {
                     </>
                 )}
 
-            </ScrollView>
+            </Animated.ScrollView>
         );
     };
+
 
     return (
         <ScreenContainer variant="default">

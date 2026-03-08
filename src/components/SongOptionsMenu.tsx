@@ -6,11 +6,13 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { Song } from '../hooks/useLocalMusic';
-import { usePlayerContext } from '../hooks/PlayerContext';
+import { usePlayerStore } from '../store/usePlayerStore';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
+import { useLibraryStore } from '../store/useLibraryStore';
 import { useTheme } from '../hooks/ThemeContext';
 import { Image } from 'react-native';
 import { MusicImage } from './MusicImage';
+import { SongShareModal } from './SongShareModal';
 
 interface SongOptionsMenuProps {
     visible: boolean;
@@ -39,8 +41,11 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
 }) => {
     const { theme } = useTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const { addToQueue, addNext } = usePlayerContext();
+    const addToQueue = usePlayerStore(state => state.addToQueue);
+    const addNext = usePlayerStore(state => state.addNext);
     const { toggleLike, isLiked } = useMusicLibrary();
+    const deleteSong = useLibraryStore(state => state.deleteSong);
+    const [shareModalVisible, setShareModalVisible] = useState(false);
 
     if (!song) return null;
 
@@ -52,13 +57,32 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
     };
 
     const handleShare = async () => {
-        try {
-            await Share.share({
-                message: `Check out this song: ${song.title} by ${song.artist}`,
-            });
-        } catch (error) {
-            console.error(error);
-        }
+        onClose();
+        setTimeout(() => setShareModalVisible(true), 300);
+    };
+
+    const handleDelete = () => {
+        onClose();
+        setTimeout(() => {
+            Alert.alert(
+                'Delete from Device',
+                `"${song.title}" will be permanently deleted from your device. This cannot be undone.`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: async () => {
+                            try {
+                                await deleteSong(song);
+                            } catch (e: any) {
+                                Alert.alert('Delete Failed', e?.message || 'Could not delete the song.');
+                            }
+                        }
+                    }
+                ]
+            );
+        }, 300);
     };
 
     const menuItems = [
@@ -98,12 +122,24 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
         {
             icon: 'person-outline',
             label: 'Go to artist',
-            action: () => navigation.navigate('Playlist', { id: song.artist, name: song.artist, type: 'artist' }),
+            action: () => navigation.navigate('Home' as any, {
+                screen: 'HomeTab',
+                params: {
+                    screen: 'Playlist',
+                    params: { id: song.artist, name: song.artist, type: 'artist' }
+                }
+            }),
         },
         {
             icon: 'disc-outline',
             label: 'Go to album',
-            action: () => navigation.navigate('Playlist', { id: song.albumId || song.album || 'unknown', name: song.album || 'Unknown', type: 'album' })
+            action: () => navigation.navigate('Home' as any, {
+                screen: 'HomeTab',
+                params: {
+                    screen: 'Playlist',
+                    params: { id: song.albumId || song.album || 'unknown', name: song.album || 'Unknown', type: 'album' }
+                }
+            })
         },
 
         ...(onEditDetails ? [{
@@ -120,70 +156,85 @@ export const SongOptionsMenu: React.FC<SongOptionsMenuProps> = ({
             icon: 'share-outline',
             label: 'Share',
             action: onSharePress || handleShare,
+        },
+        {
+            icon: 'trash-outline',
+            label: 'Delete from Device',
+            action: handleDelete,
+            color: '#ef4444'
         }
     ];
 
     return (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={visible}
-            onRequestClose={onClose}
-        >
-            <TouchableOpacity
-                style={styles.overlay}
-                activeOpacity={1}
-                onPress={onClose}
+        <>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={visible}
+                onRequestClose={onClose}
             >
-                <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
-                    <View style={styles.handleContainer}>
-                        <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
-                    </View>
-
-                    {/* Header with Song Info */}
-                    <View style={styles.header}>
-                        <View style={styles.artWrapper}>
-                            <MusicImage
-                                uri={song.coverImage}
-                                id={song.id}
-                                style={styles.art}
-                                iconSize={24}
-                            />
+                <TouchableOpacity
+                    style={styles.overlay}
+                    activeOpacity={1}
+                    onPress={onClose}
+                >
+                    <View style={[styles.container, { backgroundColor: theme.menuBackground, borderColor: theme.cardBorder }]}>
+                        <View style={styles.handleContainer}>
+                            <View style={[styles.handle, { backgroundColor: theme.textSecondary, opacity: 0.2 }]} />
                         </View>
-                        <View style={styles.songMeta}>
-                            <Text style={[styles.songTitle, { color: theme.text }]} numberOfLines={1}>{song.title}</Text>
-                            <Text style={[styles.songArtist, { color: theme.textSecondary }]} numberOfLines={1}>
-                                {song.artist} • {song.album || 'Unknown Album'}
-                            </Text>
-                        </View>
-                    </View>
 
-                    <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
-
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        {menuItems.map((item, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                style={styles.menuItem}
-                                onPress={() => handleAction(item.action)}
-                            >
-                                <Ionicons
-                                    name={item.icon as any}
-                                    size={24}
-                                    color={item.color || theme.text}
-                                    style={styles.icon}
+                        {/* Header with Song Info */}
+                        <View style={styles.header}>
+                            <View style={styles.artWrapper}>
+                                <MusicImage
+                                    uri={song.coverImage}
+                                    id={song.id}
+                                    style={styles.art}
+                                    iconSize={24}
                                 />
-                                <Text style={[styles.menuText, { color: theme.text }]}>{item.label}</Text>
-                                {item.hasSubmenu && (
-                                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} style={styles.chevron} />
-                                )}
-                            </TouchableOpacity>
-                        ))}
-                        <View style={{ height: 20 }} />
-                    </ScrollView>
-                </View>
-            </TouchableOpacity>
-        </Modal>
+                            </View>
+                            <View style={styles.songMeta}>
+                                <Text style={[styles.songTitle, { color: theme.text }]} numberOfLines={1}>{song.title}</Text>
+                                <Text style={[styles.songArtist, { color: theme.textSecondary }]} numberOfLines={1}>
+                                    {song.artist} • {song.album || 'Unknown Album'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {menuItems.map((item, index) => (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.menuItem}
+                                    onPress={() => handleAction(item.action)}
+                                >
+                                    <Ionicons
+                                        name={item.icon as any}
+                                        size={24}
+                                        color={item.color || theme.text}
+                                        style={styles.icon}
+                                    />
+                                    <Text style={[styles.menuText, { color: theme.text }]}>{item.label}</Text>
+                                    {item.hasSubmenu && (
+                                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} style={styles.chevron} />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                            <View style={{ height: 20 }} />
+                        </ScrollView>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Song Share Card Modal */}
+            <SongShareModal
+                visible={shareModalVisible}
+                onClose={() => setShareModalVisible(false)}
+                song={song}
+            />
+        </>
     );
 };
 
