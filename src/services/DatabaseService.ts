@@ -286,6 +286,16 @@ class DatabaseService {
         return await db.getAllAsync('SELECT * FROM songs ORDER BY dateAdded DESC');
     }
 
+    async deleteSong(id: string) {
+        const db = await this.getDb();
+        const release = await this.acquireLock();
+        try {
+            await db.runAsync('DELETE FROM songs WHERE id = ?', [id]);
+        } finally {
+            release();
+        }
+    }
+
     async reset() {
         const db = await this.getDb();
         const release = await this.acquireLock();

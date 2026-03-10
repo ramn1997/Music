@@ -532,31 +532,57 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
                 newTop = updated.sort((a, b) => b.score - a.score).slice(0, 15);
             }
 
+            // Update Never Played list: remove if it was there
+            const newNever = state.neverPlayed.some(s => s.id === songId)
+                ? state.neverPlayed.filter(s => s.id !== songId)
+                : state.neverPlayed;
+
             // Persistence for reliability
             saveObject('cached_recently_played', newRecent);
             saveObject('cached_top_artists', newTop);
+            saveObject('cached_never_played', newNever);
 
             return {
                 songs: newSongs,
                 sortedSongs: newSortedSongs,
                 recentlyPlayed: newRecent,
-                topArtists: newTop
+                topArtists: newTop,
+                neverPlayed: newNever
             };
         });
     },
 
     deleteSong: async (song) => {
         try {
-            const MusicScanner = require('../../modules/music-scanner').default;
-            // filePath may be a content:// URI or a `/storage/...` path
-            const filePath = song.uri.startsWith('/') ? song.uri : '';
-            await MusicScanner.deleteAudioFileAsync(song.id, filePath);
+            // Priority 1: Use MediaLibrary for reliable deletion
+            // This handles Android 10+ scoped storage prompts automatically
+            const canDelete = await MediaLibrary.deleteAssetsAsync([song.id]);
+            if (!canDelete) {
+                // User might have cancelled the prompt or it failed
+                return;
+            }
         } catch (e: any) {
-            // Rejection means the native delete failed — stop here
-            throw new Error(e?.message || 'Failed to delete file from device');
+            console.warn('[LibraryStore] MediaLibrary delete failed, trying fallback...', e.message);
+            try {
+                // Fallback: try the native module directly if MediaLibrary fails
+                // Use the default export from index.ts (which we just fixed)
+                const MusicScanner = require('../../modules/music-scanner').default;
+                const filePath = song.uri.startsWith('/') ? song.uri : '';
+                await MusicScanner.deleteAudioFileAsync(song.id, filePath);
+            } catch (fallbackErr: any) {
+                console.error('[LibraryStore] Full delete failure:', fallbackErr);
+                throw new Error(fallbackErr?.message || 'Failed to delete file from device');
+            }
         }
 
-        // Remove from all in-memory state
+        // 2. Remove from SQLite Database (Persist the deletion)
+        try {
+            await databaseService.deleteSong(song.id);
+        } catch (dbErr) {
+            console.warn('[LibraryStore] Failed to remove song from SQLite, but file was deleted.', dbErr);
+        }
+
+        // 3. Remove from all in-memory state
         const id = song.id;
         songMapRef.delete(id);
         delete songMetadataRef[id];
@@ -609,8 +635,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
                 saveObject('cached_recently_added', added);
                 await new Promise(r => setTimeout(r, 10));
 
-                let never = songs.filter(s => !songMetadataRef[s.id] || songMetadataRef[s.id].playCount === 0).slice(0, 100);
-                never = mergeSongData(never, customMetadataRef, songMetadataRef);
+                let never = songs.filter(s => (s.playCount || 0) === 0).slice(0, 500);
                 set({ neverPlayed: never });
                 saveObject('cached_never_played', never);
 

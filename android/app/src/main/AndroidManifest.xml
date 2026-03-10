@@ -42,5 +42,29 @@
         <data android:scheme="exp+musicapp"/>
       </intent-filter>
     </activity>
+
+    <!-- Music Widget Registration -->
+    <receiver android:name=".MusicWidgetProvider" 
+              android:exported="true"
+              android:label="Music Player Widget">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        <action android:name="com.ram.musicapp.UPDATE_WIDGET" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/music_widget_info" />
+    </receiver>
+
+    <receiver android:name=".MusicWidgetReceiver" android:exported="true">
+      <intent-filter>
+        <action android:name="ACTION_PLAY_PAUSE" />
+        <action android:name="ACTION_NEXT" />
+        <action android:name="ACTION_PREV" />
+        <action android:name="ACTION_SHUFFLE" />
+        <action android:name="ACTION_REPEAT" />
+      </intent-filter>
+    </receiver>
+
   </application>
 </manifest>

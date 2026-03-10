@@ -102,7 +102,7 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
                 styles.tabBarContainer,
                 {
                     backgroundColor: 'transparent',
-                    height: 85 + (isPill ? 0 : (insets?.bottom || 0)),
+                    height: (isPill ? 85 : 68) + (isPill ? 0 : (insets?.bottom || 0)),
                     paddingBottom: isPill ? 0 : (insets?.bottom || 0),
                     overflow: 'hidden',
                     borderTopWidth: isPill ? 0 : 1,
@@ -126,7 +126,7 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
                         }
                     ]}
                 />
-                <View style={[styles.tabBarInner, { height: 85 }]}>
+                <View style={[styles.tabBarInner, { height: isPill ? 85 : 68 }]}>
                     {state.routes.map((route: any, index: number) => {
                         const { options } = descriptors[route.key];
                         const label = options.tabBarLabel !== undefined

@@ -54,6 +54,7 @@ export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemP
                                 showBubbles={false}
                                 gradientColors={colors}
                                 opacity={0.6}
+                                showIcon={false}
                             />
                         </View>
                         <View style={styles.info}>
@@ -95,6 +96,7 @@ export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemP
                                     borderRadius={0}
                                     showBubbles={true}
                                     opacity={0.6}
+                                    showIcon={false}
                                 />
                             </View>
                         </View>

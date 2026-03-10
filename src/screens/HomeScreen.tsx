@@ -78,7 +78,70 @@ const getGradientColors = (id: string): [string, string] => {
 
 const HistoryCardDesign = () => null;
 
-const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void }) => {
+
+const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { item: any, theme: any, navigation: any }) => {
+    const scale = useSharedValue(1);
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }]
+    }));
+
+    const gradientColors = getGradientColors(item.id);
+    const displaySongs = item.songs || [];
+
+    return (
+        <TouchableOpacity
+            style={styles.heroCardWrapper}
+            activeOpacity={0.9}
+            onPressIn={() => scale.value = withSpring(0.96)}
+            onPressOut={() => scale.value = withSpring(1)}
+            onPress={() => {
+                const p = item.params as any;
+                navigation.navigate('Playlist', {
+                    id: p.id,
+                    name: p.name,
+                    type: p.type
+                });
+            }}
+        >
+            <Animated.View style={[animatedStyle, styles.heroCardInner]}>
+                <LinearGradient
+                    colors={gradientColors}
+                    style={StyleSheet.absoluteFill}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                />
+
+                {/* Subtle Background Pattern */}
+                <View style={{ position: 'absolute', top: -15, right: -15, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+
+                <View style={styles.heroCardContent}>
+                    <View style={styles.heroTextSection}>
+                        <Text style={styles.heroTitle} numberOfLines={2}>
+                            {item.name}
+                        </Text>
+                    </View>
+
+                    <View style={styles.heroArtSection}>
+                        <View style={styles.heroCollageContainer}>
+                            <PlaylistCollage
+                                songs={displaySongs}
+                                size={70}
+                                borderRadius={12}
+                                showBubbles={false}
+                                showIcon={true}
+                                hideIconIfHasContent={true}
+                                opacity={1}
+                                overlayColor="rgba(0,0,0,0.1)"
+                            />
+                        </View>
+                    </View>
+                </View>
+            </Animated.View>
+        </TouchableOpacity>
+    );
+});
+
+const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress, showIcon = true, hideIconIfHasContent = false }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void, showIcon?: boolean, hideIconIfHasContent?: boolean }) => {
     const isArtist = item.type === 'Artist' || (item.params as any)?.type === 'artist';
     const artistImage = useArtistImage(isArtist ? item.name : '');
     const displayImage = isArtist ? artistImage : item.image;
@@ -130,6 +193,8 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                     showBubbles={false}
                                     gradientColors={getGradientColors(item.id)}
                                     forceSingleImage={item.type === 'Album'}
+                                    showIcon={showIcon}
+                                    hideIconIfHasContent={hideIconIfHasContent}
                                 />
                             )}
                         </View>
@@ -202,6 +267,8 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                             showBubbles={false}
                             gradientColors={getGradientColors(item.id)}
                             forceSingleImage={item.type === 'Album' || (item.params as any)?.type === 'album'}
+                            showIcon={showIcon}
+                            hideIconIfHasContent={hideIconIfHasContent}
                         />
                     )}
                 </View>
@@ -327,6 +394,8 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                     borderRadius={8}
                                     showBubbles={false}
                                     gradientColors={getGradientColors(item.id)}
+                                    showIcon={showIcon}
+                                    hideIconIfHasContent={hideIconIfHasContent}
                                 />
                             </View>
                         )}
@@ -855,7 +924,7 @@ export const HomeScreen = () => {
                 collageSongs: neverPlayed.slice(0, 4),
                 coverSong: neverPlayed[0],
                 songs: neverPlayed,
-                count: neverPlayed.length,
+                count: songs.filter(s => (s.playCount || 0) === 0).length,
                 color: '#0a0a0a',
                 cardColor: '#1a1a1a',
                 icon: 'close-circle'
@@ -1087,9 +1156,9 @@ export const HomeScreen = () => {
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Your Collections</Text>
                         </View>
 
-                        <View style={styles.favoritesGrid}>
+                        <View style={styles.heroGrid}>
                             {collectionsWithSongs.map((item) => (
-                                <FavoriteItemCard key={item.id} item={item} theme={appTheme} navigation={navigation} />
+                                <CollectionCollageHeroCard key={item.id} item={item} theme={appTheme} navigation={navigation} />
                             ))}
                         </View>
                     </>
@@ -1116,6 +1185,8 @@ export const HomeScreen = () => {
                                     theme={appTheme}
                                     navigation={navigation}
                                     isListView
+                                    showIcon={true}
+                                    hideIconIfHasContent={true}
                                     onPlayPress={(favItem) => {
                                         let playSongs: any[] = [];
                                         if (favItem.type === 'Artist') {
@@ -1413,6 +1484,65 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3,
         elevation: 3,
+    },
+    heroGrid: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    heroCardWrapper: {
+        width: '48%',
+        height: 110,
+    },
+    heroCardInner: {
+        flex: 1,
+        borderRadius: 22,
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
+    },
+    heroCardContent: {
+        flex: 1,
+        flexDirection: 'row',
+        padding: 14,
+    },
+    heroTextSection: {
+        flex: 0.55,
+        justifyContent: 'flex-start',
+    },
+    heroTitle: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+        textShadowColor: 'rgba(0,0,0,0.4)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    heroArtSection: {
+        flex: 0.45,
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+    },
+    heroCollageContainer: {
+        width: 70,
+        height: 70,
+        borderRadius: 14,
+        overflow: 'hidden',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        transform: [{ rotate: '4deg' }],
     },
     favoriteItemWrapper: {
         width: 140,

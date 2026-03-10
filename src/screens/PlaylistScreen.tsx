@@ -506,7 +506,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         } else if (type === 'recently_added' || (id === 'recently_added')) {
             filtered = [...recentlyAdded];
         } else if (type === 'never_played') {
-            filtered = [...neverPlayed];
+            filtered = filtered.filter(s => (s.playCount || 0) === 0);
         } else if (type === 'playlist') {
             const pl = playlists.find(p => p.id === id);
             if (pl) filtered = [...pl.songs];

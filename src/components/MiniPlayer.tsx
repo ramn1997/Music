@@ -41,7 +41,7 @@ export const MiniPlayer = () => {
     // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.
     const isPillNav = navigationStyle === 'pill';
     const bottomOffset = hasTabBar
-        ? (isPillNav ? 115 : (85 + insets.bottom))
+        ? (isPillNav ? 115 : (68 + insets.bottom))
         : (isPillNav ? (20 + insets.bottom) : insets.bottom);
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     },
     pillContainer: {
         width: '100%',
-        height: 72,
+        height: 68,
         overflow: 'hidden',
         backgroundColor: '#121212',
         shadowColor: "#000",
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     },
     standardBar: {
         width: '100%',
-        height: 72,
+        height: 68,
         borderRadius: 0,
         borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.1)',

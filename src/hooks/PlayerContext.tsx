@@ -135,7 +135,7 @@ const songToTrack = (song: Song): Track => {
         // Also it responds much better to simply passing the direct `require()` output.
         // By casting to any, we bypass the stringent type, and the RN module resolves it securely.
         try {
-            artwork = require('../../assets/discicon.png') as any;
+            artwork = Platform.OS === 'android' ? 'android.resource://com.ram.musicapp/drawable/default_cover' : require('../../assets/default_cover.png') as any;
         } catch (e) {
             artwork = undefined;
         }
@@ -331,7 +331,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                                     if (!artwork) {
                                         // Provide a solid bundled fallback for empty tracks so the notification isn't naked
                                         try {
-                                            artwork = require('../../assets/discicon.png') as any;
+                                            artwork = Platform.OS === 'android' ? 'android.resource://com.ram.musicapp/drawable/default_cover' : require('../../assets/default_cover.png') as any;
                                         } catch (e) {
                                             artwork = undefined;
                                         }

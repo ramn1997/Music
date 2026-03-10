@@ -11,6 +11,7 @@ import TrackPlayer, {
 import { useLibraryStore } from './useLibraryStore';
 import { Platform } from 'react-native';
 import { Song } from '../types/library';
+import { updateWidget, widgetEvents } from '../utils/musicWidget';
 const PLAYER_STATE_KEY = 'player_state_persistence';
 const PLAYER_POSITION_KEY = 'player_position';
 
@@ -22,18 +23,23 @@ const QUEUE_WINDOW_SIZE = 5; // songs ahead of current in native queue
 export const songToTrack = (song: Song): Track => {
     let artwork = song.coverImage;
 
-    if (Platform.OS === 'android' && song.albumId && !['null', 'undefined', '-1', '0'].includes(String(song.albumId))) {
-        const isCustomOrExtracted = artwork && (artwork.includes('custom_art_') || artwork.includes('art_'));
-        if (!artwork || (!artwork.startsWith('http') && !isCustomOrExtracted)) {
-            artwork = `content://media/external/audio/albumart/${song.albumId}`;
+    // Resolve system album art for Android if local
+    if (Platform.OS === 'android') {
+        if (song.albumId && !['null', 'undefined', '-1', '0'].includes(String(song.albumId))) {
+            const isCustomOrExtracted = artwork && (artwork.includes('custom_art_') || artwork.includes('art_'));
+            if (!artwork || (!artwork.startsWith('http') && !isCustomOrExtracted)) {
+                artwork = `content://media/external/audio/albumart/${song.albumId}`;
+            }
         }
-    }
 
-    if (!artwork) {
-        try {
-            artwork = require('../../../assets/discicon.png') as any;
-        } catch (e) {
-            artwork = undefined;
+        // Fallback to the premium generated cover art for BOTH widget and notifications
+        if (!artwork) {
+            artwork = 'android.resource://com.ram.musicapp/drawable/default_cover';
+        }
+    } else {
+        // iOS Fallback
+        if (!artwork) {
+            artwork = require('../../assets/default_cover.png') as any;
         }
     }
 
@@ -93,6 +99,7 @@ interface PlayerState {
     setCurrentTrack: (song: Song | null) => void;
     setIsPlaying: (playing: boolean) => void;
     setCurrentIndex: (index: number) => void;
+    syncWidget: () => Promise<void>;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -108,9 +115,41 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     isPlayerReady: false,
     isRestored: false,
 
-    setCurrentTrack: (song) => set({ currentTrack: song }),
-    setIsPlaying: (playing) => set({ isPlaying: playing }),
+    setCurrentTrack: (song) => {
+        set({ currentTrack: song });
+        get().syncWidget();
+    },
+    setIsPlaying: (playing) => {
+        set({ isPlaying: playing });
+        get().syncWidget();
+    },
     setCurrentIndex: (index) => set({ currentIndex: index }),
+
+    syncWidget: async () => {
+        if (Platform.OS !== 'android') return;
+        const state = get();
+        const duration = await TrackPlayer.getDuration();
+        const progress = await TrackPlayer.getPosition();
+
+        const formatTime = (seconds: number) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        updateWidget({
+            title: state.currentTrack?.title || 'No Track',
+            artist: state.currentTrack?.artist || 'Unknown Artist',
+            isPlaying: state.isPlaying,
+            isShuffleOn: state.isShuffleOn,
+            repeatMode: state.repeatMode,
+            artwork: state.currentTrack?.coverImage || (Platform.OS === 'android' ? 'android.resource://com.ram.musicapp/drawable/default_cover' : require('../../assets/default_cover.png')),
+            progress: progress,
+            duration: duration,
+            currentTimeStr: formatTime(progress),
+            totalTimeStr: formatTime(duration)
+        });
+    },
 
     saveState: () => {
         const state = get();
@@ -739,8 +778,37 @@ export const initializePlayerEvents = () => {
         if (event.position > 0) {
             // Write directly to MMKV asynchronously but fast. No bridge delays.
             storage.set(PLAYER_POSITION_KEY, event.position * 1000);
+
+            // Periodically update widget (every ~5 seconds of playback)
+            if (Math.floor(event.position) % 5 === 0) {
+                usePlayerStore.getState().syncWidget();
+            }
         }
     });
+
+    // Handle widget actions
+    if (widgetEvents) {
+        widgetEvents.addListener('onWidgetAction', (action: string) => {
+            const state = usePlayerStore.getState();
+            switch (action) {
+                case 'ACTION_PLAY_PAUSE':
+                    state.playPause();
+                    break;
+                case 'ACTION_NEXT':
+                    state.nextTrack();
+                    break;
+                case 'ACTION_PREV':
+                    state.prevTrack();
+                    break;
+                case 'ACTION_SHUFFLE':
+                    state.toggleShuffle();
+                    break;
+                case 'ACTION_REPEAT':
+                    state.toggleRepeat();
+                    break;
+            }
+        });
+    }
 
     // Remote playback actions
     TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());

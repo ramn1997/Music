@@ -18,6 +18,8 @@ interface PlaylistCollageProps {
     showBubbles?: boolean;
     gradientColors?: [string, string];
     forceSingleImage?: boolean;
+    showIcon?: boolean;
+    hideIconIfHasContent?: boolean;
 }
 
 export const PlaylistCollage = ({
@@ -32,7 +34,9 @@ export const PlaylistCollage = ({
     overlayColor = 'rgba(0,0,0,0.3)',
     showBubbles = true,
     gradientColors,
-    forceSingleImage = false
+    forceSingleImage = false,
+    showIcon = true,
+    hideIconIfHasContent = false
 }: PlaylistCollageProps) => {
     const containerWidth: any = width ?? size;
     const computedSize: any = size;
@@ -143,17 +147,19 @@ export const PlaylistCollage = ({
                 </>
             )}
 
-            <Ionicons
-                name={iconName as any}
-                size={iconSize}
-                color="white"
-                style={{
-                    zIndex: 1,
-                    textShadowColor: 'rgba(0,0,0,0.5)',
-                    textShadowOffset: { width: 0, height: 2 },
-                    textShadowRadius: 6
-                }}
-            />
+            {showIcon && (!hideIconIfHasContent || (!hasCollage && fallbackDisplays.length === 0)) && (
+                <Ionicons
+                    name={iconName as any}
+                    size={iconSize}
+                    color="white"
+                    style={{
+                        zIndex: 1,
+                        textShadowColor: 'rgba(0,0,0,0.5)',
+                        textShadowOffset: { width: 0, height: 2 },
+                        textShadowRadius: 6
+                    }}
+                />
+            )}
         </View>
     );
 };
