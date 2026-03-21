@@ -19,8 +19,24 @@ import { initializePlayerEvents, usePlayerStore } from './src/store/usePlayerSto
 // Hold the native splash screen until library is synced
 SplashScreen.preventAutoHideAsync().catch(() => { });
 
+// Build linking prefixes safely — 'exp+musicapp://' only exists in dev client,
+// while 'musicapp://' is the production scheme defined in app.json + AndroidManifest.
+const getLinkingPrefixes = (): string[] => {
+    const prefixes: string[] = ['musicapp://'];
+    try {
+        const url = Linking.createURL('/');
+        if (url && !prefixes.includes(url)) {
+            prefixes.push(url);
+        }
+    } catch (e) {
+        // createURL may throw in standalone builds if scheme isn't ready yet — safe to ignore
+        console.warn('[App] Linking.createURL failed, using static scheme only:', e);
+    }
+    return prefixes;
+};
+
 const linking: any = {
-    prefixes: ['exp+musicapp://'],
+    prefixes: getLinkingPrefixes(),
     config: {
         screens: {
             Home: {

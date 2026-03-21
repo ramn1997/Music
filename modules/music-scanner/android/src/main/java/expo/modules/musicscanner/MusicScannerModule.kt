@@ -30,7 +30,8 @@ class MusicScannerModule : Module() {
           MediaStore.Audio.Media.ALBUM,
           MediaStore.Audio.Media.DURATION,
           MediaStore.Audio.Media.DATE_ADDED,
-          MediaStore.Audio.Media.ALBUM_ID
+          MediaStore.Audio.Media.ALBUM_ID,
+          MediaStore.Audio.Media.YEAR
         )
 
         // Only get music files
@@ -46,6 +47,7 @@ class MusicScannerModule : Module() {
           val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
           val dateAddedCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
           val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+          val yearCol = cursor.getColumnIndex(MediaStore.Audio.Media.YEAR)
 
           while (cursor.moveToNext()) {
             val id = cursor.getLong(idCol)
@@ -57,7 +59,19 @@ class MusicScannerModule : Module() {
             val duration = cursor.getLong(durationCol)
             val dateAdded = cursor.getLong(dateAddedCol) * 1000 // Convert to ms
             val albumId = cursor.getLong(albumIdCol)
-            
+            val year = if (yearCol != -1) cursor.getInt(yearCol) else 0
+
+            // Query genre
+            var genre: String? = null
+            try {
+              val genreUri = MediaStore.Audio.Genres.getContentUriForAudioId("external", id.toInt())
+              context.contentResolver.query(genreUri, arrayOf(MediaStore.Audio.Genres.NAME), null, null, null)?.use { genreCursor ->
+                if (genreCursor.moveToFirst()) {
+                  genre = genreCursor.getString(0)
+                }
+              }
+            } catch (e: Exception) { }
+
             val map = mapOf(
               "id" to id.toString(),
               "uri" to path,
@@ -65,6 +79,8 @@ class MusicScannerModule : Module() {
               "title" to title,
               "artist" to if (artist == "<unknown>") "Unknown Artist" else artist,
               "album" to if (album == "<unknown>") "Unknown Album" else album,
+              "genre" to (genre ?: ""),
+              "year" to if (year > 0) year.toString() else "",
               "duration" to duration,
               "dateAdded" to dateAdded,
               "albumId" to albumId.toString()

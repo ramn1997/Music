@@ -10,6 +10,11 @@ const App = require('./App').default;
 
 registerRootComponent(App);
 
+import { AppRegistry } from 'react-native';
+
 // Playback service registration
 TrackPlayer.registerPlaybackService(() => require('./service').default);
+
+// Headless Task for Widget background support
+AppRegistry.registerHeadlessTask('MusicWidgetTask', () => require('./src/services/WidgetTaskHandler').default);
 

@@ -1,6 +1,7 @@
 package com.ram.musicapp
 
 import android.app.PendingIntent
+import com.ram.musicapp.R
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -8,248 +9,210 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.net.Uri
-import android.os.Build
 import android.util.Log
 import android.widget.RemoteViews
-import java.io.File
-import java.net.URL
+import java.io.InputStream
 import kotlin.concurrent.thread
 
 class MusicWidgetProvider : AppWidgetProvider() {
 
+    companion object {
+        private const val TAG = "MusicWidget"
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        val action = intent.action
+        if (action == "com.ram.musicapp.UPDATE_WIDGET") {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
+            onUpdate(context, appWidgetManager, appWidgetIds)
+        } else if (action?.startsWith("com.ram.musicapp.WIDGET_") == true) {
+            val eventName = action.replace("com.ram.musicapp.", "")
+            
+            // Start Headless Task Service for background support
+            try {
+                val serviceIntent = Intent(context, MusicWidgetTaskService::class.java)
+                serviceIntent.putExtra("eventName", eventName)
+                context.startService(serviceIntent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                MusicWidgetModule.sendEvent(eventName)
+            }
+            
+            // If it's WIDGET_LIKE, optimistically update UI so user has instant feedback
+            if (eventName == "WIDGET_LIKE") {
+               val sharedPref = context.getSharedPreferences("WidgetData", Context.MODE_PRIVATE)
+               val isLiked = sharedPref.getBoolean("isLiked", false)
+               sharedPref.edit().putBoolean("isLiked", !isLiked).apply()
+               val appWidgetManager = AppWidgetManager.getInstance(context)
+               val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
+               onUpdate(context, appWidgetManager, appWidgetIds)
+            }
+        }
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        Log.d("MusicWidget", "onUpdate called for ${appWidgetIds.size} widgets")
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        Log.d("MusicWidget", "onReceive action: ${intent.action}")
-        
-        // Handle custom update action
-        if (intent.action == "com.ram.musicapp.UPDATE_WIDGET") {
-            val pendingResult = goAsync()
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
+        onUpdate(context, appWidgetManager, appWidgetIds)
+    }
+
+    private fun getPendingIntent(context: Context, action: String): PendingIntent {
+        val intent = Intent(context, MusicWidgetProvider::class.java)
+        intent.action = action
+        return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
+        try {
+            val sharedPref = context.getSharedPreferences("WidgetData", Context.MODE_PRIVATE)
+            val title = sharedPref.getString("title", "No Song")
+            val artist = sharedPref.getString("artist", "Unknown Artist")
+            val isPlaying = sharedPref.getBoolean("isPlaying", false)
+            val isLiked = sharedPref.getBoolean("isLiked", false)
+            val artworkUriStr = sharedPref.getString("artwork", null)
+
+            val views = RemoteViews(context.packageName, R.layout.widget_music)
+
+            views.setTextViewText(R.id.widget_title, title)
+            views.setTextViewText(R.id.widget_artist, artist)
+
+            if (isPlaying) {
+                views.setImageViewResource(R.id.widget_btn_play_pause, R.drawable.ic_widget_pause)
+            } else {
+                views.setImageViewResource(R.id.widget_btn_play_pause, R.drawable.ic_widget_play)
+            }
+
+            views.setOnClickPendingIntent(R.id.widget_btn_play_pause, getPendingIntent(context, "com.ram.musicapp.WIDGET_PLAY_PAUSE"))
+            views.setOnClickPendingIntent(R.id.widget_btn_next, getPendingIntent(context, "com.ram.musicapp.WIDGET_NEXT"))
+            views.setOnClickPendingIntent(R.id.widget_btn_prev, getPendingIntent(context, "com.ram.musicapp.WIDGET_PREVIOUS"))
+
+            // Open app when clicking background
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            if (launchIntent != null) {
+                val pendingLaunchIntent = PendingIntent.getActivity(context, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                views.setOnClickPendingIntent(R.id.widget_container, pendingLaunchIntent)
+            }
+
+            // Set placeholder and update immediately
+            views.setImageViewResource(R.id.widget_album_art, R.drawable.widget_default_cover)
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+
+            // Load Image Asynchronously
+            val pkgName = context.packageName
             thread {
                 try {
-                    val appWidgetManager = AppWidgetManager.getInstance(context)
-                    val thisAppWidget = ComponentName(context, MusicWidgetProvider::class.java)
-                    val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
-                    
-                    // First immediate update
-                    for (appWidgetId in appWidgetIds) {
-                        updateAppWidget(context, appWidgetManager, appWidgetId)
+                    var bitmap: Bitmap? = null
+                    if (!artworkUriStr.isNullOrEmpty()) {
+                        var inputStream: InputStream? = null
+                        
+                        try {
+                            if (artworkUriStr.startsWith("content://") || artworkUriStr.startsWith("file://") || artworkUriStr.startsWith("android.resource://")) {
+                                val cleanUriStr = if (artworkUriStr.startsWith("file://file://")) artworkUriStr.replace("file://file://", "file://") else artworkUriStr
+                                val uri = Uri.parse(cleanUriStr)
+                                inputStream = context.contentResolver.openInputStream(uri)
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to open artwork stream: ${e.message}")
+                        }
+                        
+                        if (inputStream != null) {
+                            try {
+                                bitmap = BitmapFactory.decodeStream(inputStream)
+                            } finally {
+                                try { inputStream.close() } catch (_: Exception) {}
+                            }
+                        }
+                    }
+
+                    // Create a FRESH RemoteViews for the bitmap update
+                    val updatedViews = RemoteViews(pkgName, R.layout.widget_music)
+
+                    // Re-set all text and controls
+                    updatedViews.setTextViewText(R.id.widget_title, title)
+                    updatedViews.setTextViewText(R.id.widget_artist, artist)
+
+                    if (isPlaying) {
+                        updatedViews.setImageViewResource(R.id.widget_btn_play_pause, R.drawable.ic_widget_pause)
+                    } else {
+                        updatedViews.setImageViewResource(R.id.widget_btn_play_pause, R.drawable.ic_widget_play)
+                    }
+
+                    updatedViews.setOnClickPendingIntent(R.id.widget_btn_play_pause, getPendingIntent(context, "com.ram.musicapp.WIDGET_PLAY_PAUSE"))
+                    updatedViews.setOnClickPendingIntent(R.id.widget_btn_next, getPendingIntent(context, "com.ram.musicapp.WIDGET_NEXT"))
+                    updatedViews.setOnClickPendingIntent(R.id.widget_btn_prev, getPendingIntent(context, "com.ram.musicapp.WIDGET_PREVIOUS"))
+
+                    if (launchIntent != null) {
+                        val pendingLaunchIntent = PendingIntent.getActivity(context, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                        updatedViews.setOnClickPendingIntent(R.id.widget_container, pendingLaunchIntent)
                     }
                     
-                    // Small delay and second update to ensure sticky rendering on Oppo/Realme
-                    Thread.sleep(600)
-                    for (appWidgetId in appWidgetIds) {
-                        updateAppWidget(context, appWidgetManager, appWidgetId)
+                    if (bitmap != null) {
+                        val scaledArt = getScaledBitmap(bitmap, 200)
+                        updatedViews.setImageViewBitmap(R.id.widget_album_art, scaledArt)
+                        
+                        // Darken background version
+                        val darkenedBitmap = darkenBitmap(bitmap)
+                        if (darkenedBitmap != null) {
+                            updatedViews.setImageViewBitmap(R.id.widget_bg_image, darkenedBitmap)
+                        }
+                        
+                        bitmap.recycle()
+                    } else {
+                        updatedViews.setImageViewResource(R.id.widget_album_art, R.drawable.widget_default_cover)
                     }
+                    
+                    appWidgetManager.updateAppWidget(appWidgetId, updatedViews)
                 } catch (e: Exception) {
-                    Log.e("MusicWidget", "Error in async update: ${e.message}")
-                } finally {
-                    pendingResult.finish()
+                    Log.e(TAG, "Error updating widget with artwork: ${e.message}")
+                    e.printStackTrace()
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in updateAppWidget: ${e.message}")
+            e.printStackTrace()
         }
     }
 
-    companion object {
-        fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-            try {
-                val prefs = context.getSharedPreferences("music_widget", Context.MODE_PRIVATE)
-                val title = prefs.getString("title", "No Track Playing") ?: "No Track Playing"
-                val artist = prefs.getString("artist", "Open App to Start") ?: "Open App to Start"
-                val isPlaying = prefs.getBoolean("isPlaying", false)
-                val isShuffleOn = prefs.getBoolean("isShuffleOn", false)
-                val repeatMode = prefs.getString("repeatMode", "off") ?: "off"
-                val artworkUri = prefs.getString("artwork", "") ?: ""
-                val progress = prefs.getInt("progress", 0)
-                val duration = prefs.getInt("duration", 100)
-                val currentTimeStr = prefs.getString("currentTimeStr", "00:00") ?: "00:00"
-                val totalTimeStr = prefs.getString("totalTimeStr", "00:00") ?: "00:00"
-
-                Log.d("MusicWidget", "Updating widget $appWidgetId: $title by $artist (Playing: $isPlaying)")
-
-                Log.d("MusicWidget", "Attempting inflation with music_widget_v2 for $appWidgetId")
-                val views = RemoteViews(context.packageName, R.layout.music_widget_v2)
-
-                // Update text
-                views.setTextViewText(R.id.widget_title, title)
-                views.setTextViewText(R.id.widget_artist, artist)
-                
-                // Safe progress update
-                val safeDuration = if (duration <= 0) 100 else duration
-                val safeProgress = if (progress < 0) 0 else if (progress > safeDuration) safeDuration else progress
-                views.setProgressBar(R.id.widget_progress, safeDuration, safeProgress, false)
-                
-                views.setTextViewText(R.id.widget_current_time, currentTimeStr)
-                views.setTextViewText(R.id.widget_total_time, totalTimeStr)
-
-                // Update play/pause icon
-                val playPauseIcon = if (isPlaying) {
-                    android.R.drawable.ic_media_pause
-                } else {
-                    android.R.drawable.ic_media_play
-                }
-                views.setImageViewResource(R.id.widget_play_pause_btn, playPauseIcon)
-
-                val repeatIcon = android.R.drawable.ic_menu_revert 
-                views.setImageViewResource(R.id.widget_repeat_btn, repeatIcon)
-
-                // Setup Intents for controls
-                views.setOnClickPendingIntent(R.id.widget_play_pause_btn, getPendingSelfIntent(context, "ACTION_PLAY_PAUSE"))
-                views.setOnClickPendingIntent(R.id.widget_next_btn, getPendingSelfIntent(context, "ACTION_NEXT"))
-                views.setOnClickPendingIntent(R.id.widget_prev_btn, getPendingSelfIntent(context, "ACTION_PREV"))
-                views.setOnClickPendingIntent(R.id.widget_shuffle_btn, getPendingSelfIntent(context, "ACTION_SHUFFLE"))
-                views.setOnClickPendingIntent(R.id.widget_repeat_btn, getPendingSelfIntent(context, "ACTION_REPEAT"))
-                
-                // Launch App on artwork/title click
-                val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-                if (launchIntent != null) {
-                    val pendingIntent = PendingIntent.getActivity(context, 0, launchIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                    views.setOnClickPendingIntent(R.id.widget_title, pendingIntent)
-                    views.setOnClickPendingIntent(R.id.widget_artist, pendingIntent)
-                }
-
-                // Removed initial artwork setup that could crash
-                views.setImageViewResource(R.id.widget_artwork, R.drawable.default_cover)
-
-                // First full update
-                appWidgetManager.updateAppWidget(appWidgetId, views)
-
-                // Handle Artwork asynchronously
-                if (artworkUri.isNotEmpty()) {
-                    thread {
-                        try {
-                            val bitmap = when {
-                                artworkUri.startsWith("http") -> {
-                                    BitmapFactory.decodeStream(URL(artworkUri).openConnection().apply {
-                                        connectTimeout = 3000
-                                        readTimeout = 3000
-                                    }.getInputStream())
-                                }
-                                artworkUri.startsWith("content://") -> {
-                                    try {
-                                        context.contentResolver.openInputStream(Uri.parse(artworkUri))?.use {
-                                            BitmapFactory.decodeStream(it)
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.e("MusicWidget", "Failed to load content URI: $artworkUri")
-                                        null
-                                    }
-                                }
-                                artworkUri.startsWith("res:") -> {
-                                    try {
-                                        val resId = artworkUri.substring(4).toIntOrNull()
-                                        if (resId != null) {
-                                            BitmapFactory.decodeResource(context.resources, resId)
-                                        } else {
-                                            context.assets.open("default_cover.png").use { 
-                                                BitmapFactory.decodeStream(it) 
-                                            }
-                                        }
-                                    } catch (e: Exception) {
-                                        try {
-                                            context.assets.open("default_cover.png").use { 
-                                                BitmapFactory.decodeStream(it) 
-                                            }
-                                        } catch (e2: Exception) { null }
-                                    }
-                                }
-                                artworkUri.startsWith("android.resource://") -> {
-                                    try {
-                                        val parts = artworkUri.split("/")
-                                        val resName = parts.last()
-                                        val resId = context.resources.getIdentifier(resName, "drawable", context.packageName)
-                                        if (resId != 0) {
-                                            BitmapFactory.decodeResource(context.resources, resId)
-                                        } else null
-                                    } catch (e: Exception) { null }
-                                }
-                                artworkUri.startsWith("asset:") -> {
-                                    try {
-                                        val assetPath = artworkUri.substring(6).removePrefix("/")
-                                        context.assets.open(assetPath).use { 
-                                            BitmapFactory.decodeStream(it) 
-                                        }
-                                    } catch (e: Exception) { null }
-                                }
-
-                                else -> {
-                                    // Try as resource name first (e.g. "default_cover")
-                                    val resId = context.resources.getIdentifier(artworkUri, "drawable", context.packageName)
-                                    if (resId != 0) {
-                                        BitmapFactory.decodeResource(context.resources, resId)
-                                    } else if (artworkUri.contains("assets/")) {
-                                        try {
-                                            val parts = artworkUri.split("assets/")
-                                            val assetPath = parts[parts.size - 1]
-                                            val inputStream = context.assets.open(assetPath)
-                                            BitmapFactory.decodeStream(inputStream)
-                                        } catch (e: Exception) { null }
-                                    } else {
-                                        // Fallback to file path
-                                        BitmapFactory.decodeFile(artworkUri)
-                                    }
-                                }
-                            }
-
-                            val finalBitmap = bitmap ?: try {
-                                context.assets.open("default_cover.png").use { 
-                                    BitmapFactory.decodeStream(it) 
-                                }
-                            } catch (e: Exception) { null }
-
-                            if (finalBitmap != null) {
-                                val scaledBitmap = scaleBitmap(finalBitmap, 450)
-                                val updatedViews = RemoteViews(context.packageName, R.layout.music_widget_v2)
-                                updatedViews.setImageViewBitmap(R.id.widget_artwork, scaledBitmap)
-                                updatedViews.setImageViewBitmap(R.id.widget_background_art, scaledBitmap)
-                                updatedViews.setViewVisibility(R.id.widget_background_art, android.view.View.VISIBLE)
-                                appWidgetManager.partiallyUpdateAppWidget(appWidgetId, updatedViews)
-                            }
-                        } catch (e: Exception) {
-                            Log.e("MusicWidget", "Error loading artwork: ${e.message}")
-                        }
-                    }
-                }
-
-            } catch (e: Exception) {
-                Log.e("MusicWidget", "Critical error in updateAppWidget: ${e.message}")
-                e.printStackTrace()
-            }
+    private fun getScaledBitmap(src: Bitmap, maxSize: Int): Bitmap {
+        val ratio = src.width.toFloat() / src.height.toFloat()
+        val targetWidth: Int
+        val targetHeight: Int
+        if (src.width > src.height) {
+            targetWidth = maxSize
+            targetHeight = (maxSize / ratio).toInt()
+        } else {
+            targetHeight = maxSize
+            targetWidth = (maxSize * ratio).toInt()
         }
+        return Bitmap.createScaledBitmap(src, targetWidth, targetHeight, true)
+    }
 
-        private fun scaleBitmap(source: Bitmap, maxSide: Int): Bitmap {
-            if (source.width <= maxSide && source.height <= maxSide) return source
-            
-            val ratio = source.width.toFloat() / source.height.toFloat()
-            var width = maxSide
-            var height = maxSide
-            
-            if (source.width > source.height) {
-                height = (maxSide / ratio).toInt()
-            } else {
-                width = (maxSide * ratio).toInt()
-            }
-            
-            return Bitmap.createScaledBitmap(source, width, height, true)
-        }
-
-        private fun getPendingSelfIntent(context: Context, action: String): PendingIntent {
-            val intent = Intent(context, MusicWidgetReceiver::class.java).apply {
-                this.action = action
-            }
-            return PendingIntent.getBroadcast(
-                context, 
-                action.hashCode(), 
-                intent, 
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
+    private fun darkenBitmap(src: Bitmap): Bitmap? {
+        return try {
+            val scaled = getScaledBitmap(src, 150)
+            val config = scaled.config ?: Bitmap.Config.ARGB_8888
+            val dest = Bitmap.createBitmap(scaled.width, scaled.height, config)
+            val canvas = Canvas(dest)
+            canvas.drawBitmap(scaled, 0f, 0f, null)
+            canvas.drawColor(Color.parseColor("#CC000000"))
+            scaled.recycle()
+            dest
+        } catch (e: Exception) {
+            Log.e(TAG, "Error darkening bitmap: ${e.message}")
+            null
         }
     }
 }
