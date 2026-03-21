@@ -10,6 +10,7 @@ import { useMusicLibrary } from '../hooks/MusicLibraryContext';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { CompactImportProgress } from '../components/CompactImportProgress';
 import { useHomeSettings } from '../hooks/HomeSettingsContext';
+import * as Network from 'expo-network';
 
 export const SettingsScreen = () => {
     const {
@@ -28,10 +29,11 @@ export const SettingsScreen = () => {
     const [themeExpanded, setThemeExpanded] = useState(false);
     const [styleExpanded, setStyleExpanded] = useState(false);
     const [navExpanded, setNavExpanded] = useState(false);
+
     const navigation = useNavigation<any>();
     const { fetchMusic, loading, scanForFolders, loadSongsFromFolders, refreshMetadata, savedFolders } = useMusicLibrary();
-    const isGapless = usePlayerStore(state => state.isGapless);
-    const setGapless = usePlayerStore(state => state.setGapless);
+
+
     const { sectionVisibility, toggleSectionVisibility } = useHomeSettings();
 
     // Folder Picker State
@@ -242,6 +244,21 @@ export const SettingsScreen = () => {
                 <View style={styles.section}>
                     <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Player Customization</Text>
                     <View style={[styles.customSectionContainer, { backgroundColor: theme.card }]}>
+                        <TouchableOpacity
+                            style={styles.settingsRow}
+                            onPress={() => navigation.navigate('Equalizer')}
+                        >
+                            <View style={styles.rowIcon}>
+                                <Ionicons name="options" size={20} color={theme.primary} />
+                            </View>
+                            <View style={styles.rowContent}>
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Audio Equalizer</Text>
+                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Tune your sound frequencies</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                        </TouchableOpacity>
+
+                        <View style={[styles.divider, { backgroundColor: theme.cardBorder }]} />
                         <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
                             <View style={styles.toggleRowInfo}>
                                 <Ionicons name="albums-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
@@ -254,19 +271,7 @@ export const SettingsScreen = () => {
                                 thumbColor={'#f4f3f4'}
                             />
                         </View>
-                        <View style={[styles.divider, { backgroundColor: theme.cardBorder }]} />
-                        <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="infinite-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Gapless Playback</Text>
-                            </View>
-                            <Switch
-                                value={isGapless}
-                                onValueChange={setGapless}
-                                trackColor={{ false: theme.cardBorder, true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
+
                         <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
                         <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
                             <View style={styles.toggleRowInfo}>
@@ -288,12 +293,26 @@ export const SettingsScreen = () => {
                     <View style={[styles.customSectionContainer, { backgroundColor: theme.card }]}>
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleRowInfo}>
-                                <Ionicons name="grid-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Collections</Text>
+                                <Ionicons name="heart-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Liked Songs</Text>
                             </View>
                             <Switch
-                                value={sectionVisibility.collections}
-                                onValueChange={() => toggleSectionVisibility('collections')}
+                                value={sectionVisibility.likedSongs}
+                                onValueChange={() => toggleSectionVisibility('likedSongs')}
+                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
+                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="analytics-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Mostly Played</Text>
+                            </View>
+                            <Switch
+                                value={sectionVisibility.mostlyPlayed}
+                                onValueChange={() => toggleSectionVisibility('mostlyPlayed')}
                                 trackColor={{ false: '#3e3e3e', true: theme.primary }}
                                 thumbColor={'#f4f3f4'}
                             />
@@ -331,7 +350,7 @@ export const SettingsScreen = () => {
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleRowInfo}>
                                 <Ionicons name="time-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show History</Text>
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Listening History</Text>
                             </View>
                             <Switch
                                 value={sectionVisibility.history}
@@ -354,6 +373,20 @@ export const SettingsScreen = () => {
                                 thumbColor={'#f4f3f4'}
                             />
                         </View>
+                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="disc-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Top Albums</Text>
+                            </View>
+                            <Switch
+                                value={sectionVisibility.topAlbums}
+                                onValueChange={() => toggleSectionVisibility('topAlbums')}
+                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
                         <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
 
                         <View style={styles.toggleRow}>
@@ -370,6 +403,7 @@ export const SettingsScreen = () => {
                         </View>
                     </View>
                 </View>
+
 
 
                 <View style={styles.section}>
@@ -423,7 +457,7 @@ export const SettingsScreen = () => {
                             </View>
                             <View style={styles.rowContent}>
                                 <Text style={[styles.rowTitle, { color: theme.text }]}>Music</Text>
-                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Version 1.2.0</Text>
+                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Version 1.3.0</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                         </TouchableOpacity>
@@ -564,7 +598,7 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingHorizontal: 16,
-        paddingBottom: 140,
+        paddingBottom: 220,
         paddingTop: 10,
     },
     section: {

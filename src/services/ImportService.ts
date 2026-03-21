@@ -175,7 +175,8 @@ class ImportService {
         if (album === 'Unknown Album') album = parsedAlbum;
 
         const albumId = asset.albumId || asset.album_id;
-        const genre = asset.genre as string | undefined;
+        const genre = (asset.genre || (asset as any).genreName) as string | undefined;
+        const year = (asset.year || (asset as any).creationTime) ? (asset.year || new Date((asset as any).creationTime).getFullYear().toString()) : undefined;
 
         let systemArtUri: string | undefined = undefined;
         if (Platform.OS === 'android' && albumId && !['null', 'undefined', '-1', '0'].includes(String(albumId))) {
@@ -183,9 +184,9 @@ class ImportService {
         }
 
         // Determine if this song actually needs enhancement
-        // Only trigger deep scan if basic text (Title/Artist) is totally missing/raw
         const hasBasicText = artist && artist !== 'Unknown Artist' && album && album !== 'Unknown Album' && title && title !== asset.filename;
-        const needsEnhancement = !hasBasicText;
+        const hasMetadata = (genre && genre !== 'Unknown Genre') && (year && String(year) !== '0');
+        const needsEnhancement = !hasBasicText || !hasMetadata;
 
         return {
             id: asset.id,
@@ -196,6 +197,7 @@ class ImportService {
             artist: artist,
             album: album,
             genre: genre,
+            year: year,
             albumId,
             coverImage: systemArtUri,
             // Mark pending if metadata is incomplete so enhancement actually runs
@@ -267,7 +269,8 @@ class ImportService {
 
                             // A song is missing text if it is literally missing these properties
                             const missingGenre = !libGenre || libGenre === 'Unknown Genre' || libGenre === 'undefined';
-                            const missingText = !libTitle || !libArtist || libArtist === 'Unknown Artist' || !libAlbum || libAlbum === 'Unknown Album' || missingGenre;
+                            const missingYear = !libYear || libYear === '0' || libYear === 'undefined';
+                            const missingText = !libTitle || !libArtist || libArtist === 'Unknown Artist' || !libAlbum || libAlbum === 'Unknown Album' || missingGenre || missingYear;
                             const missingArt = !systemArtUri;
 
                             // OPTIMIZATION: ONLY extract physically from file if text is missing.
@@ -416,6 +419,9 @@ class ImportService {
                 // 2. Fallback to System (Android) - Lazy lookup
                 if (Platform.OS === 'android') {
                     try {
+                        const perm = await MediaLibrary.getPermissionsAsync();
+                        if (perm.status !== 'granted') return null;
+
                         const info = await MediaLibrary.getAssetInfoAsync(songId);
                         const anyInfo = info as any;
                         const albumId = anyInfo.albumId || anyInfo.album_id;
@@ -589,12 +595,13 @@ class ImportService {
                     // Preserve enhanced metadata
                     return {
                         ...fresh, // Update URI/Duration/ModificationTime from system
-                        title: existing.scanStatus === 'enhanced' ? existing.title : fresh.title,
-                        artist: existing.scanStatus === 'enhanced' ? existing.artist : fresh.artist,
-                        album: existing.scanStatus === 'enhanced' ? existing.album : fresh.album,
-                        year: existing.scanStatus === 'enhanced' ? existing.year : fresh.year,
+                        title: (existing.scanStatus === 'enhanced' && existing.title && existing.title !== asset.filename) ? existing.title : fresh.title,
+                        artist: (existing.scanStatus === 'enhanced' && existing.artist && existing.artist !== 'Unknown Artist') ? existing.artist : fresh.artist,
+                        album: (existing.scanStatus === 'enhanced' && existing.album && existing.album !== 'Unknown Album') ? existing.album : fresh.album,
+                        year: (existing.year && String(existing.year) !== '0' && existing.year !== 'Unknown Year') ? existing.year : fresh.year,
+                        genre: (existing.genre && existing.genre !== 'Unknown Genre') ? existing.genre : fresh.genre,
                         coverImage: existing.coverImage,
-                        scanStatus: existing.scanStatus,
+                        scanStatus: ((fresh.scanStatus === 'enhanced' || existing.scanStatus === 'enhanced') ? 'enhanced' : 'pending') as 'enhanced' | 'pending',
                         playCount: existing.playCount,
                         lastPlayed: existing.lastPlayed,
                         playHistory: existing.playHistory,

@@ -10,12 +10,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useProgress } from 'react-native-track-player';
+import { useLibraryStore } from '../store/useLibraryStore';
 
 export const MiniPlayer = () => {
     const navigation = useNavigation<any>();
     const currentSong = usePlayerStore(state => state.currentTrack);
     const isPlaying = usePlayerStore(state => state.isPlaying);
     const playPause = usePlayerStore(state => state.playPause);
+    const toggleLike = useLibraryStore(state => state.toggleLike);
+    const isLiked = useLibraryStore(state => state.likedSongs.some(s => s.id === currentSong?.id));
     const nextTrack = usePlayerStore(state => state.nextTrack);
     const prevTrack = usePlayerStore(state => state.prevTrack);
     const seek = usePlayerStore(state => state.seek);
@@ -30,8 +33,8 @@ export const MiniPlayer = () => {
 
     const seekInterval = useRef<NodeJS.Timeout | null>(null);
 
-    // Only hide mini player when on the full Player screen, Queue screen, Settings screen, About screen, or if no song exists
-    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Queue' || currentRouteName === 'Settings' || currentRouteName === 'About';
+    // Only hide mini player when on the full Player screen, Queue screen, Settings screen, About screen, Equalizer screen, or if no song exists
+    const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Queue' || currentRouteName === 'Settings' || currentRouteName === 'About' || currentRouteName === 'Equalizer';
     if (!currentSong || isHiddenScreen) return null;
 
     // List of screens that DO NOT have a bottom tab bar
@@ -155,6 +158,16 @@ export const MiniPlayer = () => {
 
                         {/* Controls */}
                         <View style={styles.controls}>
+                            <TouchableOpacity
+                                onPress={(e) => { e.stopPropagation(); toggleLike(currentSong!); }}
+                                style={styles.controlButton}
+                            >
+                                <Ionicons
+                                    name={isLiked ? "heart" : "heart-outline"}
+                                    size={22}
+                                    color={isLiked ? "#ef4444" : "white"}
+                                />
+                            </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={(e) => { e.stopPropagation(); prevTrack(); }}
                                 onLongPress={(e) => { e.stopPropagation(); startSeeking('backward'); }}

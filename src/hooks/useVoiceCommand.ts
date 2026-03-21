@@ -84,6 +84,13 @@ export const useVoiceCommand = (onCommand: (command: string) => void): VoiceComm
 
     const onSpeechError = (e: SpeechErrorEvent) => {
         setIsListening(false);
+        const code = e.error?.code?.toString();
+        // Skip errors that are common "soft" errors like No Match (11/7) or Timeout (6)
+        if (code === '11' || code === '7' || code === '6') {
+            console.log(`[Voice] Handled soft error (${code}): ${e.error?.message}`);
+            setError(null);
+            return;
+        }
         setError(e.error?.message || 'Unknown error occurred');
         console.error('Speech error:', e.error);
     };

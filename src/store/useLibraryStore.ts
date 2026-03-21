@@ -133,9 +133,15 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         const newCustom = { ...currentCustom, [songId]: { ...(currentCustom[songId] || {}), ...updates } };
         customMetadataRef = newCustom;
         saveObject('custom_song_metadata', newCustom);
+        
+        // Persist to SQLite for deep persistence and scanner preservation
+        databaseService.updateSong(songId, updates).catch(e => {
+            console.error('[LibraryStore] Failed to persist update to SQLite:', e);
+        });
 
         set(state => {
             const newSongs = state.songs.map(s => s.id === songId ? { ...s, ...updates } : s);
+            const newSorted = state.sortedSongs.map(s => s.id === songId ? { ...s, ...updates } : s);
             const newLiked = state.likedSongs.map(s => s.id === songId ? { ...s, ...updates } : s);
             const newRecent = state.recentlyPlayed.map(s => s.id === songId ? { ...s, ...updates } : s);
             const newAdded = state.recentlyAdded.map(s => s.id === songId ? { ...s, ...updates } : s);
@@ -146,6 +152,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             }));
             return {
                 songs: newSongs,
+                sortedSongs: newSorted,
                 likedSongs: newLiked,
                 recentlyPlayed: newRecent,
                 recentlyAdded: newAdded,
@@ -393,6 +400,17 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             : [{ ...song, addedToPlaylistAt: Date.now() }, ...currentLiked];
         set({ likedSongs: newLikedSongs });
         saveObject('liked_songs', newLikedSongs);
+
+        // Dynamically trigger widget sync to instantly update the heart icon
+        try {
+            const { usePlayerStore } = require('./usePlayerStore');
+            const playerState = usePlayerStore.getState();
+            if (playerState.currentTrack?.id === song.id) {
+                playerState.syncWidget();
+            }
+        } catch (e) {
+            console.warn('[LibraryStore] Failed to trigger widget sync', e);
+        }
     },
 
     addSongsToLiked: async (songsToAdd) => {
@@ -403,6 +421,15 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         const updated = [...newSongs, ...currentLiked];
         set({ likedSongs: updated });
         saveObject('liked_songs', updated);
+
+        // Instantly sync widget if the current playing track was in the liked batch
+        try {
+            const { usePlayerStore } = require('./usePlayerStore');
+            const playerState = usePlayerStore.getState();
+            if (playerState.currentTrack && newSongs.some(s => s.id === playerState.currentTrack?.id)) {
+                playerState.syncWidget();
+            }
+        } catch (e) {}
     },
 
     isLiked: (songId) => get().likedSongs.some(s => s.id === songId),

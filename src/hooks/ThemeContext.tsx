@@ -18,6 +18,7 @@ interface Theme {
     gradientEnd?: { x: number, y: number };
     menuBackground: string;
     textOnPrimary: string;
+    primaryLight: string;
 }
 
 const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
@@ -35,7 +36,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#023e8a',
-        textOnPrimary: '#000000'
+        textOnPrimary: '#000000',
+        primaryLight: '#4dd4ec',
     },
     black: {
         background: '#000000',
@@ -47,7 +49,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         cardBorder: '#262626',
         gradient: ['#000000', '#000000'],
         menuBackground: '#000000',
-        textOnPrimary: '#000000'
+        textOnPrimary: '#000000',
+        primaryLight: '#a3a3a3',
     },
     cyber: {
         background: '#050505',
@@ -62,7 +65,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         gradientStart: { x: 0, y: 0 },
         gradientEnd: { x: 1, y: 1 },
         menuBackground: '#0a0a0c',
-        textOnPrimary: '#000000'
+        textOnPrimary: '#000000',
+        primaryLight: '#e4f87a',
     },
     forest: {
         background: '#05120d',
@@ -77,7 +81,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#0d1f18',
-        textOnPrimary: '#000000'
+        textOnPrimary: '#000000',
+        primaryLight: '#5ee8b7',
     },
     fire: {
         background: '#050505',
@@ -92,7 +97,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#0a0a0c',
-        textOnPrimary: '#000000'
+        textOnPrimary: '#000000',
+        primaryLight: '#e86b50',
     },
     nebula: {
         background: '#020505',
@@ -107,7 +113,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
         menuBackground: '#083344',
-        textOnPrimary: '#000000'
+        textOnPrimary: '#000000',
+        primaryLight: '#4fbad4',
     },
     light: {
         background: '#ffffff',
@@ -119,7 +126,8 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         cardBorder: '#e5e7eb',
         gradient: ['#ffffff', '#f3f4f6'],
         menuBackground: '#ffffff',
-        textOnPrimary: '#ffffff'
+        textOnPrimary: '#ffffff',
+        primaryLight: '#4b5563',
     },
 };
 

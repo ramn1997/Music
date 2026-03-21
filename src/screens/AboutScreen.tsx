@@ -31,9 +31,8 @@ export const AboutScreen = () => {
     }, [floatAnim]);
 
     const features = [
-        { icon: 'musical-notes', title: 'High-Fidelity Audio', desc: 'Symphonic audio engine optimized for local playback with crystal clear resolution.' },
-        { icon: 'play-forward', title: 'True Gapless Playback', desc: 'Seamlessly transition between music tracks without delays.' },
-        { icon: 'color-palette', title: 'Refined Aesthetics', desc: 'Highly-polished UI with dynamic glassmorphism and themes including Fire, Water, Forest, Nebula, Cyber, Dark, and Light.' },
+        { icon: 'color-palette-outline', title: 'Dynamic Themes', desc: 'Polished UI with glassmorphism and 7+ premium themes including Nebula, Cyber, and Forest.' },
+        { icon: 'folder-open-outline', title: 'Local Library Management', desc: 'Seamlessly scan and organize your local music library without limits.' },
     ];
 
 
@@ -74,7 +73,7 @@ export const AboutScreen = () => {
                     </Animated.View>
 
                     <Text style={[styles.appName, { color: theme.text }]}>Music</Text>
-                    <Text style={[styles.appVersion, { color: theme.primary }]}>Version 1.2.0</Text>
+                    <Text style={[styles.appVersion, { color: theme.primary }]}>Version 1.3.0</Text>
                     <Text style={[styles.appDescription, { color: theme.textSecondary }]}>
                         A premium local music player designed for audiophiles who value both aesthetics and performance.
                         No ads, no subscriptions, just your pure music.

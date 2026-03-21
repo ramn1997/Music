@@ -132,24 +132,26 @@ export const GenresScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 ) : <View style={{ flex: 1 }} />}
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10, marginTop: isEmbedded ? 10 : 0 }}>
-                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, marginRight: 10, marginHorizontal: 0, marginVertical: 0, borderWidth: 1, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+            {/* Material 3 Search Bar Row */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10, marginTop: isEmbedded ? 10 : 0, gap: 12 }}>
+                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                    <Ionicons name="search" size={20} color={theme.textSecondary} style={{ marginRight: 12 }} />
                     <TextInput
-                        style={[styles.searchInput, { color: theme.text }]}
+                        style={[styles.searchInput, { color: theme.text, fontFamily: 'PlusJakartaSans_500Medium' }]}
                         placeholder="Search genres..."
-                        placeholderTextColor={theme.textSecondary}
+                        placeholderTextColor={theme.textSecondary + '80'}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
+                        selectionColor={theme.primary}
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={16} color={theme.textSecondary} />
+                            <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
                         </TouchableOpacity>
                     )}
                 </View>
-                <TouchableOpacity onPress={() => setSortModalVisible(true)} style={styles.layoutButton}>
-                    <Ionicons name="options-outline" size={22} color={theme.primary} />
+                <TouchableOpacity onPress={() => setSortModalVisible(true)} style={[styles.layoutButton, { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                    <Ionicons name="filter" size={20} color={theme.primary} />
                 </TouchableOpacity>
             </View>
 
@@ -206,23 +208,22 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     layoutButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center'
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
-        height: 38,
-        borderRadius: 19,
+        paddingHorizontal: 16,
+        height: 48,
+        borderRadius: 24,
     },
     searchInput: {
         flex: 1,
-        fontSize: 14,
-        marginLeft: 8,
+        fontSize: 16,
         height: '100%',
         paddingVertical: 0,
     },

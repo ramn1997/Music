@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MusicImage } from './MusicImage';
 
@@ -25,14 +25,21 @@ const formatDuration = (ms: number) => {
 
 export const SongItem = React.memo(({ item, index, isCurrent, theme, onPress, onOpenOptions, onLongPress, isSelectionMode, isSelected }: SongItemProps) => {
     return (
-        <TouchableOpacity
-            style={styles.songItem}
+        <Pressable
+            style={({ pressed }) => [
+                styles.songItem,
+                {
+                    backgroundColor: isSelected ? theme.primary + '15' : 'transparent',
+                    opacity: pressed ? 0.8 : 1
+                }
+            ]}
+            android_ripple={{ color: theme.primary + '10' }}
             onPress={() => onPress(item)}
             onLongPress={() => onLongPress && onLongPress(item)}
-            delayLongPress={300}
+            delayLongPress={400}
         >
             {isSelectionMode && (
-                <View style={{ marginRight: 15 }}>
+                <View style={styles.selectionIndicator}>
                     <Ionicons
                         name={isSelected ? "checkmark-circle" : "ellipse-outline"}
                         size={24}
@@ -51,40 +58,45 @@ export const SongItem = React.memo(({ item, index, isCurrent, theme, onPress, on
                 />
             </View>
             <View style={styles.songInfo}>
-                {isCurrent ? (
-                    <>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.songTitle, { color: theme.text }]}>
-                            {item.title}
-                        </Text>
-                        <Text
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                            style={[styles.songArtist, { color: theme.textSecondary }]}
-                        >
-                            {`${item.artist}${item.album && item.album !== 'Unknown Album' ? ` • ${item.album}` : ''}`}
-                        </Text>
-                    </>
-                ) : (
-                    <>
-                        <Text numberOfLines={1} style={[styles.songTitle, { color: theme.text }]}>{item.title}</Text>
-                        <Text numberOfLines={1} style={[styles.songArtist, { color: theme.textSecondary }]}>
-                            {item.artist}{item.album && item.album !== 'Unknown Album' ? ` • ${item.album}` : ''}
-                        </Text>
-                    </>
-                )}
+                <Text
+                    numberOfLines={1}
+                    style={[
+                        styles.songTitle,
+                        {
+                            color: isCurrent ? theme.primary : theme.text,
+                            fontFamily: isCurrent ? 'PlusJakartaSans_700Bold' : 'PlusJakartaSans_600SemiBold'
+                        }
+                    ]}
+                >
+                    {item.title}
+                </Text>
+                <Text
+                    numberOfLines={1}
+                    style={[
+                        styles.songArtist,
+                        {
+                            color: theme.textSecondary,
+                            fontFamily: 'PlusJakartaSans_500Medium'
+                        }
+                    ]}
+                >
+                    {item.artist}{item.album && item.album !== 'Unknown Album' ? ` • ${item.album}` : ''}
+                </Text>
             </View>
-            <Text style={[styles.songDuration, { color: theme.textSecondary }]}>{formatDuration(item.duration)}</Text>
-
-            <TouchableOpacity
-                style={styles.moreButton}
-                onPress={(e) => {
-                    e.stopPropagation();
-                    onOpenOptions(item);
-                }}
-            >
-                <Ionicons name="ellipsis-vertical" size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-        </TouchableOpacity>
+            <View style={styles.rightSection}>
+                <Text style={[styles.songDuration, { color: theme.textSecondary }]}>{formatDuration(item.duration)}</Text>
+                <Pressable
+                    style={styles.moreButton}
+                    onPress={(e) => {
+                        e.stopPropagation();
+                        onOpenOptions(item);
+                    }}
+                    hitSlop={8}
+                >
+                    <Ionicons name="ellipsis-vertical" size={18} color={theme.textSecondary} />
+                </Pressable>
+            </View>
+        </Pressable>
     );
 }, (prevProps, nextProps) => {
     return (
@@ -103,43 +115,55 @@ const styles = StyleSheet.create({
     songItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 15,
-        height: 70, // Fixed height for direct virtualization benefit
+        paddingHorizontal: 20,
+        height: 72,
+    },
+    selectionIndicator: {
+        marginRight: 12,
     },
     iconContainer: {
-        width: 45,
-        height: 45,
-        marginRight: 15,
+        width: 48,
+        height: 48,
+        marginRight: 16,
     },
     songIcon: {
-        width: 45,
-        height: 45,
+        width: 48,
+        height: 48,
         borderRadius: 12,
     },
     iconPlaceholder: {
-        width: 45,
-        height: 45,
+        width: 48,
+        height: 48,
         borderRadius: 12,
         overflow: 'hidden',
     },
     songInfo: {
         flex: 1,
-        marginRight: 10,
+        marginRight: 12,
     },
     songTitle: {
-        fontSize: 16,
-        fontFamily: 'PlusJakartaSans_500Medium',
-        marginBottom: 4,
+        fontSize: 15,
+        letterSpacing: 0.1,
+        marginBottom: 2,
     },
     songArtist: {
-        fontSize: 13,
-        fontFamily: 'PlusJakartaSans_400Regular',
+        fontSize: 12,
+        letterSpacing: 0.2,
+    },
+    rightSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     songDuration: {
-        fontSize: 12,
-        marginRight: 10,
+        fontSize: 11,
+        fontFamily: 'PlusJakartaSans_500Medium',
+        marginRight: 12,
+        letterSpacing: 0.4,
     },
     moreButton: {
-        padding: 5,
+        width: 32,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

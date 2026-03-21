@@ -6,10 +6,11 @@ import TrackPlayer, {
     AppKilledPlaybackBehavior,
     State,
     Track,
-    Event
+    Event,
+    RatingType
 } from 'react-native-track-player';
 import { useLibraryStore } from './useLibraryStore';
-import { Platform } from 'react-native';
+import { Platform, Image } from 'react-native';
 import { Song } from '../types/library';
 import { updateWidget, widgetEvents } from '../utils/musicWidget';
 const PLAYER_STATE_KEY = 'player_state_persistence';
@@ -34,7 +35,8 @@ export const songToTrack = (song: Song): Track => {
 
         // Fallback to the premium generated cover art for BOTH widget and notifications
         if (!artwork) {
-            artwork = 'android.resource://com.ram.musicapp/drawable/default_cover';
+            // Provide explicit bundle path for TrackPlayer Notification Coil renderer
+            artwork = require('../../assets/default_cover.png') as any;
         }
     } else {
         // iOS Fallback
@@ -50,6 +52,7 @@ export const songToTrack = (song: Song): Track => {
         artist: song.artist,
         album: song.album,
         artwork: artwork,
+        rating: useLibraryStore.getState().isLiked(song.id) ? 1 : 0,
     };
 };
 
@@ -63,6 +66,13 @@ interface PlayerState {
     playlistName: string;
     playbackSpeed: number;
     isGapless: boolean;
+    isSpatial: boolean;
+    audioQuality: 'normal' | 'high' | 'lossless' | 'hires';
+    currentTrackMetadata: {
+        bitrate?: string;
+        sampleRate?: string;
+        bitDepth?: string;
+    } | null;
     isPlayerReady: boolean;
     isRestored: boolean;
 
@@ -88,6 +98,8 @@ interface PlayerState {
     prevTrack: () => Promise<void>;
     setPlaybackSpeed: (speed: number) => Promise<void>;
     setGapless: (enabled: boolean) => Promise<void>;
+    toggleSpatial: () => void;
+    setAudioQuality: (quality: 'normal' | 'high' | 'lossless' | 'hires') => void;
     moveTrack: (fromIndex: number, toIndex: number) => Promise<void>;
 
     // Admin / Core
@@ -107,23 +119,48 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     isPlaying: false,
     isShuffleOn: false,
     repeatMode: 'all',
-    playlist: [],
     currentIndex: -1,
     playlistName: '',
     playbackSpeed: 1.0,
-    isGapless: true,
+    isGapless: storage.getBoolean('player_gapless') ?? true,
+    isSpatial: storage.getBoolean('player_spatial') ?? false,
+    audioQuality: (storage.getString('player_quality') as any) ?? 'high',
+    currentTrackMetadata: null,
     isPlayerReady: false,
     isRestored: false,
+    playlist: [],
 
     setCurrentTrack: (song) => {
-        set({ currentTrack: song });
+        set({ currentTrack: song, currentTrackMetadata: null });
         get().syncWidget();
+        get().saveState();
     },
     setIsPlaying: (playing) => {
         set({ isPlaying: playing });
         get().syncWidget();
+        get().saveState();
     },
     setCurrentIndex: (index) => set({ currentIndex: index }),
+
+    toggleSpatial: () => {
+        const next = !get().isSpatial;
+        set({ isSpatial: next });
+        storage.set('player_spatial', next);
+        
+        // If spatial is turned on, we need to pause the native player 
+        // because the WebView implementation will handle the audio stream via HRTF
+        if (next && get().isPlaying) {
+            TrackPlayer.pause();
+        } else if (!next && get().isPlaying) {
+            // Re-sync progress and resume native playback
+            TrackPlayer.play();
+        }
+    },
+
+    setAudioQuality: (quality) => {
+        set({ audioQuality: quality });
+        storage.set('player_quality', quality);
+    },
 
     syncWidget: async () => {
         if (Platform.OS !== 'android') return;
@@ -137,10 +174,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         };
 
+        const isLiked = state.currentTrack ? useLibraryStore.getState().isLiked(state.currentTrack.id) : false;
+
         updateWidget({
             title: state.currentTrack?.title || 'No Track',
             artist: state.currentTrack?.artist || 'Unknown Artist',
             isPlaying: state.isPlaying,
+            isLiked: isLiked,
             isShuffleOn: state.isShuffleOn,
             repeatMode: state.repeatMode,
             artwork: state.currentTrack?.coverImage || (Platform.OS === 'android' ? 'android.resource://com.ram.musicapp/drawable/default_cover' : require('../../assets/default_cover.png')),
@@ -226,32 +266,43 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                     await TrackPlayer.setupPlayer({
                         waitForBuffer: true,
                         autoHandleInterruptions: true,
-                        // Extreme buffers for true gapless: ensures next track is fully loaded
-                        minBuffer: (isGapless ? 60 : 30) * qualityMultiplier,
-                        maxBuffer: (isGapless ? 120 : 80) * qualityMultiplier,
-                        playBuffer: (isGapless ? 5 : 3) * qualityMultiplier,
-                        backBuffer: (isGapless ? 30 : 15) * qualityMultiplier,
+                        // Exact Buffer parameters requested for Gapless Playback
+                        minBuffer: (isGapless ? 15 : 10) * qualityMultiplier,
+                        maxBuffer: (isGapless ? 50 : 20) * qualityMultiplier,
+                        playBuffer: 2.5 * qualityMultiplier,
+                        backBuffer: 5 * qualityMultiplier,
                     });
                 }
 
-                await TrackPlayer.updateOptions({
-                    android: {
-                        appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
-                    },
-                    stoppingAppPausesPlayback: false,
-                    capabilities: [
-                        Capability.Play,
-                        Capability.Pause,
-                        Capability.SkipToNext,
-                        Capability.SkipToPrevious,
-                        Capability.SeekTo,
-                    ],
-                    compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext, Capability.SkipToPrevious],
-                    progressUpdateEventInterval: isGapless ? 0.25 : 1, // High precision updates for gapless
-                });
-
-                await TrackPlayer.setRepeatMode(RepeatMode.Queue);
                 await TrackPlayer.setRate(state.playbackSpeed);
+
+                // FIX: Increase delay much more to ensure native service is stable
+                // Line 188 NPE in MusicService.kt is often because notificationManager isn't ready
+                await new Promise(r => setTimeout(r, 2500));
+                try {
+                    await TrackPlayer.updateOptions({
+                        android: {
+                            appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
+                        },
+                        ratingType: RatingType.Heart,
+                        stoppingAppPausesPlayback: false,
+                        capabilities: [
+                            Capability.SkipToPrevious,
+                            Capability.Play,
+                            Capability.Pause,
+                            Capability.SkipToNext,
+                            Capability.SeekTo,
+                        ],
+                        compactCapabilities: [
+                            Capability.SkipToPrevious,
+                            Capability.Play,
+                            Capability.SkipToNext,
+                        ],
+                        progressUpdateEventInterval: isGapless ? 0.25 : 1,
+                    });
+                } catch (e) {
+                    console.warn('[PlayerStore] updateOptions failed:', e);
+                }
 
                 set({ isPlayerReady: true, isGapless });
                 success = true;
@@ -308,19 +359,34 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                     });
 
                     if (playlist.length > 0) {
-                        const tracks = playlist.map(songToTrack);
-                        await TrackPlayer.reset();
-                        await TrackPlayer.add(tracks);
+                        // FIX: Add a small delay for native service synchronization
+                        await new Promise(r => setTimeout(r, 500));
+                        
+                        // FIX: Check if player is already playing (e.g. from notification)
+                        // If it is, DO NOT reset/add tracks as it would stop the music.
+                        const activeTrack = await TrackPlayer.getActiveTrack();
+                        if (!activeTrack) {
+                            const tracks = playlist.map(songToTrack);
+                            await TrackPlayer.reset();
+                            await TrackPlayer.add(tracks);
 
-                        const activeIndex = data.currentIndexInWindow ?? 0;
-                        if (activeIndex >= 0 && activeIndex < tracks.length) {
+                            const activeIndex = data.currentIndexInWindow ?? 0;
+                            if (activeIndex >= 0 && activeIndex < tracks.length) {
 
-                            let initialPos = 0;
-                            const savedPos = storage.getNumber(PLAYER_POSITION_KEY);
-                            if (savedPos && savedPos > 0) {
-                                initialPos = savedPos / 1000;
+                                let initialPos = 0;
+                                const savedPos = storage.getNumber(PLAYER_POSITION_KEY);
+                                if (savedPos && savedPos > 0) {
+                                    initialPos = savedPos / 1000;
+                                }
+                                await TrackPlayer.skip(activeIndex, initialPos);
                             }
-                            await TrackPlayer.skip(activeIndex, initialPos);
+                        } else {
+                            // If already playing, try to reconcile native index with our virtual playlist
+                            console.log('[PlayerStore] Player already active on launch, skipping reset');
+                            const nativeIdx = await TrackPlayer.getActiveTrackIndex();
+                            if (typeof nativeIdx === 'number') {
+                                updates.currentIndex = nativeIdx;
+                            }
                         }
                     }
                 }
@@ -610,6 +676,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             }
 
             set({ currentIndex: nextVirtualIdx, currentTrack: playlist[nextVirtualIdx] });
+            get().saveState();
         } catch (e) {
             console.error('[PlayerStore] nextTrack error:', e);
         }
@@ -648,6 +715,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             }
 
             set({ currentIndex: prevVirtualIdx, currentTrack: playlist[prevVirtualIdx] });
+            get().saveState();
         } catch (e) {
             console.error('[PlayerStore] prevTrack error:', e);
         }
@@ -683,13 +751,30 @@ let lastScrobbledId: string | null = null;
 
 // Setup TrackPlayer hooks outside store but interacting with it
 export const initializePlayerEvents = () => {
+    TrackPlayer.addEventListener(Event.RemoteSetRating, async () => {
+        const state = usePlayerStore.getState();
+        if (state.currentTrack) {
+            useLibraryStore.getState().toggleLike(state.currentTrack);
+            setTimeout(async () => {
+                const isLiked = useLibraryStore.getState().isLiked(state.currentTrack!.id);
+                try {
+                    const activeIndex = await TrackPlayer.getActiveTrackIndex();
+                    if (activeIndex !== undefined && activeIndex !== null) {
+                        await TrackPlayer.updateMetadataForTrack(activeIndex, {
+                            rating: isLiked ? 1 : 0
+                        });
+                    }
+                } catch (e) {}
+            }, 100);
+        }
+    });
+
     TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
         const state = usePlayerStore.getState();
         const { track, index } = event;
 
         if (track) {
             // Find virtual index in our full playlist (MMKV/Zustand side)
-            const state = usePlayerStore.getState();
             let virtualIndex = state.playlist.findIndex(s => String(s.id) === String(track.id));
 
             // Fallback if not found
@@ -710,11 +795,12 @@ export const initializePlayerEvents = () => {
                     useLibraryStore.getState().incrementPlayCount(String(song.id));
                 }
 
-                // ENHANCED GAPLESS PRE-BUFFER: Ensure next 2 tracks are ready
+                // ENHANCED GAPLESS PRE-BUFFER: Only if enabled
                 const playlist = state.playlist;
                 const nextVirtualIdx = virtualIndex + 1;
+                const isGaplessEnabled = state.isGapless;
 
-                if (nextVirtualIdx < playlist.length) {
+                if (isGaplessEnabled && nextVirtualIdx < playlist.length) {
                     try {
                         const nativeQueue = await TrackPlayer.getQueue();
                         const activeNativeIdx = await TrackPlayer.getActiveTrackIndex() ?? 0;
@@ -738,7 +824,6 @@ export const initializePlayerEvents = () => {
                         }
 
                         // Optimize performance: Prune tracks that are no longer needed
-                        // BUT: don't prune too aggressively or it causes native index shifts that break gapless logic in some versions
                         if (activeNativeIdx > 5) {
                             const indicesToRemove = Array.from({ length: activeNativeIdx - 3 }, (_, i) => i);
                             if (indicesToRemove.length > 0) {
@@ -748,7 +833,7 @@ export const initializePlayerEvents = () => {
                     } catch (e) {
                         console.warn('[PlayerStore] Gapless management error:', e);
                     }
-                } else if (state.repeatMode === 'all' && playlist.length > 0) {
+                } else if (isGaplessEnabled && state.repeatMode === 'all' && playlist.length > 0) {
                     // Wrap around pre-buffering
                     try {
                         const nativeQueue = await TrackPlayer.getQueue();
@@ -762,7 +847,6 @@ export const initializePlayerEvents = () => {
             }
         }
     });
-
 
     TrackPlayer.addEventListener(Event.PlaybackState, (event) => {
         const state = usePlayerStore.getState();
@@ -788,6 +872,23 @@ export const initializePlayerEvents = () => {
 
     // Handle widget actions
     if (widgetEvents) {
+        widgetEvents.addListener('WIDGET_PLAY_PAUSE', () => {
+            usePlayerStore.getState().playPause();
+        });
+        widgetEvents.addListener('WIDGET_NEXT', () => {
+            usePlayerStore.getState().nextTrack();
+        });
+        widgetEvents.addListener('WIDGET_PREVIOUS', () => {
+            usePlayerStore.getState().prevTrack();
+        });
+        widgetEvents.addListener('WIDGET_LIKE', () => {
+            const state = usePlayerStore.getState();
+            if (state.currentTrack) {
+                useLibraryStore.getState().toggleLike(state.currentTrack);
+                state.syncWidget(); // Update the widget to reflect the new like status
+            }
+        });
+
         widgetEvents.addListener('onWidgetAction', (action: string) => {
             const state = usePlayerStore.getState();
             switch (action) {
@@ -816,4 +917,10 @@ export const initializePlayerEvents = () => {
     TrackPlayer.addEventListener(Event.RemoteNext, () => usePlayerStore.getState().nextTrack());
     TrackPlayer.addEventListener(Event.RemotePrevious, () => usePlayerStore.getState().prevTrack());
     TrackPlayer.addEventListener(Event.RemoteSeek, (event) => TrackPlayer.seekTo(event.position));
+    TrackPlayer.addEventListener(Event.RemoteLike, () => {
+        const state = usePlayerStore.getState();
+        if (state.currentTrack) {
+            useLibraryStore.getState().toggleLike(state.currentTrack);
+        }
+    });
 };

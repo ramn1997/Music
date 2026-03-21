@@ -27,6 +27,9 @@ import { RecommendationsModal } from '../components/RecommendationsModal';
 import { useProgress } from 'react-native-track-player';
 import TrackPlayer from 'react-native-track-player';
 import { Song } from '../hooks/MusicLibraryContext';
+import { SpatialAudioEngine } from '../components/SpatialAudioEngine';
+import * as Network from 'expo-network';
+import { Alert } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -155,6 +158,9 @@ export const PlayerScreen = () => {
     const toggleRepeat = usePlayerStore(state => state.toggleRepeat);
     const playbackSpeed = usePlayerStore(state => state.playbackSpeed);
     const setPlaybackSpeed = usePlayerStore(state => state.setPlaybackSpeed);
+    const isSpatial = usePlayerStore(state => state.isSpatial);
+    const toggleSpatial = usePlayerStore(state => state.toggleSpatial);
+    const isGapless = usePlayerStore(state => state.isGapless);
 
     const { theme, themeType, playerStyle, isCarouselEnabled, isSwipeEnabled } = useTheme();
     const { toggleLike, isLiked, updateSongMetadata } = useMusicLibrary();
@@ -386,18 +392,28 @@ export const PlayerScreen = () => {
         <ScreenContainer variant="player">
             <SafeAreaView style={styles.safeArea}>
                 <View style={[styles.header, { zIndex: 1000 }]}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}>
-                        <Ionicons name="chevron-down" size={30} color={theme.text} />
-                    </TouchableOpacity>
-                    <View style={{ alignItems: 'center' }}>
-                        <Text style={[styles.headerSubTitle, { color: theme.textSecondary }]}>Now Playing</Text>
-                        <Text style={[styles.headerMainTitle, { color: theme.text }]} numberOfLines={1}>
-                            {currentSong?.title || "Music"}
-                        </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}>
+                            <Ionicons name="chevron-down" size={30} color={theme.text} />
+                        </TouchableOpacity>
+                        <View style={{ marginLeft: 10, flex: 1 }}>
+                            <Text style={[styles.headerSubTitle, { color: theme.textSecondary }]}>Now Playing</Text>
+                            <Text style={[styles.headerMainTitle, { color: theme.text }]} numberOfLines={1}>
+                                {currentSong?.title || "Music"}
+                            </Text>
+                        </View>
                     </View>
-                    <TouchableOpacity onPress={() => setOptionsModalVisible(true)}>
-                        <Ionicons name="ellipsis-vertical" size={26} color={theme.text} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
+                        <TouchableOpacity onPress={() => setRecommendationsVisible(true)}>
+                            <Ionicons name="color-wand-outline" size={24} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setLyricsModalVisible(true)}>
+                            <Ionicons name="document-text-outline" size={24} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setOptionsModalVisible(true)}>
+                            <Ionicons name="ellipsis-vertical" size={26} color={theme.text} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <View style={{ flex: 1, justifyContent: 'space-between' }}>
@@ -470,6 +486,20 @@ export const PlayerScreen = () => {
                     </View>
 
                     <View style={styles.bottomControlsBlock}>
+                        {isSpatial && (
+                            <SpatialAudioEngine 
+                                songUrl={currentSong?.uri} 
+                                isPlaying={isPlaying} 
+                                onEnded={nextTrack}
+                                onProgress={() => {}} 
+                                seekPosition={null} 
+                            />
+                        )}
+
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 30, marginBottom: 15 }}>
+                            {/* Removed Spatial and Quality toggles from here per request */}
+                        </View>
+
                         <ReAnimated.View style={[styles.infoContainer, contentTransitionStyle]}>
                             <View style={{ flex: 1 }}>
                                 <MarqueeText
@@ -490,19 +520,7 @@ export const PlayerScreen = () => {
                                     {currentSong?.artist || "Select a song"}
                                 </Text>
                             </View>
-                            <View style={{ flexDirection: 'row', gap: 15, alignItems: 'center' }}>
-                                <TouchableOpacity
-                                    onPress={() => setRecommendationsVisible(true)}
-                                    style={styles.lyricsButton}
-                                >
-                                    <Ionicons name="color-wand-outline" size={24} color={theme.textSecondary} />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() => setLyricsModalVisible(true)}
-                                    style={styles.lyricsButton}
-                                >
-                                    <Ionicons name="document-text-outline" size={24} color={theme.textSecondary} />
-                                </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TouchableOpacity onPress={handleLike}>
                                     <Animated.View style={{ transform: [{ scale: likeScale }] }}>
                                         <Ionicons name={liked ? "heart" : "heart-outline"} size={30} color={liked ? '#ef4444' : theme.text} />

@@ -56,8 +56,8 @@ const getGradientColors = (id: string): [string, string] => {
         case 'Artists': return ['#7c2d12', '#9a3412'];
         case 'Genres': return ['#064e3b', '#065f46'];
         case 'Years': return ['#1e293b', '#64748b'];
-        case 'most_played': return ['#3b0764', '#581c87'];
-        case 'liked': return ['#4c0519', '#881337'];
+        case 'most_played': return ['#1a0333', '#2e0854'];
+        case 'liked': return ['#2a0311', '#4c0519'];
         case 'recently_played': return ['rgba(66, 32, 6, 0.5)', 'rgba(133, 77, 14, 0.35)'];
         case 'recently_added': return ['rgba(23, 37, 84, 0.5)', 'rgba(29, 78, 216, 0.35)'];
         case 'never_played': return ['#020617', '#334155'];
@@ -87,6 +87,7 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
 
     const gradientColors = getGradientColors(item.id);
     const displaySongs = item.songs || [];
+    const songCount = displaySongs.length;
 
     return (
         <TouchableOpacity
@@ -111,29 +112,28 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
                     end={{ x: 1, y: 1 }}
                 />
 
-                {/* Subtle Background Pattern */}
-                <View style={{ position: 'absolute', top: -15, right: -15, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-
                 <View style={styles.heroCardContent}>
+                    {/* Text on the left */}
                     <View style={styles.heroTextSection}>
-                        <Text style={styles.heroTitle} numberOfLines={2}>
+                        <Text style={styles.heroTitle} numberOfLines={1}>
                             {item.name}
+                        </Text>
+                        <Text style={styles.heroSubtitle} numberOfLines={1}>
+                            {songCount > 0 ? `${songCount} tracks` : 'No songs yet'}
                         </Text>
                     </View>
 
+                    {/* Small collage on the right */}
                     <View style={styles.heroArtSection}>
-                        <View style={styles.heroCollageContainer}>
-                            <PlaylistCollage
-                                songs={displaySongs}
-                                size={70}
-                                borderRadius={12}
-                                showBubbles={false}
-                                showIcon={true}
-                                hideIconIfHasContent={true}
-                                opacity={1}
-                                overlayColor="rgba(0,0,0,0.1)"
-                            />
-                        </View>
+                        <PlaylistCollage
+                            songs={displaySongs}
+                            size={48}
+                            borderRadius={10}
+                            showBubbles={false}
+                            showIcon={false}
+                            opacity={1}
+                            overlayColor="rgba(0,0,0,0.05)"
+                        />
                     </View>
                 </View>
             </Animated.View>
@@ -141,7 +141,7 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
     );
 });
 
-const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress, showIcon = true, hideIconIfHasContent = false }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void, showIcon?: boolean, hideIconIfHasContent?: boolean }) => {
+const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress, showIcon = false, hideIconIfHasContent = false }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void, showIcon?: boolean, hideIconIfHasContent?: boolean }) => {
     const isArtist = item.type === 'Artist' || (item.params as any)?.type === 'artist';
     const artistImage = useArtistImage(isArtist ? item.name : '');
     const displayImage = isArtist ? artistImage : item.image;
@@ -172,7 +172,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                         <View style={[
                             styles.favVerticalImageContainer,
                             { backgroundColor: 'rgba(255,255,255,0.05)' },
-                            isArtist && { borderRadius: 60, transform: [{ scale: 0.95 }] }
+                            isArtist && { borderRadius: 55, transform: [{ scale: 0.95 }] }
                         ]}>
                             {isArtist ? (
                                 <MusicImage
@@ -180,14 +180,14 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                     id={item.id}
                                     assetUri={(item as any).assetUri}
                                     style={StyleSheet.absoluteFill}
-                                    iconSize={40}
+                                    iconSize={32}
                                     iconName="person"
                                 />
                             ) : (
                                 <PlaylistCollage
                                     songs={item.songs || []}
-                                    size={140}
-                                    iconSize={36}
+                                    size={110}
+                                    iconSize={28}
                                     iconName={item.id === 'liked' ? "heart" : (item.type === 'Album' ? "disc" : "musical-notes")}
                                     borderRadius={12}
                                     showBubbles={false}
@@ -316,115 +316,53 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
             }}
         >
             <Animated.View style={[animatedStyle, { flex: 1 }]}>
-                <View
-                    style={[
+                <View style={{ width: '100%', alignItems: 'center' }}>
+                    <View style={[
                         {
-                            width: '100%',
-                            height: 65,
-                            alignSelf: 'center',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        },
-                        !isArtist && [
-                            styles.favoriteCard,
-                            {
-                                borderRadius: 14,
-                                overflow: 'hidden',
-                                backgroundColor: 'rgba(255,255,255,0.06)'
-                            }
-                        ]
-                    ]}
-                >
-                    {!isArtist && (
-                        <LinearGradient
-                            colors={getGradientColors(item.id)}
-                            style={StyleSheet.absoluteFill}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                        />
-                    )}
-                    {!isArtist && (
-                        item.id === 'liked' ? (
-                            <>
-                                <View style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                            </>
-                        ) : (
-                            <View style={{ position: 'absolute', top: -20, right: -20, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-                        )
-                    )}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', zIndex: 1, flex: 1, width: '100%', paddingHorizontal: 12 }}>
-                        {isArtist ? (
-                            <View style={[
-                                styles.iconCircle,
-                                {
-                                    width: 45,
-                                    height: 45,
-                                    borderRadius: 22.5,
-                                    overflow: 'hidden',
-                                    borderWidth: 2,
-                                    borderColor: 'white',
-                                    backgroundColor: theme.card,
-                                    marginRight: 10
-                                }
-                            ]}>
-                                <MusicImage
-                                    uri={displayImage}
-                                    id={item.id}
-                                    assetUri={(item as any).assetUri}
-                                    style={StyleSheet.absoluteFill}
-                                    iconSize={24}
-                                    iconName="person"
-                                />
-                            </View>
-                        ) : (
-                            <View style={{ marginRight: 10 }}>
-                                <PlaylistCollage
-                                    songs={item.songs || []}
-                                    size={40}
-                                    iconSize={18}
-                                    iconName={
-                                        item.icon || (
-                                            item.id === 'most_played' ? "refresh" :
-                                                item.id === 'liked' ? "heart" :
-                                                    (item.params as any)?.type === 'album' ? "disc" :
-                                                        (item.params as any)?.type === 'genre' ? "pricetags" :
-                                                            "musical-notes"
-                                        ) as any
-                                    }
-                                    borderRadius={8}
-                                    showBubbles={false}
-                                    gradientColors={getGradientColors(item.id)}
-                                    showIcon={showIcon}
-                                    hideIconIfHasContent={hideIconIfHasContent}
-                                />
-                            </View>
-                        )}
-                        <View style={{ flex: 1 }}>
-                            <MarqueeText
-                                text={item.name}
-                                style={[
-                                    styles.favoriteName,
-                                    {
-                                        color: isArtist ? theme.text : 'white',
-                                        fontWeight: 'bold',
-                                        fontSize: 14,
-                                        textAlign: 'left',
-                                        width: '100%'
-                                    }
-                                ]}
+                            width: 95,
+                            height: 95,
+                            borderRadius: isArtist ? 1000 : 24,
+                            overflow: 'hidden',
+                            backgroundColor: theme.card,
+                            elevation: 8,
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 5,
+                            marginBottom: 8
+                        }
+                    ]}>
+                        {!isArtist ? (
+                             <PlaylistCollage
+                                songs={item.songs || []}
+                                size={95}
+                                iconSize={26}
+                                iconName={item.id === 'liked' ? "heart" : (item.type === 'Album' ? "disc" : "musical-notes")}
+                                borderRadius={0}
+                                showBubbles={false}
+                                gradientColors={getGradientColors(item.id)}
+                                showIcon={showIcon}
+                                hideIconIfHasContent={hideIconIfHasContent}
                             />
-                            {!isArtist && (
-                                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '500' }}>
-                                    {item.id === 'liked' ? 'Favorites' :
-                                        item.id === 'most_played' ? 'Smart Playlist' :
-                                            ['Songs', 'Albums', 'Artists', 'Genres'].includes(item.id) ? 'Library' : (item.type || 'Playlist')}
-                                </Text>
-                            )}
-                        </View>
+                        ) : (
+                             <MusicImage
+                                uri={displayImage}
+                                id={item.id}
+                                style={StyleSheet.absoluteFill}
+                                iconSize={40}
+                                iconName="person"
+                            />
+                        )}
                     </View>
+                    <Text style={{ color: theme.text, fontSize: 11, fontWeight: 'bold', textAlign: 'center', width: '100%' }} numberOfLines={1}>
+                        {item.name}
+                    </Text>
+                    <Text style={{ color: theme.textSecondary, fontSize: 10, marginTop: 1, textAlign: 'center', width: '100%' }} numberOfLines={1}>
+                         {isArtist ? 'Artist' : (item.type || 'Playlist')}
+                    </Text>
                 </View>
             </Animated.View>
-        </TouchableOpacity >
+        </TouchableOpacity>
     );
 });
 
@@ -480,6 +418,29 @@ const HistoryPlaylistCard = React.memo(({
     );
 });
 
+const TopAlbumCard = React.memo(({ album, appTheme, onPress }: any) => {
+    if (!album) return null;
+
+    return (
+        <TouchableOpacity style={styles.topAlbumCard} onPress={() => onPress(album)}>
+            <View style={styles.topAlbumImageContainer}>
+                <MusicImage
+                    uri={album.coverImage}
+                    id={album.name}
+                    style={StyleSheet.absoluteFill}
+                    iconSize={44}
+                />
+            </View>
+            <Text style={[styles.topAlbumName, { color: appTheme?.text || '#fff', fontSize: 15 }]} numberOfLines={1}>
+                {album.name}
+            </Text>
+            <Text style={[styles.topAlbumSub, { color: appTheme?.textSecondary || '#aaa', fontSize: 13 }]} numberOfLines={1}>
+                {album.artist}
+            </Text>
+        </TouchableOpacity>
+    );
+});
+
 const SmartPlaylistCard = React.memo(({
     item,
     onPress,
@@ -500,7 +461,7 @@ const SmartPlaylistCard = React.memo(({
             style={{
                 width: cardSize,
                 height: cardSize,
-                borderRadius: 16,
+                borderRadius: 24,
                 overflow: 'hidden',
                 marginRight: 15,
                 backgroundColor: 'rgba(255,255,255,0.05)',
@@ -692,7 +653,7 @@ export const HomeScreen = () => {
         }));
 
         const favArtists = (favoriteArtists || []).map(artist => ({
-            id: artist,
+            id: `artist:${artist}`,
             name: artist,
             type: 'Artist',
             image: artistImageMap.get(artist) || null,
@@ -701,7 +662,7 @@ export const HomeScreen = () => {
         }));
 
         const favAlbums = (favoriteAlbums || []).map(album => ({
-            id: album,
+            id: `album:${album}`,
             name: album,
             type: 'Album',
             image: albumImageMap.get(album) || null,
@@ -711,7 +672,7 @@ export const HomeScreen = () => {
         }));
 
         const favGenres = (favoriteGenres || []).map(genre => ({
-            id: genre,
+            id: `genre:${genre}`,
             name: genre,
             type: 'Genre',
             image: genreImageMap.get(genre) || null,
@@ -723,6 +684,14 @@ export const HomeScreen = () => {
         // Items from library, excluding Liked/Most Played as they are now in Collections grid
         return [...favoritedPlaylists, ...favArtists, ...favAlbums, ...favGenres];
     }, [playlists, favoriteArtists, favoriteAlbums, favoriteGenres, songs]);
+
+    const favoriteChunks = useMemo(() => {
+        const chunks = [];
+        for (let i = 0; i < allFavorites.length; i += 2) {
+            chunks.push(allFavorites.slice(i, i + 2));
+        }
+        return chunks;
+    }, [allFavorites]);
 
     const homePlaylists = useMemo(() => {
         return PLAYLISTS_LIST.filter(item => {
@@ -787,14 +756,18 @@ export const HomeScreen = () => {
     }, [songs]);
 
     const collectionsWithSongs = useMemo(() => {
-        return COLLECTIONS.map(item => {
+        return COLLECTIONS.filter(item => {
+            if (item.id === 'liked') return sectionVisibility.likedSongs;
+            if (item.id === 'most_played') return sectionVisibility.mostlyPlayed;
+            return true;
+        }).map(item => {
             if (item.id === 'liked') return { ...item, songs: likedSongs || [] };
             if (item.id === 'most_played') {
                 return { ...item, songs: sortedMostPlayed };
             }
             return { ...item, songs: [] };
         });
-    }, [sortedMostPlayed, likedSongs]);
+    }, [sortedMostPlayed, likedSongs, sectionVisibility.likedSongs, sectionVisibility.mostlyPlayed]);
 
     useEffect(() => {
         const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
@@ -957,6 +930,30 @@ export const HomeScreen = () => {
         return [];
     }, [topArtists, songs]);
 
+    const displayTopAlbums = useMemo(() => {
+        if (songs && songs.length > 0) {
+            const albumMap = new Map<string, { name: string, artist: string, songCount: number, coverImage?: string }>();
+            for (let i = 0; i < songs.length; i++) {
+                const song = songs[i];
+                if (!song.album || song.album === 'Unknown Album') continue;
+                const key = `${song.album}-${song.artist}`;
+                const existing = albumMap.get(key);
+                if (existing) {
+                    existing.songCount += 1;
+                } else {
+                    albumMap.set(key, {
+                        name: song.album,
+                        artist: song.artist || 'Unknown Artist',
+                        songCount: 1,
+                        coverImage: song.coverImage,
+                    });
+                }
+            }
+            return Array.from(albumMap.values()).sort((a, b) => b.songCount - a.songCount).slice(0, 10);
+        }
+        return [];
+    }, [songs]);
+
     const smartMixes: any[] = [];
 
     const handleClearSearch = () => {
@@ -1007,33 +1004,27 @@ export const HomeScreen = () => {
 
     const renderHeader = () => {
         return (
-            <View>
-                <View style={styles.header}>
-                    <View style={styles.headerTitleGroup}>
-                        <View>
-                            <Image source={require('../../assets/discicon.png')} style={styles.headerLogo} />
-                        </View>
-                        <Text style={[styles.appNameTitle, { color: appTheme.text }]}>Music</Text>
-                    </View>
+            <View style={[styles.header, { marginBottom: 15, paddingTop: 15, paddingHorizontal: 15 }]}>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <TouchableOpacity
-                            onPress={() => navigation.navigate('Settings')}
-                            style={styles.settingsButton}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons name="settings-outline" size={24} color={appTheme.textSecondary} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
 
-                <View style={[styles.searchBar, { backgroundColor: appTheme.card, borderColor: appTheme.cardBorder, borderWidth: 1 }]}>
+                {/* Inline Search Bar */}
+                <View style={[styles.searchBar, { 
+                    flex: 1, 
+                    marginHorizontal: 10, 
+                    marginBottom: 0, 
+                    height: 48, 
+                    borderRadius: 24, 
+                    paddingHorizontal: 16,
+                    backgroundColor: appTheme.card, 
+                    borderColor: appTheme.cardBorder, 
+                    borderWidth: 1 
+                }]}>
                     <Ionicons name="search" size={20} color={appTheme.textSecondary} />
                     <TextInput
                         ref={searchInputRef}
-                        style={[styles.searchInput, { color: appTheme.text }]}
-                        placeholder={isListening ? "Listening..." : "Search artists, songs, or albums"}
-                        placeholderTextColor={isListening ? appTheme.primary : appTheme.textSecondary}
+                        style={[styles.searchInput, { color: appTheme.text, fontSize: 16, marginLeft: 12, fontFamily: 'PlusJakartaSans_500Medium' }]}
+                        placeholder={isListening ? "Listening..." : (voiceError ? "Didn't understand, try again" : "Search artists, songs...")}
+                        placeholderTextColor={isListening ? appTheme.primary : (voiceError ? '#ef4444' : appTheme.textSecondary)}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                         onFocus={() => setIsSearchFocused(true)}
@@ -1041,18 +1032,27 @@ export const HomeScreen = () => {
                     />
                     {(searchQuery.length > 0 || isSearchFocused) ? (
                         <TouchableOpacity onPress={handleClearSearch}>
-                            <Ionicons name="close-circle" size={20} color={appTheme.textSecondary} />
+                            <Ionicons name="close-circle" size={18} color={appTheme.textSecondary} />
                         </TouchableOpacity>
                     ) : (
                         <TouchableOpacity onPress={isListening ? stopListening : startListening}>
                             <Ionicons
                                 name={isListening ? "mic" : "mic-outline"}
-                                size={20}
+                                size={18}
                                 color={isListening ? '#ef4444' : appTheme.textSecondary}
                             />
                         </TouchableOpacity>
                     )}
                 </View>
+
+                {/* Settings Button */}
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('Settings')}
+                    style={[styles.settingsButton, { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }]}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="settings-outline" size={24} color={appTheme.textSecondary} />
+                </TouchableOpacity>
             </View>
         );
     };
@@ -1095,7 +1095,7 @@ export const HomeScreen = () => {
                             <Text style={{ color: appTheme.textSecondary, marginTop: 10 }}>No results for "{searchQuery}"</Text>
                         </View>
                     }
-                    contentContainerStyle={{ paddingBottom: 150 }}
+                    contentContainerStyle={{ paddingBottom: 220 }}
                 />
             );
         }
@@ -1134,7 +1134,7 @@ export const HomeScreen = () => {
                         </View>
                     }
                     estimatedItemSize={70}
-                    contentContainerStyle={{ paddingBottom: 150 }}
+                    contentContainerStyle={{ paddingBottom: 220 }}
                 />
             );
         }
@@ -1147,21 +1147,15 @@ export const HomeScreen = () => {
                 onScroll={scrollHandler}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 150 }}
+                contentContainerStyle={{ paddingBottom: 220 }}
             >
 
-                {sectionVisibility.collections && (
-                    <>
-                        <View style={[styles.sectionHeader, { marginBottom: 12 }]}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Your Collections</Text>
-                        </View>
-
-                        <View style={styles.heroGrid}>
-                            {collectionsWithSongs.map((item) => (
-                                <CollectionCollageHeroCard key={item.id} item={item} theme={appTheme} navigation={navigation} />
-                            ))}
-                        </View>
-                    </>
+                {collectionsWithSongs.length > 0 && (
+                    <View style={[styles.heroGrid, { marginTop: 10 }]}>
+                        {collectionsWithSongs.map((item) => (
+                            <CollectionCollageHeroCard key={item.id} item={item} theme={appTheme} navigation={navigation} />
+                        ))}
+                    </View>
                 )}
 
                 {sectionVisibility.favorites && allFavorites.length > 0 && (
@@ -1175,33 +1169,23 @@ export const HomeScreen = () => {
                             )}
                         </View>
 
-                        <View
-                            style={{ paddingHorizontal: 20, paddingBottom: 5 }}
-                        >
-                            {allFavorites.slice(0, 6).map((item) => (
-                                <FavoriteItemCard
-                                    key={item.id}
-                                    item={item}
-                                    theme={appTheme}
-                                    navigation={navigation}
-                                    isListView
-                                    showIcon={true}
-                                    hideIconIfHasContent={true}
-                                    onPlayPress={(favItem) => {
-                                        let playSongs: any[] = [];
-                                        if (favItem.type === 'Artist') {
-                                            playSongs = songs.filter((s: any) => s.artist === favItem.name);
-                                        } else {
-                                            playSongs = favItem.songs || [];
-                                        }
-                                        if (playSongs.length > 0) {
-                                            playSongInPlaylist(playSongs, 0, favItem.name);
-                                            navigation.navigate('Player', { trackIndex: 0 });
-                                        }
-                                    }}
-                                />
-                            ))}
-                        </View>
+                        <FlatList
+                            data={allFavorites.slice(0, 5)}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 15 }}
+                            decelerationRate="fast"
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={({ item }) => (
+                                <View style={{ width: 115, marginRight: 15 }}>
+                                    <FavoriteItemCard
+                                        item={item}
+                                        theme={appTheme}
+                                        navigation={navigation}
+                                    />
+                                </View>
+                            )}
+                        />
                     </>
                 )}
 
@@ -1286,6 +1270,29 @@ export const HomeScreen = () => {
                                 />
                             ))}
                         </View>
+                    </>
+                )}
+
+                {sectionVisibility.topAlbums && displayTopAlbums.length > 0 && (
+                    <>
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Albums</Text>
+                        </View>
+                        <FlatList
+                            data={displayTopAlbums}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
+                            decelerationRate="fast"
+                            keyExtractor={(album) => `${album.name}-${album.artist}`}
+                            renderItem={({ item: album }) => (
+                                <TopAlbumCard
+                                    album={album}
+                                    appTheme={appTheme}
+                                    onPress={(alb: any) => navigation.navigate('Playlist', { id: alb.name, name: alb.name, type: 'album' })}
+                                />
+                            )}
+                        />
                     </>
                 )}
 
@@ -1437,14 +1444,14 @@ const styles = StyleSheet.create({
     historyCard: {
         width: 150,
         height: 220,
-        borderRadius: 20,
+        borderRadius: 24,
         overflow: 'hidden',
         marginRight: 15,
     },
     historyCardSmall: {
         width: 130,
         height: 180,
-        borderRadius: 16,
+        borderRadius: 24,
         overflow: 'hidden',
         marginRight: 15,
     },
@@ -1493,69 +1500,76 @@ const styles = StyleSheet.create({
     },
     heroCardWrapper: {
         width: '48%',
-        height: 110,
+        height: 64,
     },
     heroCardInner: {
         flex: 1,
-        borderRadius: 22,
+        borderRadius: 24,
         overflow: 'hidden',
-        elevation: 10,
+        elevation: 6,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.15)',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        borderWidth: 0,
+        borderColor: 'transparent',
     },
     heroCardContent: {
         flex: 1,
         flexDirection: 'row',
-        padding: 14,
+        alignItems: 'center',
+        paddingLeft: 12,
+        paddingRight: 8,
     },
     heroTextSection: {
-        flex: 0.55,
-        justifyContent: 'flex-start',
+        flex: 1,
+        justifyContent: 'center',
+        marginRight: 8,
+    },
+    heroArtSection: {
+        width: 48,
+        height: 48,
+        borderRadius: 10,
+        overflow: 'hidden',
     },
     heroTitle: {
         color: 'white',
-        fontSize: 18,
-        fontWeight: '900',
-        letterSpacing: -0.5,
-        textShadowColor: 'rgba(0,0,0,0.4)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        fontSize: 13,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        fontWeight: 'bold',
+        letterSpacing: -0.3,
     },
-    heroArtSection: {
-        flex: 0.45,
-        justifyContent: 'center',
-        alignItems: 'flex-end',
+    heroSubtitle: {
+        color: 'rgba(255,255,255,0.65)',
+        fontSize: 10,
+        marginTop: 2,
     },
     heroCollageContainer: {
         width: 70,
         height: 70,
-        borderRadius: 14,
+        borderRadius: 24,
         overflow: 'hidden',
         elevation: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderWidth: 0,
+        borderColor: 'transparent',
         transform: [{ rotate: '4deg' }],
     },
     favoriteItemWrapper: {
-        width: 140,
-        marginRight: 18,
+        width: 110,
+        marginRight: 14,
     },
     favVerticalCard: {
         width: '100%',
         alignItems: 'center',
     },
     favVerticalImageContainer: {
-        width: 140,
-        height: 140,
-        borderRadius: 14,
+        width: 110,
+        height: 110,
+        borderRadius: 24,
         overflow: 'hidden',
         marginBottom: 8,
     },
@@ -1564,7 +1578,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     favVerticalTitle: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: 'bold',
         textAlign: 'center',
         width: '100%',
@@ -1575,12 +1589,11 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     favoriteItemWrapperGrid: {
-        width: '48%',
-        marginBottom: 15,
+        width: '100%',
     },
     favoriteCard: {
         width: '100%',
-        height: 65,
+        height: 160,
         padding: 0,
         overflow: 'hidden'
     },
@@ -1603,7 +1616,7 @@ const styles = StyleSheet.create({
     topSongImageContainer: {
         width: 45,
         height: 45,
-        borderRadius: 8,
+        borderRadius: 24,
         overflow: 'hidden',
         marginRight: 12,
     },
@@ -1625,24 +1638,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     topArtistCard: {
-        width: 100,
-        marginRight: 20,
+        width: 80,
+        marginRight: 14,
         alignItems: 'center',
     },
     topArtistImageContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         overflow: 'hidden',
-        marginBottom: 10,
+        marginBottom: 8,
     },
     topArtistName: {
-        fontSize: 14,
+        fontSize: 12,
         fontFamily: 'PlusJakartaSans_700Bold',
         textAlign: 'center',
     },
     topArtistSub: {
-        fontSize: 12,
+        fontSize: 10,
         opacity: 0.7,
         textAlign: 'center',
     },
@@ -1694,5 +1707,26 @@ const styles = StyleSheet.create({
     },
     removeRecentBtn: {
         padding: 10,
-    }
+    },
+    topAlbumCard: {
+        width: 120,
+        marginRight: 14,
+    },
+    topAlbumImageContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 24,
+        overflow: 'hidden',
+        marginBottom: 8,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    topAlbumName: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    topAlbumSub: {
+        fontSize: 10,
+        opacity: 0.7,
+        marginTop: 2,
+    },
 });

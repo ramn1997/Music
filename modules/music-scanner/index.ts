@@ -15,9 +15,3 @@ export interface AudioFile {
 export async function scanAudioFilesAsync(): Promise<AudioFile[]> {
     return await MusicScannerModule.scanAudioFilesAsync();
 }
-
-export async function deleteAudioFileAsync(songId: string, filePath: string): Promise<boolean> {
-    return await MusicScannerModule.deleteAudioFileAsync(songId, filePath);
-}
-
-export default MusicScannerModule;

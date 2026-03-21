@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal, Pressable, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { Song } from '../store/useLibraryStore';
@@ -27,8 +27,7 @@ import { SortOptionsModal, SortOption } from '../components/SortOptionsModal';
 import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
 
-// Removed top-level creation to prevent initialization race conditions
-
+const { width } = Dimensions.get('window');
 
 export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const songs = useLibraryStore(state => state.songs);
@@ -60,7 +59,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     React.useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedQuery(searchQuery);
-        }, 150); // fast debounce to preserve responsiveness without killing thread
+        }, 150);
         return () => clearTimeout(handler);
     }, [searchQuery]);
 
@@ -81,7 +80,6 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         setSelectedSongIds(new Set());
     };
 
-    // Performance fix: Prevents UI stagger during screen navigation transitions
     const [isNavigated, setIsNavigated] = useState(false);
     React.useEffect(() => {
         const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
@@ -104,8 +102,6 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         }
         return result;
     }, [preSortedSongs, sortOption, isNavigated]);
-
-
 
     const filteredSongs = React.useMemo(() => {
         if (!isNavigated) return [];
@@ -130,13 +126,10 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         }
     }, [playSongInPlaylist, navigation]);
 
-
     const onOpenOptions = React.useCallback((item: Song) => {
         setSelectedSong(item);
         setOptionsModalVisible(true);
     }, []);
-
-
 
     const callbacks = React.useRef({
         toggleSelection,
@@ -180,8 +173,6 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         );
     }, []);
 
-
-
     const extraData = React.useMemo(() => ({
         currentSongId: currentSong?.id,
         isSelectionMode,
@@ -191,10 +182,15 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     }), [currentSong?.id, isSelectionMode, selectedSongIds, themeType, theme]);
 
     const scrollHandler = useAnimatedScrollHandler({
-        onScroll: (event) => {
-            // Empty body bypasses the JS bridge tracking
-        },
+        onScroll: (event) => {},
     });
+
+    // Material 3 Colors
+    const onSurface = theme.text;
+    const onSurfaceVariant = theme.textSecondary;
+    const surfaceContainer = theme.card;
+    const primaryContainer = theme.primary + '18';
+    const onPrimaryContainer = theme.primary;
 
     const content = (
         <>
@@ -209,17 +205,15 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                     { label: 'Duration', value: 'duration', icon: 'time-outline' },
                 ]}
             />
-            {/* Header */}
-            <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: isEmbedded ? 0 : 20 }]}>
+            {/* Material 3 Header */}
+            <View style={[styles.header, { paddingTop: isEmbedded ? 0 : 16 }]}>
                 {!isEmbedded ? (
                     isSelectionMode ? (
-                        <>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <TouchableOpacity onPress={cancelSelection} style={styles.backButton}>
-                                    <Ionicons name="close" size={24} color={theme.text} />
-                                </TouchableOpacity>
-                                <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedSongIds.size} Selected</Text>
-                            </View>
+                        <View style={styles.headerContent}>
+                            <TouchableOpacity onPress={cancelSelection} style={styles.iconButton}>
+                                <Ionicons name="close" size={24} color={onSurface} />
+                            </TouchableOpacity>
+                            <Text style={[styles.headerTitle, { color: onSurface, flex: 1, marginLeft: 16 }]}>{selectedSongIds.size} selected</Text>
                             <TouchableOpacity
                                 onPress={() => {
                                     if (selectedSongIds.size > 0) {
@@ -228,47 +222,55 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                                         setPlaylistModalVisible(true);
                                     }
                                 }}
-                                style={{ padding: 8 }}
+                                style={styles.iconButton}
                             >
-                                <Ionicons name="add-circle" size={28} color={theme.primary} />
+                                <Ionicons name="add-circle-outline" size={24} color={theme.primary} />
                             </TouchableOpacity>
-                        </>
+                        </View>
                     ) : (
-                        <>
-                            <View style={styles.headerLeft}>
-                                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                                </TouchableOpacity>
-                                <Text style={[styles.headerTitle, { color: theme.text }]}>All Songs</Text>
-                            </View>
-                        </>
+                        <View style={styles.headerContent}>
+                            <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.iconButton}>
+                                <Ionicons name="arrow-back" size={24} color={onSurface} />
+                            </TouchableOpacity>
+                            <Text style={[styles.headerTitle, { color: onSurface, marginLeft: 16 }]}>All Songs</Text>
+                        </View>
                     )
                 ) : (
                     <View style={{ flex: 1 }} />
                 )}
             </View>
 
-            {/* Search Bar & Sort */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10 }}>
-                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, marginRight: 10, marginHorizontal: 0, marginVertical: 0, borderWidth: 1, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+            {/* Material 3 Search Bar & Filter */}
+            <View style={styles.searchRow}>
+                <View style={[styles.searchContainer, { backgroundColor: surfaceContainer, borderColor: theme.cardBorder }]}>
+                    <Ionicons name="search" size={20} color={onSurfaceVariant} style={{ marginRight: 12 }} />
                     <TextInput
-                        style={[styles.searchInput, { color: theme.text }]}
+                        style={[styles.searchInput, { color: onSurface }]}
                         placeholder="Search songs..."
-                        placeholderTextColor={theme.textSecondary}
+                        placeholderTextColor={onSurfaceVariant + '80'}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
+                        selectionColor={theme.primary}
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={18} color={onSurfaceVariant} />
+                        </TouchableOpacity>
+                    )}
                 </View>
-                <TouchableOpacity onPress={() => setSortModalVisible(true)} style={styles.sortButton}>
-                    <Ionicons name="options-outline" size={22} color={theme.primary} />
+                <TouchableOpacity
+                    onPress={() => setSortModalVisible(true)}
+                    style={[styles.filterButton, { backgroundColor: surfaceContainer, borderColor: theme.cardBorder }]}
+                >
+                    <Ionicons name="filter" size={20} color={theme.primary} />
                 </TouchableOpacity>
             </View>
 
-            {/* Action Buttons: Play All & Shuffle */}
-            <View style={styles.actionButtonsContainer}>
-                <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.primary, marginRight: 12 }]}
+            {/* Material 3 Action Buttons */}
+            <View style={styles.mainActions}>
+                <Pressable
+                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                    style={[styles.primaryAction, { backgroundColor: theme.primary }]}
                     onPress={() => {
                         if (filteredSongs.length > 0) {
                             playSongInPlaylist(filteredSongs, 0, "All Songs");
@@ -276,12 +278,13 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         }
                     }}
                 >
-                    <Ionicons name="play" size={14} color={theme.textOnPrimary} />
-                    <Text style={[styles.actionButtonText, { color: theme.textOnPrimary }]}>Play All</Text>
-                </TouchableOpacity>
+                    <Ionicons name="play" size={18} color={theme.textOnPrimary} />
+                    <Text style={[styles.actionLabel, { color: theme.textOnPrimary }]}>Play All</Text>
+                </Pressable>
 
-                <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: theme.card, borderColor: theme.primary, borderWidth: 1.5, opacity: 1 }]}
+                <Pressable
+                    android_ripple={{ color: theme.primary + '20' }}
+                    style={[styles.secondaryAction, { backgroundColor: primaryContainer, borderColor: theme.primary + '40' }]}
                     onPress={() => {
                         if (filteredSongs.length > 0) {
                             const shuffled = [...filteredSongs].sort(() => Math.random() - 0.5);
@@ -290,14 +293,14 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         }
                     }}
                 >
-                    <Ionicons name="shuffle" size={14} color={theme.primary} />
-                    <Text style={[styles.actionButtonText, { color: theme.text }]}>Shuffle</Text>
-                </TouchableOpacity>
+                    <Ionicons name="shuffle" size={18} color={theme.primary} />
+                    <Text style={[styles.actionLabel, { color: theme.primary }]}>Shuffle</Text>
+                </Pressable>
             </View>
 
             {loading ? (
                 <View style={styles.center}>
-                    <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading Songs...</Text>
+                    <Text style={[styles.loadingText, { color: onSurfaceVariant }]}>Loading Songs...</Text>
                 </View>
             ) : (
                 <View style={{ flex: 1 }}>
@@ -310,26 +313,22 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         renderItem={renderSong}
                         extraData={extraData}
                         estimatedItemSize={70}
-                        overrideItemLayout={(layout: any) => {
-                            layout.size = 70;
-                        }}
-                        initialScrollIndex={0}
-                        initialNumToRender={30}
-                        maxToRenderPerBatch={30}
-                        drawDistance={250} // Use default draw distance to prevent performance bottleneck
-                        getItemType={() => 'song'}
+                        overrideItemLayout={(layout: any) => { layout.size = 70; }}
+                        initialNumToRender={15}
+                        maxToRenderPerBatch={10}
+                        drawDistance={250}
                         contentContainerStyle={styles.listContent}
                         ListEmptyComponent={
-                            <View style={{ alignItems: 'center', marginTop: 50 }}>
-                                <Text style={{ color: theme.textSecondary }}>No songs found.</Text>
+                            <View style={styles.emptyState}>
+                                <Ionicons name="musical-notes-outline" size={48} color={onSurfaceVariant + '40'} />
+                                <Text style={{ color: onSurfaceVariant, marginTop: 16, fontFamily: 'PlusJakartaSans_500Medium' }}>
+                                    No songs found
+                                </Text>
                             </View>
                         }
                         showsVerticalScrollIndicator={false}
                     />
 
-
-
-                    {/* Options Modal - Dropdown Style Replaced with Bottom Sheet */}
                     <SongOptionsMenu
                         visible={optionsModalVisible}
                         onClose={() => setOptionsModalVisible(false)}
@@ -345,7 +344,6 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         }}
                     />
 
-                    {/* Edit Song Modal */}
                     <EditSongModal
                         visible={editModalVisible}
                         onClose={() => setEditModalVisible(false)}
@@ -353,9 +351,6 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         onSave={updateSongMetadata}
                     />
 
-
-
-                    {/* Add to Playlist Modal */}
                     <AddToPlaylistModal
                         visible={playlistModalVisible}
                         onClose={() => {
@@ -380,228 +375,108 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     );
 };
 
-const formatDuration = (millis: number) => {
-    if (!millis) return "0:00";
-    const minutes = Math.floor(millis / 1000 / 60);
-    const seconds = Math.floor((millis / 1000) % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-};
-
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    safeArea: { flex: 1 },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
+        paddingHorizontal: 16,
+        paddingBottom: 12,
     },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 20,
-        backgroundColor: 'transparent',
-    },
-    headerLeft: {
+    headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 15
+        height: 56,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 22,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: -0.2,
     },
-    center: {
-        flex: 1,
+    iconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     },
-    loadingText: {
-        fontSize: 16
-    },
-    listContent: {
-        paddingBottom: 150,
-    },
-    searchContainer: {
+    searchRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 20,
-        paddingHorizontal: 12,
-        height: 34,
-        borderRadius: 17,
+        paddingHorizontal: 20,
+        marginBottom: 16,
+        gap: 12,
+    },
+    searchContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 48,
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        borderWidth: 1,
     },
     searchInput: {
         flex: 1,
-        fontSize: 13,
-        height: '100%',
-        paddingVertical: 0, // Fix cross-platform vertical alignment
-    },
-    songItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-    },
-    iconContainer: {
-        marginRight: 15,
-    },
-    iconPlaceholder: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    songIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-    },
-    songInfo: {
-        flex: 1,
-    },
-    songTitle: {
-        fontSize: 14, // Reduced from 16
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    songArtist: {
-        fontSize: 12, // Reduced from 14
-    },
-    songDuration: {
-        fontSize: 12, // Reduced from 14
-        marginRight: 10,
-    },
-    moreButton: {
-        padding: 5,
-    },
-    // Modal Styles
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)', // More transparent
-    },
-    playlistModalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20
-    },
-    modalContent: {
-        width: '100%',
-        maxHeight: '60%',
-        borderRadius: 20,
-        padding: 20,
-        borderWidth: 1,
-        elevation: 5
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-        paddingBottom: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.1)'
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold'
-    },
-    playlistItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-    },
-    playlistIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 15
-    },
-    playlistName: {
         fontSize: 16,
-        fontWeight: '500',
-        flex: 1
+        fontFamily: 'PlusJakartaSans_500Medium',
+        padding: 0,
     },
-    songCount: {
-        fontSize: 12
-    },
-    emptyState: {
-        padding: 20,
+    filterButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
         alignItems: 'center',
-        justifyContent: 'center'
-    },
-    // Dropdown Styles
-    dropdownMenu: {
-        position: 'absolute',
-        width: 200,
-        padding: 6, // Reduced padding
-        borderRadius: 12,
         borderWidth: 1,
-        elevation: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
     },
-    dropdownItem: {
+    mainActions: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10, // Reduced vertical padding
-        paddingHorizontal: 10,
-    },
-    dropdownText: {
-        fontSize: 16,
-        fontWeight: '500'
-    },
-    playingOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 8
-    },
-    sortButton: {
-        width: 34,
-        height: 34,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    actionButtonsContainer: {
-        flexDirection: 'row',
-        paddingLeft: 20,
-        paddingRight: 20,
-        marginBottom: 15,
-    },
-    actionButton: {
         paddingHorizontal: 20,
+        marginBottom: 20,
+        gap: 12,
+    },
+    primaryAction: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: 32,
-        borderRadius: 16, // Pill shape
-        elevation: 2,
+        height: 44,
+        borderRadius: 22,
+        gap: 8,
+        elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
     },
-    actionButtonText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        marginLeft: 4,
-    }
+    secondaryAction: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 44,
+        borderRadius: 22,
+        gap: 8,
+        borderWidth: 1,
+    },
+    actionLabel: {
+        fontSize: 14,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: 0.1,
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        fontSize: 16,
+        fontFamily: 'PlusJakartaSans_500Medium',
+    },
+    listContent: {
+        paddingBottom: 220,
+    },
+    emptyState: {
+        alignItems: 'center',
+        marginTop: 60,
+        opacity: 0.6,
+    },
 });

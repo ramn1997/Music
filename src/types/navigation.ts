@@ -17,6 +17,7 @@ export type RootStackParamList = {
     LibraryMain: undefined;
     About: undefined;
     Queue: undefined;
+    Equalizer: undefined;
 };
 
 declare global {

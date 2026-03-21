@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, SectionList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, Dimensions } from 'react-native';
 import { MusicImage } from '../components/MusicImage';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
@@ -7,12 +7,16 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useNavigation } from '@react-navigation/native';
 import { usePlayerStore } from '../store/usePlayerStore';
+import { SongItem } from '../components/SongItem';
+
+const { width } = Dimensions.get('window');
 
 export const RecentlyAddedScreen = () => {
     const { theme } = useTheme();
     const songs = useLibraryStore(state => state.songs);
     const navigation = useNavigation<any>();
     const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
+    const currentSong = usePlayerStore(state => state.currentTrack);
 
     // Group songs by Date (Newer vs Older)
     const sections = useMemo(() => {
@@ -34,40 +38,40 @@ export const RecentlyAddedScreen = () => {
         const allSongs = sections.flatMap(s => s.data);
         const index = allSongs.findIndex(s => s.id === item.id);
         if (index !== -1) {
-            playSongInPlaylist(allSongs, index);
+            playSongInPlaylist(allSongs, index, "Recently Added");
             navigation.navigate('Player');
         }
     }, [sections, playSongInPlaylist, navigation]);
 
-    const renderSong = React.useCallback(({ item }: { item: any }) => (
-        <TouchableOpacity
-            style={styles.songItem}
-            onPress={() => handlePlaySong(item)}
-        >
-            <MusicImage
-                uri={item.coverImage}
-                id={item.id}
-                style={styles.artwork}
-                iconSize={20}
-                containerStyle={styles.artworkContainer}
-            />
-            <View style={styles.songInfo}>
-                <Text numberOfLines={1} style={[styles.songTitle, { color: theme.text }]}>{item.title}</Text>
-                <Text numberOfLines={1} style={[styles.songDetail, { color: theme.textSecondary }]}>{item.artist}</Text>
+    const renderSong = React.useCallback(({ item, index }: { item: any, index: number }) => (
+        <View style={styles.songRow}>
+            <View style={{ flex: 1 }}>
+                <SongItem
+                    item={item}
+                    index={index}
+                    isCurrent={currentSong?.id === item.id}
+                    theme={theme}
+                    onPress={() => handlePlaySong(item)}
+                    onOpenOptions={() => {}}
+                />
             </View>
             <Text style={[styles.dateText, { color: theme.textSecondary }]}>
                 {item.dateAdded ? new Date(item.dateAdded).toLocaleDateString() : ''}
             </Text>
-        </TouchableOpacity>
-    ), [theme, handlePlaySong]);
+        </View>
+    ), [theme, handlePlaySong, currentSong?.id]);
+
+    const onSurface = theme.text;
+    const onSurfaceVariant = theme.textSecondary;
 
     return (
         <ScreenContainer variant="default">
+            {/* Material 3 Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
+                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.iconButton}>
+                    <Ionicons name="arrow-back" size={24} color={onSurface} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Recently Added</Text>
+                <Text style={[styles.headerTitle, { color: onSurface, marginLeft: 16 }]}>Recently Added</Text>
             </View>
 
             <SectionList
@@ -80,10 +84,13 @@ export const RecentlyAddedScreen = () => {
                     </View>
                 )}
                 contentContainerStyle={styles.listContent}
-                stickySectionHeadersEnabled={false}
+                stickySectionHeadersEnabled={true}
                 ListEmptyComponent={
-                    <View style={styles.center}>
-                        <Text style={{ color: theme.textSecondary }}>No songs found.</Text>
+                    <View style={styles.emptyState}>
+                        <Ionicons name="time-outline" size={48} color={onSurfaceVariant + '40'} />
+                        <Text style={{ color: onSurfaceVariant, marginTop: 16, fontFamily: 'PlusJakartaSans_500Medium' }}>
+                            Your library is empty
+                        </Text>
                     </View>
                 }
             />
@@ -95,70 +102,51 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginVertical: 20,
-        gap: 15
-    },
-    backButton: {
-        padding: 4
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 12,
+        height: 72,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
+        fontSize: 22,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: -0.2,
+    },
+    iconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     listContent: {
-        paddingBottom: 40,
+        paddingBottom: 220,
     },
     sectionHeader: {
         paddingVertical: 12,
         paddingHorizontal: 20,
-        marginTop: 10,
+        backgroundColor: '#000', // ScreenContainer will override if needed
     },
     sectionHeaderText: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 14,
+        fontFamily: 'PlusJakartaSans_700Bold',
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: 1.2,
     },
-    songItem: {
+    songRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-    },
-    artwork: {
-        width: 44,
-        height: 44,
-        borderRadius: 8,
-    },
-    artworkContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 8,
-        marginRight: 15,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-    },
-    songInfo: {
-        flex: 1,
-        marginRight: 10,
-    },
-    songTitle: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 4,
-    },
-    songDetail: {
-        fontSize: 13,
     },
     dateText: {
-        fontSize: 11,
+        fontSize: 10,
+        fontFamily: 'PlusJakartaSans_500Medium',
+        position: 'absolute',
+        right: 60,
         opacity: 0.6,
     },
-    center: {
-        flex: 1,
+    emptyState: {
         alignItems: 'center',
-        marginTop: 50
-    }
+        marginTop: 60,
+        opacity: 0.6,
+    },
 });

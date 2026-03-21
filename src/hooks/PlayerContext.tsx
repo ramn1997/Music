@@ -13,7 +13,8 @@ import TrackPlayer, {
     Track,
     useIsPlaying,
     useActiveTrack,
-    AppKilledPlaybackBehavior
+    AppKilledPlaybackBehavior,
+    RatingType
 } from 'react-native-track-player';
 
 const PLAYER_STATE_KEY = 'player_state_persistence';
@@ -604,6 +605,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 android: {
                     appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
                 },
+                ratingType: RatingType.Heart,
                 stoppingAppPausesPlayback: false,
                 capabilities: [
                     Capability.Play,
@@ -611,8 +613,16 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                     Capability.SkipToNext,
                     Capability.SkipToPrevious,
                     Capability.SeekTo,
+                    Capability.SetRating,
                 ],
                 compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext, Capability.SkipToPrevious],
+                notificationCapabilities: [
+                    Capability.Play,
+                    Capability.Pause,
+                    Capability.SkipToNext,
+                    Capability.SkipToPrevious,
+                    Capability.SetRating,
+                ],
                 progressUpdateEventInterval: 1,
             });
             console.log('[PlayerContext] TrackPlayer options updated');
@@ -753,6 +763,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
                 uri: s.uri,
                 title: s.title,
                 artist: s.artist,
+                album: s.album,
                 albumId: s.albumId,
                 coverImage: (s.coverImage && s.coverImage.length > 500) ? undefined : s.coverImage
             }));

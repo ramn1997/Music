@@ -35,7 +35,7 @@ export const PlaylistCollage = ({
     showBubbles = true,
     gradientColors,
     forceSingleImage = false,
-    showIcon = true,
+    showIcon = false,
     hideIconIfHasContent = false
 }: PlaylistCollageProps) => {
     const containerWidth: any = width ?? size;

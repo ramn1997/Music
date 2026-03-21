@@ -12,6 +12,7 @@ export interface ScannedMetadata {
     artist?: string;
     album?: string;
     genre?: string;
+    year?: string;
     artwork?: string; // Local URI
 }
 
@@ -58,6 +59,7 @@ class MetadataService {
                     artist: true,
                     album: true,
                     genre: true,
+                    year: true,
                     picture: false
                 });
             } catch (innerError) {
@@ -70,6 +72,7 @@ class MetadataService {
                 artist: metadata?.artist || undefined,
                 album: metadata?.album || undefined,
                 genre: metadata?.genre || undefined,
+                year: metadata?.year || undefined,
             };
 
             // Cache by original URI to prevent re-resolution

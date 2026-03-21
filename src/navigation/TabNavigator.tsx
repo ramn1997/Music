@@ -58,7 +58,7 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
 
                 {/* Active Pill Layout */}
                 <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, activeStyle]} pointerEvents="none">
-                    <View style={[styles.activePillInner, { backgroundColor: theme.primary }]}>
+                    <View style={[styles.activePillInner, { backgroundColor: theme.primaryLight || theme.primary }]}>
                         <Ionicons name={iconName() as any} size={22} color={theme.textOnPrimary} />
                         <Text style={[styles.activeText, { color: theme.textOnPrimary }]} numberOfLines={1}>{label}</Text>
                     </View>

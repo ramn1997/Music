@@ -6,6 +6,7 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { QueueScreen } from '../screens/QueueScreen';
 import { PlaylistScreen } from '../screens/PlaylistScreen';
+import { EqualizerScreen } from '../screens/EqualizerScreen';
 import { RootStackParamList } from '../types/navigation';
 import { useTheme } from '../hooks/ThemeContext';
 
@@ -53,6 +54,7 @@ export const AppNavigator = () => {
                 <Stack.Screen name="About" component={AboutScreen} />
                 <Stack.Screen name="Queue" component={QueueScreen} />
                 <Stack.Screen name="Playlist" component={PlaylistScreen} />
+                <Stack.Screen name="Equalizer" component={EqualizerScreen} />
             </Stack.Navigator>
             {/* 
                MiniPlayer is placed here to validly overlay on top of the Stacks (except Modal usually covers everything).

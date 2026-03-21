@@ -13,6 +13,7 @@ export interface WidgetData {
     duration?: number;
     currentTimeStr?: string;
     totalTimeStr?: string;
+    isLiked?: boolean;
 }
 
 export const updateWidget = (data: WidgetData) => {

@@ -1,188 +1,159 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Pressable, Dimensions } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-
-const FlashListAny = FlashList as any;
 import { MusicImage } from '../components/MusicImage';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { useTheme } from '../hooks/ThemeContext';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Platform } from 'react-native';
 import { useLibraryStore, Song } from '../store/useLibraryStore';
-
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { usePlayerStore } from '../store/usePlayerStore';
+import { SongItem } from '../components/SongItem';
+
+const { width } = Dimensions.get('window');
+
+const FlashListAny = FlashList as any;
 
 export const MostPlayedScreen = () => {
     const { theme } = useTheme();
     const songs = useLibraryStore(state => state.songs);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
+    const currentSong = usePlayerStore(state => state.currentTrack);
 
     // Sort songs by playCount desc
     const sortedSongs = useMemo(() => {
-        return [...songs].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+        return [...songs]
+            .filter(s => (s.playCount || 0) > 0)
+            .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
     }, [songs]);
 
     const handlePlaySong = (index: number) => {
-        playSongInPlaylist(sortedSongs, index);
+        playSongInPlaylist(sortedSongs, index, "Most Played");
         navigation.navigate('Player', { trackIndex: index });
     };
 
     const renderSong = React.useCallback(({ item, index }: { item: Song; index: number }) => (
-        <TouchableOpacity
-            style={styles.songItem}
-            onPress={() => handlePlaySong(index)}
-        >
-            <View style={styles.rankContainer}>
-                <Text style={[styles.rankText, { color: index < 3 ? theme.primary : theme.textSecondary }]}>
+        <View style={styles.songRow}>
+            <View style={styles.rankBadge}>
+                <Text style={[
+                    styles.rankText,
+                    { 
+                        color: index < 3 ? theme.primary : theme.textSecondary,
+                        fontFamily: index < 3 ? 'PlusJakartaSans_800ExtraBold' : 'PlusJakartaSans_600SemiBold'
+                    }
+                ]}>
                     {index + 1}
                 </Text>
             </View>
-            <MusicImage
-                uri={item.coverImage}
-                id={item.id}
-                style={{ width: 40, height: 40, borderRadius: 8, marginRight: 12 }}
-                iconSize={20}
-                containerStyle={{ width: 40, height: 40, borderRadius: 8, marginRight: 12, backgroundColor: theme.card }}
-            />
-            <View style={styles.songInfo}>
-                <Text style={[styles.songTitle, { color: theme.text }]} numberOfLines={1}>{item.title}</Text>
-                <Text style={[styles.songDetail, { color: theme.textSecondary }]} numberOfLines={1}>
-                    {item.artist}
-                </Text>
-            </View>
-            <View style={styles.playCountBadge}>
-                <Ionicons name="play" size={10} color={theme.textSecondary} />
-                <Text style={[styles.playCountText, { color: theme.textSecondary }]}>{item.playCount || 0}</Text>
-            </View>
-        </TouchableOpacity>
-    ), [theme, handlePlaySong]);
-
-    const topSong = sortedSongs.length > 0 ? sortedSongs[0] : null;
-
-    return (
-        <View style={styles.container}>
-            {/* Animated Background */}
-            <View style={StyleSheet.absoluteFill}>
-                {topSong && (
-                    <MusicImage
-                        uri={topSong.coverImage}
-                        id={topSong.id}
-                        style={StyleSheet.absoluteFill}
-                        resizeMode="cover"
-                        iconSize={0}
-                    />
-                )}
-                <BlurView
-                    intensity={Platform.OS === 'ios' ? 80 : 100}
-                    tint="dark"
-                    style={StyleSheet.absoluteFill}
-                />
-                <LinearGradient
-                    colors={[theme.background, 'rgba(0,0,0,0.6)', theme.background]}
-                    style={StyleSheet.absoluteFill}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
+            <View style={{ flex: 1 }}>
+                <SongItem
+                    item={item}
+                    index={index}
+                    isCurrent={currentSong?.id === item.id}
+                    theme={theme}
+                    onPress={() => handlePlaySong(index)}
+                    onOpenOptions={() => {}} // Could add options here
                 />
             </View>
-
-            <View style={[styles.safeArea, { paddingTop: Platform.OS === 'android' ? 40 : 60 }]}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Most Played</Text>
-                </View>
-
-                <View style={{ flex: 1 }}>
-                    <FlashListAny
-                        data={sortedSongs}
-                        keyExtractor={(item: Song) => item.id}
-                        renderItem={renderSong}
-                        estimatedItemSize={70}
-                        contentContainerStyle={styles.listContent}
-                        ListEmptyComponent={
-                            <View style={styles.center}>
-                                <Text style={{ color: theme.textSecondary }}>No most played songs yet.</Text>
-                            </View>
-                        }
-                    />
-                </View>
+            <View style={[styles.playCountContainer, { backgroundColor: theme.primary + '15' }]}>
+                <Ionicons name="play" size={10} color={theme.primary} />
+                <Text style={[styles.playCountText, { color: theme.primary }]}>{item.playCount || 0}</Text>
             </View>
         </View>
+    ), [theme, handlePlaySong, currentSong?.id]);
+
+    const onSurface = theme.text;
+    const onSurfaceVariant = theme.textSecondary;
+
+    return (
+        <ScreenContainer variant="default">
+            {/* Material 3 Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.iconButton}>
+                    <Ionicons name="arrow-back" size={24} color={onSurface} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: onSurface, marginLeft: 16 }]}>Most Played</Text>
+            </View>
+
+            <View style={{ flex: 1 }}>
+                <FlashListAny
+                    data={sortedSongs}
+                    keyExtractor={(item: Song) => item.id}
+                    renderItem={renderSong}
+                    estimatedItemSize={72}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <Ionicons name="stats-chart-outline" size={48} color={onSurfaceVariant + '40'} />
+                            <Text style={{ color: onSurfaceVariant, marginTop: 16, fontFamily: 'PlusJakartaSans_500Medium' }}>
+                                No play data available yet
+                            </Text>
+                        </View>
+                    }
+                />
+            </View>
+        </ScreenContainer>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#000'
-    },
-    safeArea: {
-        flex: 1,
-    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginVertical: 20,
-        gap: 15
-    },
-    backButton: {
-        padding: 4
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 12,
+        height: 72,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
+        fontSize: 22,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        letterSpacing: -0.2,
     },
-    listContent: {
-        paddingBottom: 40,
-    },
-    songItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-    },
-    rankContainer: {
-        width: 30,
+    iconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10
+    },
+    listContent: {
+        paddingBottom: 220,
+    },
+    songRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    rankBadge: {
+        width: 48,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     rankText: {
         fontSize: 16,
-        fontWeight: 'bold',
     },
-    songInfo: {
-        flex: 1,
-    },
-    songTitle: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 2,
-    },
-    songDetail: {
-        fontSize: 14,
-    },
-    playCountBadge: {
+    playCountContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4
+        height: 24,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        gap: 4,
+        position: 'absolute',
+        right: 60, // Shift left of the ellipsis button if added
     },
     playCountText: {
-        fontSize: 12
+        fontSize: 11,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
-    center: {
-        flex: 1,
+    emptyState: {
         alignItems: 'center',
-        marginTop: 50
-    }
+        marginTop: 60,
+        opacity: 0.6,
+    },
 });
