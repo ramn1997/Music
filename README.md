@@ -8,6 +8,15 @@ A premium, comprehensive, and feature-rich music player application built with R
 -   **Contextual Recommendations**: The new "Start Mix" engine analyzes your currently playing music to instantly find and queue tracks with the same album, artist, or genre in your local library.
 -   **Next-Gen Performance Engine**: Completely overhauled the React render cycle and background listeners. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(1)` algorithmic maps and indexing, eliminating background CPU lockups and maintaining 60fps scrolling on massive libraries.
 
+## ✨ Highlights from v1.4.0
+
+-   **Daily Listening Analytics**: Track your total play counts and active listening time for today, fully persistent across sessions.
+-   **Weekly Insights Graph**: A stunning, neon-accented 7-day bar chart that visualizes your listening trends and highlights your peak session of the week.
+-   **Daily Fresh Mix**: Get 10 date-seeded tracks handpicked from your library every day, presented in a premium hero-style card on your Home screen.
+-   **Expanded Tracking Experience**: The Daily Mix card now features interactive list expansion and high-resolution cover art for every track.
+-   **Advanced Customization**: New settings toggles allow you to enable or disable Daily Tracking and Fresh Mix modules independently.
+-   **Material Player Refinement**: Upgraded playback interface with bold 900-weight typography and a perfectly balanced layout for song metadata.
+
 ## ✨ Highlights from v1.3.0
 
 -   **Material Design 3 Overhaul**: A stunning, consistent Material Design aesthetic applied across the Home, Playlists, Genres, and Favorites screens, featuring 24dp "squircle" corner radii, modern pill-shaped search bars, and flat borderless cards.

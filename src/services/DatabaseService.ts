@@ -99,10 +99,13 @@ class DatabaseService {
         if (typeof val === 'number') {
             return isNaN(val) ? 0 : val;
         }
+        if (typeof val === 'boolean') {
+            return val ? 1 : 0;
+        }
         if (typeof val === 'object') {
             return null; // Don't allow objects in SQLite columns
         }
-        return val;
+        return String(val); // Cast everything else to string to prevent JSI 'not an error'
     }
 
     private transactionLock: Promise<void> = Promise.resolve();
@@ -196,31 +199,51 @@ class DatabaseService {
 
     async getUnenhancedSongs(limit = 50) {
         const db = await this.getDb();
-        return await db.getAllAsync(`
-            SELECT * FROM songs 
-            WHERE scanStatus = 'pending' 
-            LIMIT ?
-        `, [limit]);
+        const release = await this.acquireLock();
+        try {
+            return await db.getAllAsync(`
+                SELECT * FROM songs 
+                WHERE scanStatus = 'pending' 
+                LIMIT ?
+            `, [limit]);
+        } finally {
+            release();
+        }
     }
 
     async getUnenhancedSongsCount(): Promise<number> {
         const db = await this.getDb();
-        const result: any = await db.getFirstAsync(`
-            SELECT COUNT(*) as count FROM songs 
-            WHERE scanStatus = 'pending' 
-        `);
-        return result?.count || 0;
+        const release = await this.acquireLock();
+        try {
+            const result: any = await db.getFirstAsync(`
+                SELECT COUNT(*) as count FROM songs 
+                WHERE scanStatus = 'pending' 
+            `);
+            return result?.count || 0;
+        } finally {
+            release();
+        }
     }
 
     async getSongsCount(): Promise<number> {
         const db = await this.getDb();
-        const result: any = await db.getFirstAsync('SELECT COUNT(*) as count FROM songs');
-        return result?.count || 0;
+        const release = await this.acquireLock();
+        try {
+            const result: any = await db.getFirstAsync('SELECT COUNT(*) as count FROM songs');
+            return result?.count || 0;
+        } finally {
+            release();
+        }
     }
 
     async getSongById(id: string) {
         const db = await this.getDb();
-        return await db.getFirstAsync('SELECT * FROM songs WHERE id = ?', [id]) as any;
+        const release = await this.acquireLock();
+        try {
+            return await db.getFirstAsync('SELECT * FROM songs WHERE id = ?', [id]) as any;
+        } finally {
+            release();
+        }
     }
 
     async updateSong(id: string, updates: any) {
@@ -243,16 +266,21 @@ class DatabaseService {
     // Efficiently get stats for progress bar
     async getSyncStatus(): Promise<DBStats> {
         const db = await this.getDb();
-        const result: any = await db.getFirstAsync(`
-            SELECT 
-                COUNT(*) as total, 
-                SUM(CASE WHEN scanStatus != 'pending' THEN 1 ELSE 0 END) as processed 
-            FROM songs
-        `);
-        return {
-            total: result?.total || 0,
-            processed: result?.processed || 0
-        };
+        const release = await this.acquireLock();
+        try {
+            const result: any = await db.getFirstAsync(`
+                SELECT 
+                    COUNT(*) as total, 
+                    SUM(CASE WHEN scanStatus != 'pending' THEN 1 ELSE 0 END) as processed 
+                FROM songs
+            `);
+            return {
+                total: result?.total || 0,
+                processed: result?.processed || 0
+            };
+        } finally {
+            release();
+        }
     }
 
     async markIncompleteSongsAsPending() {
@@ -279,11 +307,16 @@ class DatabaseService {
 
     async getAllSongs(folderNames?: string[]) {
         const db = await this.getDb();
-        if (folderNames && folderNames.length > 0) {
-            const placeholders = folderNames.map(() => '?').join(', ');
-            return await db.getAllAsync(`SELECT * FROM songs WHERE folder IN (${placeholders}) ORDER BY dateAdded DESC`, folderNames);
+        const release = await this.acquireLock();
+        try {
+            if (folderNames && folderNames.length > 0) {
+                const placeholders = folderNames.map(() => '?').join(', ');
+                return await db.getAllAsync(`SELECT * FROM songs WHERE folder IN (${placeholders}) ORDER BY dateAdded DESC`, folderNames);
+            }
+            return await db.getAllAsync('SELECT * FROM songs ORDER BY dateAdded DESC');
+        } finally {
+            release();
         }
-        return await db.getAllAsync('SELECT * FROM songs ORDER BY dateAdded DESC');
     }
 
     async deleteSong(id: string) {

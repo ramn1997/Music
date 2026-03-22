@@ -141,6 +141,8 @@ interface ThemeContextType {
     setThemeType: (type: ThemeType) => void;
     playerStyle: PlayerStyle;
     setPlayerStyle: (style: PlayerStyle) => void;
+    playerLayout: 'classic' | 'material';
+    setPlayerLayout: (layout: 'classic' | 'material') => void;
     isCarouselEnabled: boolean;
     setCarouselEnabled: (enabled: boolean) => void;
     navigationStyle: 'full' | 'pill';
@@ -155,6 +157,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const systemScheme = useColorScheme();
     const [themeType, setThemeTypeState] = useState<ThemeType>('black');
     const [playerStyle, setPlayerStyleState] = useState<PlayerStyle>('square');
+    const [playerLayout, setPlayerLayoutState] = useState<'classic' | 'material'>('classic');
     const [isCarouselEnabled, setIsCarouselEnabledState] = useState<boolean>(false);
     const [isSwipeEnabled, setIsSwipeEnabledState] = useState<boolean>(true);
     const [navigationStyle, setNavigationStyleState] = useState<'full' | 'pill'>('full');
@@ -176,6 +179,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             const savedStyle = await AsyncStorage.getItem('playerStyle');
             if (savedStyle) {
                 setPlayerStyleState(savedStyle as PlayerStyle);
+            }
+
+            const savedLayout = await AsyncStorage.getItem('playerLayout');
+            if (savedLayout) {
+                setPlayerLayoutState(savedLayout as 'classic' | 'material');
             }
 
             const savedCarousel = await AsyncStorage.getItem('isCarouselEnabled');
@@ -203,6 +211,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const setPlayerStyle = async (style: PlayerStyle) => {
         setPlayerStyleState(style);
         await AsyncStorage.setItem('playerStyle', style);
+    };
+
+    const setPlayerLayout = async (layout: 'classic' | 'material') => {
+        setPlayerLayoutState(layout);
+        await AsyncStorage.setItem('playerLayout', layout);
     };
 
     const setCarouselEnabled = async (enabled: boolean) => {
@@ -234,6 +247,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setThemeType,
             playerStyle,
             setPlayerStyle,
+            playerLayout,
+            setPlayerLayout,
             isCarouselEnabled,
             setCarouselEnabled,
             navigationStyle,

@@ -37,7 +37,7 @@ export const SongShareModal: React.FC<SongShareModalProps> = ({ visible, onClose
     if (!song) return null;
 
     const formatDuration = (ms?: number) => {
-        if (!ms) return '';
+        if (!ms || isNaN(ms)) return '--:--';
         const total = Math.floor(ms / 1000);
         const m = Math.floor(total / 60);
         const s = total % 60;

@@ -141,6 +141,189 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
     );
 });
 
+const DailyStatsCard = React.memo(({ theme, songs }: { theme: any, songs: Song[] }) => {
+    const dailyStats = useLibraryStore(state => state.dailyStats) || {};
+    const today = new Date().toISOString().split('T')[0];
+    const day = dailyStats[today] || { songsPlayed: 0, listeningTimeMs: 0, playsPerSong: {} };
+
+    // We removed the null return to keep the section visible for the user as requested
+    // if (!day || !day.songsPlayed) return null;
+
+    const formatTime = (ms: number) => {
+        if (!ms) return "0m";
+        const totalMinutes = Math.floor(ms / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${minutes}m`;
+    };
+
+
+
+    const topSongId = useMemo(() => {
+        let maxId = null;
+        let maxPlays = 0;
+        if (day.playsPerSong) {
+            Object.entries(day.playsPerSong).forEach(([id, plays]) => {
+                if (plays > maxPlays) {
+                    maxPlays = plays;
+                    maxId = id;
+                }
+            });
+        }
+        return maxId;
+    }, [day.playsPerSong]);
+
+    const topSong = useMemo(() => {
+        return (topSongId && Array.isArray(songs)) ? songs.find(s => s && s.id === topSongId) : null;
+    }, [topSongId, songs]);
+
+    // Calculate weekly summary for the graph
+    const last7Days = useMemo(() => {
+        const statsArr = [];
+        let maxTime = 1; // avoid divide by zero
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            const d = dailyStats[dateStr] || { songsPlayed: 0, listeningTimeMs: 0 };
+            if (d.listeningTimeMs > maxTime) maxTime = d.listeningTimeMs;
+            
+            statsArr.push({
+                label: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()],
+                timeMs: d.listeningTimeMs,
+                isToday: i === 0
+            });
+        }
+        return { statsArr, maxTime };
+    }, [dailyStats]);
+
+    return (
+        <View style={styles.statsCardWrapper}>
+            <LinearGradient
+                colors={theme.type === 'dark' ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)'] : ['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.01)']}
+                style={[styles.statsCard, { borderColor: theme.border, borderWidth: 1 }]}
+            >
+                <View style={styles.statsHeader}>
+                    <View style={[styles.statsIconBox, { backgroundColor: theme.primary + '20' }]}>
+                        <Ionicons name="analytics" size={14} color={theme.primary} />
+                    </View>
+                    <Text style={[styles.statsTitle, { color: theme.textSecondary }]}>Weekly Insights</Text>
+                </View>
+
+                {/* Graph Section */}
+                <View style={styles.graphContainer}>
+                    {last7Days.statsArr.map((d, i) => {
+                        const barHeight = Math.max(8, (d.timeMs / last7Days.maxTime) * 40);
+                        return (
+                            <View key={i} style={styles.barColumn}>
+                                <View style={[styles.barBg, { backgroundColor: theme.textSecondary + '10' }]}>
+                                    <View style={[
+                                        styles.barFill, 
+                                        { 
+                                            height: barHeight, 
+                                            backgroundColor: d.isToday ? theme.primary : theme.textSecondary + '40'
+                                        }
+                                    ]} />
+                                </View>
+                                <Text style={[styles.barLabel, { color: d.isToday ? theme.primary : theme.textSecondary }]}>{d.label}</Text>
+                            </View>
+                        );
+                    })}
+                </View>
+
+                <View style={[styles.statDividerRow, { backgroundColor: theme.textSecondary + '10' }]} />
+                
+                <View style={styles.statsGrid}>
+                    <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: theme.text }]}>{day.songsPlayed}</Text>
+                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Plays</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(day.listeningTimeMs)}</Text>
+                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Minutes</Text>
+                    </View>
+                    {topSong && (
+                        <>
+                            <View style={styles.statDivider} />
+                            <View style={[styles.statItem, { flex: 1.8 }]}>
+                                <Text numberOfLines={1} style={[styles.statValue, { color: theme.text, fontSize: 13, textAlign: 'center' }]}>{topSong.title}</Text>
+                                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Top Song</Text>
+                            </View>
+                        </>
+                    )}
+                </View>
+            </LinearGradient>
+        </View>
+    );
+});
+
+const DailyMixCard = React.memo(({ theme, songs, navigation, onPlayMix }: { theme: any, songs: Song[], navigation: any, onPlayMix: (songs: Song[]) => void }) => {
+    if (songs.length === 0) return null;
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    const displaySongs = isExpanded ? songs : songs.slice(0, 4);
+
+    return (
+        <View style={styles.dailyMixContainer}>
+            <TouchableOpacity 
+                style={[styles.dailyMixCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+                activeOpacity={0.9}
+                onPress={() => onPlayMix(songs)}
+            >
+                <LinearGradient
+                    colors={[theme.primary + '30', 'transparent']}
+                    style={StyleSheet.absoluteFill}
+                />
+                
+                <View style={styles.dailyMixHeader}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.dailyMixBadge, { color: theme.primary, borderColor: theme.primary }]}>DAILY PICK</Text>
+                        <Text style={[styles.dailyMixTitle, { color: theme.text }]}>Fresh Mix</Text>
+                        <Text style={[styles.dailyMixSubtitle, { color: theme.textSecondary }]}>Handpicked for today</Text>
+                    </View>
+                    <TouchableOpacity 
+                        style={[styles.dailyMixPlayBtn, { backgroundColor: theme.primary }]}
+                        onPress={() => onPlayMix(songs)}
+                    >
+                        <Ionicons name="play" size={24} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.dailyMixList}>
+                    {displaySongs.map((s, idx) => (
+                        <View key={s.id} style={styles.dailyMixSongRow}>
+                            <MusicImage 
+                                uri={s.coverImage} 
+                                id={s.id} 
+                                style={styles.dailyMixCover} 
+                                iconSize={12} 
+                            />
+                            <View style={{ flex: 1 }}>
+                                <Text numberOfLines={1} style={[styles.dailyMixSongName, { color: theme.text }]}>
+                                    {s.title}
+                                </Text>
+                                <Text numberOfLines={1} style={[styles.dailyMixArtistName, { color: theme.textSecondary }]}>
+                                    {s.artist}
+                                </Text>
+                            </View>
+                        </View>
+                    ))}
+                    {!isExpanded && songs.length > 4 && (
+                        <TouchableOpacity 
+                            onPress={(e) => { e.stopPropagation(); setIsExpanded(true); }}
+                            style={styles.dailyMixMoreBtn}
+                        >
+                            <Text style={[styles.dailyMixMore, { color: theme.primary }]}>+ {songs.length - 4} more tracks</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </TouchableOpacity>
+        </View>
+    );
+});
+
 const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress, showIcon = false, hideIconIfHasContent = false }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void, showIcon?: boolean, hideIconIfHasContent?: boolean }) => {
     const isArtist = item.type === 'Artist' || (item.params as any)?.type === 'artist';
     const artistImage = useArtistImage(isArtist ? item.name : '');
@@ -500,7 +683,6 @@ const SmartPlaylistCard = React.memo(({
                 top: 8,
                 right: 8,
                 flexDirection: 'row',
-                gap: 6
             }}>
                 <TouchableOpacity
                     style={{
@@ -510,6 +692,7 @@ const SmartPlaylistCard = React.memo(({
                         backgroundColor: 'rgba(255,255,255,0.2)',
                         justifyContent: 'center',
                         alignItems: 'center',
+                        marginRight: 6
                     }}
                     onPress={(e) => { e.stopPropagation(); onPlayPress?.(item); }}
                 >
@@ -954,6 +1137,24 @@ export const HomeScreen = () => {
         return [];
     }, [songs]);
 
+    const dailyMixSongs = useMemo(() => {
+        if (!songs || songs.length === 0) return [];
+        const todayStr = new Date().toISOString().split('T')[0];
+        // Seeded random based on date
+        let seed = todayStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const shuffled = [...songs].sort(() => {
+            seed = (seed * 9301 + 49297) % 233280;
+            return (seed / 233280) - 0.5;
+        });
+        return shuffled.slice(0, 10);
+    }, [songs]);
+
+    const handlePlayDailyMix = (mixSongs: Song[]) => {
+        if (mixSongs.length > 0) {
+            playSongInPlaylist(mixSongs, 0, "Daily Mix");
+        }
+    };
+
     const smartMixes: any[] = [];
 
     const handleClearSearch = () => {
@@ -1158,17 +1359,20 @@ export const HomeScreen = () => {
                     </View>
                 )}
 
+                {sectionVisibility.dailyMix && (
+                    <DailyMixCard 
+                        theme={appTheme} 
+                        songs={dailyMixSongs} 
+                        navigation={navigation} 
+                        onPlayMix={handlePlayDailyMix}
+                    />
+                )}
+
                 {sectionVisibility.favorites && allFavorites.length > 0 && (
                     <>
                         <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 10 }]}>
                             <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Favorites</Text>
-                            {allFavorites.length > 6 && (
-                                <TouchableOpacity onPress={() => navigation.navigate('Favorites' as any)}>
-                                    <Text style={[{ color: appTheme.primary, fontWeight: '600' }]}>See All</Text>
-                                </TouchableOpacity>
-                            )}
                         </View>
-
                         <FlatList
                             data={allFavorites.slice(0, 5)}
                             horizontal
@@ -1317,6 +1521,15 @@ export const HomeScreen = () => {
                                 />
                             )}
                         />
+                    </>
+                )}
+
+                {sectionVisibility.dailyTracking && (
+                    <>
+                        <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 15 }]}>
+                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Daily Tracking</Text>
+                        </View>
+                        <DailyStatsCard theme={appTheme} songs={songs} />
                     </>
                 )}
 
@@ -1728,5 +1941,176 @@ const styles = StyleSheet.create({
         fontSize: 10,
         opacity: 0.7,
         marginTop: 2,
+    },
+    statsCardWrapper: {
+        marginHorizontal: 20,
+        marginTop: 15,
+        marginBottom: 10,
+        borderRadius: 24,
+        overflow: 'hidden',
+    },
+    statsCard: {
+        padding: 18,
+        borderRadius: 24,
+    },
+    statsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    statsIconBox: {
+        width: 28,
+        height: 28,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    statsTitle: {
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        marginLeft: 10,
+    },
+    graphContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        height: 60,
+        marginBottom: 20,
+        paddingHorizontal: 4,
+    },
+    barColumn: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    barBg: {
+        width: 8,
+        height: 40,
+        borderRadius: 4,
+        overflow: 'hidden',
+        justifyContent: 'flex-end',
+        marginBottom: 6,
+    },
+    barFill: {
+        width: '100%',
+        borderRadius: 4,
+    },
+    barLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    statDividerRow: {
+        height: 1,
+        width: '100%',
+        marginBottom: 16,
+        opacity: 0.5,
+    },
+    dailyMixContainer: {
+        marginHorizontal: 20,
+        marginTop: 10,
+        marginBottom: 15,
+    },
+    dailyMixCard: {
+        borderRadius: 24,
+        padding: 24,
+        overflow: 'hidden',
+    },
+    dailyMixHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 20,
+    },
+    dailyMixBadge: {
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1,
+        borderWidth: 1,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+        alignSelf: 'flex-start',
+        marginBottom: 8,
+    },
+    dailyMixTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    dailyMixSubtitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        opacity: 0.8,
+    },
+    dailyMixPlayBtn: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+    },
+    dailyMixList: {
+        gap: 12,
+    },
+    dailyMixSongRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    dailyMixCover: {
+        width: 36,
+        height: 36,
+        borderRadius: 8,
+        marginRight: 12,
+    },
+    dailyMixSongName: {
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    dailyMixArtistName: {
+        fontSize: 13,
+        opacity: 0.6,
+        marginTop: 1,
+    },
+    dailyMixMoreBtn: {
+        paddingVertical: 8,
+        alignSelf: 'flex-start',
+    },
+    dailyMixMore: {
+        fontSize: 12,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        opacity: 0.8,
+    },
+    statsGrid: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    statItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    statValue: {
+        fontSize: 20,
+        fontWeight: '900',
+    },
+    statLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        marginTop: 4,
+        opacity: 0.6,
+    },
+    statDivider: {
+        width: 1,
+        height: 24,
+        backgroundColor: 'rgba(128,128,128,0.15)',
     },
 });

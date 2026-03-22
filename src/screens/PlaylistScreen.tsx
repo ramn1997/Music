@@ -180,7 +180,7 @@ const ArtistProfileImage = ({ uri, name }: { uri?: string, name: string, primary
 };
 
 const formatPlaylistDuration = (ms: number) => {
-    if (!ms || ms <= 0) return "";
+    if (!ms || ms <= 0 || isNaN(ms)) return "";
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -1203,9 +1203,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 };
 
 const formatDuration = (millis: number) => {
-    if (!millis) return "0:00";
-    const minutes = Math.floor(millis / 1000 / 60);
-    const seconds = Math.floor((millis / 1000) % 60);
+    if (!millis || isNaN(millis)) return "--:--";
+    const minutes = Math.floor(millis / 60000);
+    const seconds = Math.floor((millis % 60000) / 1000);
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 

@@ -24,10 +24,13 @@ export const SettingsScreen = () => {
         navigationStyle,
         setNavigationStyle,
         isSwipeEnabled,
-        setSwipeEnabled
+        setSwipeEnabled,
+        playerLayout,
+        setPlayerLayout
     } = useTheme();
     const [themeExpanded, setThemeExpanded] = useState(false);
     const [styleExpanded, setStyleExpanded] = useState(false);
+    const [layoutExpanded, setLayoutExpanded] = useState(false);
     const [navExpanded, setNavExpanded] = useState(false);
 
     const navigation = useNavigation<any>();
@@ -151,6 +154,52 @@ export const SettingsScreen = () => {
 
                         <TouchableOpacity
                             style={styles.settingsRow}
+                            onPress={() => setLayoutExpanded(!layoutExpanded)}
+                        >
+                            <View style={styles.rowIcon}>
+                                <Ionicons name="tablet-portrait" size={20} color={theme.text} />
+                            </View>
+                            <View style={styles.rowContent}>
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Player Layout</Text>
+                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>
+                                    {playerLayout.charAt(0).toUpperCase() + playerLayout.slice(1)}
+                                </Text>
+                            </View>
+                            <Ionicons name={layoutExpanded ? "chevron-up" : "chevron-down"} size={20} color={theme.textSecondary} />
+                        </TouchableOpacity>
+
+                        {layoutExpanded && (
+                            <View style={[styles.dropdownContainer, { backgroundColor: 'transparent', borderTopWidth: 1, borderColor: theme.cardBorder }]}>
+                                {(['classic', 'material'] as const).map((l) => (
+                                    <TouchableOpacity
+                                        key={l}
+                                        style={[
+                                            styles.dropdownItem,
+                                            { borderBottomColor: theme.cardBorder },
+                                            playerLayout === l && { backgroundColor: theme.primary + '10' }
+                                        ]}
+                                        onPress={() => {
+                                            setPlayerLayout(l);
+                                            setLayoutExpanded(false);
+                                        }}
+                                    >
+                                        <Text style={[
+                                            styles.dropdownText,
+                                            { color: theme.text },
+                                            playerLayout === l && { color: theme.primary }
+                                        ]}>
+                                            {l.charAt(0).toUpperCase() + l.slice(1)}
+                                        </Text>
+                                        {playerLayout === l && <Ionicons name="checkmark" size={18} color={theme.primary} />}
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+
+                        <View style={[styles.divider, { backgroundColor: theme.cardBorder }]} />
+
+                        <TouchableOpacity
+                            style={styles.settingsRow}
                             onPress={() => setStyleExpanded(!styleExpanded)}
                         >
                             <View style={styles.rowIcon}>
@@ -257,6 +306,8 @@ export const SettingsScreen = () => {
                             </View>
                             <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                         </TouchableOpacity>
+
+
 
                         <View style={[styles.divider, { backgroundColor: theme.cardBorder }]} />
                         <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
@@ -401,6 +452,34 @@ export const SettingsScreen = () => {
                                 thumbColor={'#f4f3f4'}
                             />
                         </View>
+                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
+
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="analytics-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Daily Tracking</Text>
+                            </View>
+                            <Switch
+                                value={sectionVisibility.dailyTracking}
+                                onValueChange={() => toggleSectionVisibility('dailyTracking')}
+                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
+                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
+
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="sparkles-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Daily Mix</Text>
+                            </View>
+                            <Switch
+                                value={sectionVisibility.dailyMix}
+                                onValueChange={() => toggleSectionVisibility('dailyMix')}
+                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
                     </View>
                 </View>
 
@@ -457,7 +536,7 @@ export const SettingsScreen = () => {
                             </View>
                             <View style={styles.rowContent}>
                                 <Text style={[styles.rowTitle, { color: theme.text }]}>Music</Text>
-                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Version 1.3.0</Text>
+                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>App Information</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                         </TouchableOpacity>

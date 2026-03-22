@@ -32,7 +32,9 @@ export const AboutScreen = () => {
 
     const features = [
         { icon: 'color-palette-outline', title: 'Dynamic Themes', desc: 'Polished UI with glassmorphism and 7+ premium themes including Nebula, Cyber, and Forest.' },
-        { icon: 'folder-open-outline', title: 'Local Library Management', desc: 'Seamlessly scan and organize your local music library without limits.' },
+        { icon: 'stats-chart-outline', title: 'Daily Listening Analytics', desc: 'Track your daily song plays and listening time with a visual weekly insights graph.' },
+        { icon: 'sparkles-outline', title: 'Daily Fresh Mix', desc: 'Get 10 date-seeded tracks handpicked every day for a fresh listening experience.' },
+        { icon: 'musical-notes-outline', title: 'Material Player', desc: 'Refined playback interface with bold typography and immersive gesture controls.' },
     ];
 
 
@@ -73,7 +75,7 @@ export const AboutScreen = () => {
                     </Animated.View>
 
                     <Text style={[styles.appName, { color: theme.text }]}>Music</Text>
-                    <Text style={[styles.appVersion, { color: theme.primary }]}>Version 1.3.0</Text>
+                    <Text style={[styles.appVersion, { color: theme.primary }]}>Version 1.4.0</Text>
                     <Text style={[styles.appDescription, { color: theme.textSecondary }]}>
                         A premium local music player designed for audiophiles who value both aesthetics and performance.
                         No ads, no subscriptions, just your pure music.

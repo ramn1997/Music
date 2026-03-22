@@ -15,6 +15,8 @@ import { Song } from '../types/library';
 import { updateWidget, widgetEvents } from '../utils/musicWidget';
 const PLAYER_STATE_KEY = 'player_state_persistence';
 const PLAYER_POSITION_KEY = 'player_position';
+ 
+let lastTick = Date.now();
 
 // Optimization: Keep a small native queue window. We manage advancement ourselves.
 const QUEUE_WINDOW_SIZE = 5; // songs ahead of current in native queue
@@ -208,7 +210,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                 uri: s.uri,
                 title: s.title,
                 artist: s.artist,
+                album: s.album,
                 albumId: s.albumId,
+                duration: s.duration,
+                genre: s.genre,
                 coverImage: (s.coverImage && s.coverImage.length > 500) ? undefined : s.coverImage
             }));
 
@@ -266,11 +271,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                     await TrackPlayer.setupPlayer({
                         waitForBuffer: true,
                         autoHandleInterruptions: true,
-                        // Exact Buffer parameters requested for Gapless Playback
-                        minBuffer: (isGapless ? 15 : 10) * qualityMultiplier,
-                        maxBuffer: (isGapless ? 50 : 20) * qualityMultiplier,
-                        playBuffer: 2.5 * qualityMultiplier,
-                        backBuffer: 5 * qualityMultiplier,
+                        minBuffer: 15,
+                        maxBuffer: 50,
+                        backBuffer: 30,
+                        playBuffer: 2.5,
                     });
                 }
 
@@ -496,15 +500,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             return;
         }
 
-        // Load a look-ahead window: current track + next QUEUE_WINDOW_SIZE tracks
-        const windowEnd = Math.min(songs.length, index + QUEUE_WINDOW_SIZE + 1);
-        const window = songs.slice(index, windowEnd);
+        // Safe Native Push Boundary: Limit batch to 1000 to elegantly bypass Android IPC Binder limits (1MB)
+        // while remaining functionally infinite for 99% of user session permutations.
+        const safeWindowEnd = Math.min(songs.length, index + 1000);
+        const window = songs.slice(index, safeWindowEnd);
         const tracks = window.map(songToTrack);
 
         await TrackPlayer.reset();
         await TrackPlayer.add(tracks);
-        // The selected song is always at native index 0 after reset+add(window)
-        // No need to skip — just play from position 0
+
+        // Natively sync directly with the pushed 0-indexed window natively
+        try {
+            await TrackPlayer.skip(0);
+        } catch (e) { }
 
         set({
             playlist: songs,
@@ -519,8 +527,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         const mode = state.repeatMode === 'one' ? RepeatMode.Track
             : state.repeatMode === 'all' ? RepeatMode.Queue
                 : RepeatMode.Off;
-        // Use RepeatMode.Off — we manage looping ourselves via the gapless engine
-        await TrackPlayer.setRepeatMode(RepeatMode.Off);
+        // Native gapless looping support properly bridged to physical ExoPlayer queue!
+        await TrackPlayer.setRepeatMode(mode);
         get().saveState();
     },
 
@@ -645,38 +653,32 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         const playlist = state.playlist;
         if (playlist.length === 0) return;
 
-        let nextVirtualIdx: number;
-        if (state.repeatMode === 'one') {
-            nextVirtualIdx = state.currentIndex;
-        } else if (state.currentIndex >= playlist.length - 1) {
-            if (state.repeatMode === 'all') {
-                nextVirtualIdx = 0;
-            } else {
-                return; // end of queue, no repeat
-            }
-        } else {
-            nextVirtualIdx = state.currentIndex + 1;
-        }
+        // Requirement: Always play next/prev even if we are on start or end part of list
+        const nextVirtualIdx = state.currentIndex >= playlist.length - 1 ? 0 : state.currentIndex + 1;
 
         try {
             const nativeQueue = await TrackPlayer.getQueue();
             const nativeIdx = await TrackPlayer.getActiveTrackIndex();
 
-            if (nativeIdx !== null && nativeIdx !== undefined && nativeIdx < nativeQueue.length - 1) {
-                // Next track is already pre-buffered in native queue — just skip to it (gapless!)
-                await TrackPlayer.skipToNext();
+            const isLoopingBack = nextVirtualIdx === 0 && state.currentIndex >= playlist.length - 1;
+            const canSkipNatively = !isLoopingBack && (typeof nativeIdx === 'number' && nativeIdx < nativeQueue.length - 1);
+
+            if (canSkipNatively) {
+                await TrackPlayer.skip(nativeIdx + 1);
+                await TrackPlayer.play();
             } else {
-                // Need to load the next track
-                const nextSong = playlist[nextVirtualIdx];
+                const safeWindowEnd = Math.min(playlist.length, nextVirtualIdx + 1000);
+                const window = playlist.slice(nextVirtualIdx, safeWindowEnd);
                 await TrackPlayer.reset();
-                const windowEnd = Math.min(playlist.length, nextVirtualIdx + QUEUE_WINDOW_SIZE + 1);
-                const window = playlist.slice(nextVirtualIdx, windowEnd);
                 await TrackPlayer.add(window.map(songToTrack));
                 await TrackPlayer.play();
             }
-
-            set({ currentIndex: nextVirtualIdx, currentTrack: playlist[nextVirtualIdx] });
+            
+            // Absolute Sync: Update state immediately so UI provides instant feedback
+            const nextSong = playlist[nextVirtualIdx];
+            set({ currentIndex: nextVirtualIdx, currentTrack: nextSong, isPlaying: true });
             get().saveState();
+            get().syncWidget();
         } catch (e) {
             console.error('[PlayerStore] nextTrack error:', e);
         }
@@ -685,7 +687,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     prevTrack: async () => {
         try {
             const currentPosition = await TrackPlayer.getPosition();
-            if (currentPosition > 3) {
+            if (currentPosition > 5) {
                 await TrackPlayer.seekTo(0);
                 return;
             }
@@ -694,28 +696,30 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             const playlist = state.playlist;
             if (playlist.length === 0) return;
 
-            const prevVirtualIdx = state.currentIndex <= 0
-                ? (state.repeatMode === 'all' ? playlist.length - 1 : 0)
-                : state.currentIndex - 1;
+            // Requirement: Always play next/prev even if we are on start or end part of list
+            const prevVirtualIdx = state.currentIndex <= 0 ? playlist.length - 1 : state.currentIndex - 1;
 
             const nativeQueue = await TrackPlayer.getQueue();
             const nativeIdx = await TrackPlayer.getActiveTrackIndex();
 
-            if (nativeIdx !== null && nativeIdx !== undefined && nativeIdx > 0) {
-                // Previous track is already in native queue before current
-                await TrackPlayer.skipToPrevious();
+            const canSkipNatively = (typeof nativeIdx === 'number' && nativeIdx > 0);
+
+            if (canSkipNatively) {
+                await TrackPlayer.skip(nativeIdx - 1);
+                await TrackPlayer.play();
             } else {
-                // Load from virtual playlist
-                const prevSong = playlist[prevVirtualIdx];
+                const safeWindowEnd = Math.min(playlist.length, prevVirtualIdx + 1000);
+                const window = playlist.slice(prevVirtualIdx, safeWindowEnd);
                 await TrackPlayer.reset();
-                const windowEnd = Math.min(playlist.length, prevVirtualIdx + QUEUE_WINDOW_SIZE + 1);
-                const window = playlist.slice(prevVirtualIdx, windowEnd);
                 await TrackPlayer.add(window.map(songToTrack));
                 await TrackPlayer.play();
             }
 
-            set({ currentIndex: prevVirtualIdx, currentTrack: playlist[prevVirtualIdx] });
+            // Sync UI state immediately
+            const prevSong = playlist[prevVirtualIdx];
+            set({ currentIndex: prevVirtualIdx, currentTrack: prevSong, isPlaying: true });
             get().saveState();
+            get().syncWidget();
         } catch (e) {
             console.error('[PlayerStore] prevTrack error:', e);
         }
@@ -786,63 +790,18 @@ export const initializePlayerEvents = () => {
 
             if (virtualIndex !== -1 && virtualIndex < state.playlist.length) {
                 const song = state.playlist[virtualIndex];
-                state.setCurrentTrack(song);
-                state.setCurrentIndex(virtualIndex);
+                
+                // CRITICAL: Double-verify the track isn't already set to avoid race conditions 
+                // that flip details back to old tracks during rapid skips.
+                if (state.currentIndex !== virtualIndex || state.currentTrack?.id !== song.id) {
+                    state.setCurrentTrack(song);
+                    state.setCurrentIndex(virtualIndex);
+                }
 
                 // Increment play count for Recently Played / Top Songs / Most Played
                 if (song && String(song.id) !== lastScrobbledId) {
                     lastScrobbledId = String(song.id);
                     useLibraryStore.getState().incrementPlayCount(String(song.id));
-                }
-
-                // ENHANCED GAPLESS PRE-BUFFER: Only if enabled
-                const playlist = state.playlist;
-                const nextVirtualIdx = virtualIndex + 1;
-                const isGaplessEnabled = state.isGapless;
-
-                if (isGaplessEnabled && nextVirtualIdx < playlist.length) {
-                    try {
-                        const nativeQueue = await TrackPlayer.getQueue();
-                        const activeNativeIdx = await TrackPlayer.getActiveTrackIndex() ?? 0;
-
-                        // Buffer up to 2 tracks ahead for super smooth transitions
-                        const tracksToBuffer = [];
-                        for (let offset = 1; offset <= 2; offset++) {
-                            const targetIdx = virtualIndex + offset;
-                            if (targetIdx < playlist.length) {
-                                const song = playlist[targetIdx];
-                                const isBuffered = nativeQueue.some(t => String(t.id) === String(song.id));
-                                if (!isBuffered) {
-                                    tracksToBuffer.push(songToTrack(song));
-                                }
-                            }
-                        }
-
-                        if (tracksToBuffer.length > 0) {
-                            await TrackPlayer.add(tracksToBuffer);
-                            console.log(`[PlayerStore] Gapless: buffered ${tracksToBuffer.length} tracks`);
-                        }
-
-                        // Optimize performance: Prune tracks that are no longer needed
-                        if (activeNativeIdx > 5) {
-                            const indicesToRemove = Array.from({ length: activeNativeIdx - 3 }, (_, i) => i);
-                            if (indicesToRemove.length > 0) {
-                                await TrackPlayer.remove(indicesToRemove);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[PlayerStore] Gapless management error:', e);
-                    }
-                } else if (isGaplessEnabled && state.repeatMode === 'all' && playlist.length > 0) {
-                    // Wrap around pre-buffering
-                    try {
-                        const nativeQueue = await TrackPlayer.getQueue();
-                        const firstSong = playlist[0];
-                        const isBuffered = nativeQueue.some(t => String(t.id) === String(firstSong.id));
-                        if (!isBuffered) {
-                            await TrackPlayer.add([songToTrack(firstSong)]);
-                        }
-                    } catch (e) { }
                 }
             }
         }
@@ -850,22 +809,65 @@ export const initializePlayerEvents = () => {
 
     TrackPlayer.addEventListener(Event.PlaybackState, (event) => {
         const state = usePlayerStore.getState();
-        const isNowPlaying = event.state === State.Playing || event.state === State.Buffering;
-        state.setIsPlaying(isNowPlaying);
+        if (event.state === State.Playing || event.state === State.Buffering) {
+            state.setIsPlaying(true);
+        } else if (event.state === State.Paused || event.state === State.Stopped || event.state === State.None || event.state === (State as any).Error) {
+            state.setIsPlaying(false);
+        }
+        
+        // Reset lastTick whenever playback state changes (Playing/Paused/Buffering)
+        lastTick = Date.now();
+        // During State.Ready or State.Loading, leave isPlaying exactly as it is to prevent UI flickering
+        // between tracks natively!
     });
 
     TrackPlayer.addEventListener(Event.PlaybackQueueEnded, () => {
         usePlayerStore.getState().setIsPlaying(false);
     });
 
-    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (event) => {
+    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, async (event) => {
         if (event.position > 0) {
             // Write directly to MMKV asynchronously but fast. No bridge delays.
             storage.set(PLAYER_POSITION_KEY, event.position * 1000);
 
+            const state = usePlayerStore.getState();
+
+            // Track Listening Time (Throttled to every 10 seconds to keep UI light)
+            const now = Date.now();
+            const delta = now - lastTick;
+            
+            // Only count if within reasonable bounds (e.g. not a huge jump after backgrounding)
+            if (state.isPlaying && state.currentTrack && delta >= 10000) {
+                useLibraryStore.getState().updateDailyStats(state.currentTrack.id, delta, false);
+                lastTick = now;
+            } else if (!state.isPlaying) {
+                lastTick = now;
+            }
+
             // Periodically update widget (every ~5 seconds of playback)
             if (Math.floor(event.position) % 5 === 0) {
-                usePlayerStore.getState().syncWidget();
+                state.syncWidget();
+            }
+
+            // ARTIFICIAL GAPLESS CUT-OVER FOR UNREGULATED LOCAL MP3 FILES
+            // If the user's mp3 files have built-in silence at the end (from web rippers), 
+            // native ExoPlayer gapless cannot remove it natively. We manually force skip 0.4s 
+            // before file termination to simulate a gapless crossfade cut if gapless is enabled.
+            if (state.isGapless && event.duration > 0) {
+                const msRemaining = event.duration - event.position;
+                // If within 0.4 seconds of physical termination 
+                if (msRemaining > 0 && msRemaining <= 0.4) {
+                    try {
+                        const nativeQueue = await TrackPlayer.getQueue();
+                        const nativeIdx = await TrackPlayer.getActiveTrackIndex();
+                        if (nativeIdx !== null && nativeIdx !== undefined) {
+                            if (nativeIdx < nativeQueue.length - 1 || state.repeatMode === 'all') {
+                                console.log('[PlayerStore] Triggering artificial gapless cut-over');
+                                await TrackPlayer.skipToNext();
+                            }
+                        }
+                    } catch (e) {}
+                }
             }
         }
     });

@@ -71,6 +71,11 @@ interface LibraryState {
     artistMetadata: Record<string, ArtistMetadata>;
     sortedSongs: Song[];
     sortedLikedSongs: Song[];
+    dailyStats: Record<string, {
+        songsPlayed: number;
+        listeningTimeMs: number;
+        playsPerSong: Record<string, number>;
+    }>;
 
     // Actions
     initLibrary: () => Promise<void>;
@@ -102,6 +107,7 @@ interface LibraryState {
     updateArtistMetadata: (artistName: string, updates: Partial<ArtistMetadata>) => Promise<void>;
     syncArtistImages: (names: string[]) => Promise<void>;
     calculateBackgroundStats: () => void;
+    updateDailyStats: (songId: string, timeMs: number, isNewPlay?: boolean) => void;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
@@ -123,6 +129,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     artistMetadata: {},
     sortedSongs: [],
     sortedLikedSongs: [],
+    dailyStats: {},
 
 
     cancelImport: () => importService.cancel(),
@@ -138,6 +145,32 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         databaseService.updateSong(songId, updates).catch(e => {
             console.error('[LibraryStore] Failed to persist update to SQLite:', e);
         });
+
+        // Keep PlayerStore perfectly in sync!
+        try {
+            const { usePlayerStore } = require('./usePlayerStore');
+            const playerState = usePlayerStore.getState();
+            let needsPlayerSave = false;
+
+            if (playerState.currentTrack && playerState.currentTrack.id === songId) {
+                playerState.setCurrentTrack({ ...playerState.currentTrack, ...updates });
+                needsPlayerSave = true;
+            }
+
+            const inPlaylistIndex = playerState.playlist.findIndex((s: any) => s.id === songId);
+            if (inPlaylistIndex !== -1) {
+                const newPlaylist = [...playerState.playlist];
+                newPlaylist[inPlaylistIndex] = { ...newPlaylist[inPlaylistIndex], ...updates };
+                usePlayerStore.setState({ playlist: newPlaylist });
+                needsPlayerSave = true;
+            }
+
+            if (needsPlayerSave) {
+                playerState.saveState();
+            }
+        } catch (e) {
+            console.warn('[LibraryStore] Failed to sync metadata to PlayerStore', e);
+        }
 
         set(state => {
             const newSongs = state.songs.map(s => s.id === songId ? { ...s, ...updates } : s);
@@ -281,6 +314,33 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
                                 });
 
                                 if (!hasSongsChange) return {};
+
+                                // Sync active Player Queue to immediately reflect new background scans!
+                                try {
+                                    const { usePlayerStore } = require('./usePlayerStore');
+                                    const playerState = usePlayerStore.getState();
+                                    
+                                    let playerChanged = false;
+                                    const newPlayerPlaylist = playerState.playlist.map((s: any) => {
+                                        const updated = batchMap.get(s.id);
+                                        if (updated) {
+                                            playerChanged = true;
+                                            return { ...s, ...updated };
+                                        }
+                                        return s;
+                                    });
+
+                                    if (playerChanged) {
+                                        usePlayerStore.setState({ playlist: newPlayerPlaylist });
+                                        if (playerState.currentTrack) {
+                                            const updatedCurrent = batchMap.get(playerState.currentTrack.id);
+                                            if (updatedCurrent) {
+                                                playerState.setCurrentTrack({ ...playerState.currentTrack, ...updatedCurrent });
+                                            }
+                                        }
+                                        playerState.saveState();
+                                    }
+                                } catch (e) {}
 
                                 const newLiked = state.likedSongs.map(s => {
                                     const updated = batchMap.get(s.id);
@@ -569,6 +629,9 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             saveObject('cached_top_artists', newTop);
             saveObject('cached_never_played', newNever);
 
+            // Update daily stats for "most listened today" and "songs played today"
+            get().updateDailyStats(songId, 0, true);
+
             return {
                 songs: newSongs,
                 sortedSongs: newSortedSongs,
@@ -577,6 +640,29 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
                 neverPlayed: newNever
             };
         });
+    },
+
+    updateDailyStats: (songId, timeMs, isNewPlay = false) => {
+        const today = new Date().toISOString().split('T')[0];
+        const stats = { ...get().dailyStats };
+        const day = { ...(stats[today] || { songsPlayed: 0, listeningTimeMs: 0, playsPerSong: {} }) };
+
+        if (isNewPlay) {
+            day.songsPlayed += 1;
+            day.playsPerSong = { ...day.playsPerSong, [songId]: (day.playsPerSong[songId] || 0) + 1 };
+        }
+        
+        day.listeningTimeMs += timeMs;
+        stats[today] = day;
+
+        // Limit storage to last 30 days to prevent MMKV bloat
+        const dates = Object.keys(stats).sort().reverse();
+        if (dates.length > 30) {
+            dates.slice(30).forEach(d => delete stats[d]);
+        }
+
+        set({ dailyStats: stats });
+        saveObject('daily_listening_stats', stats);
     },
 
     deleteSong: async (song) => {
@@ -717,7 +803,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             topArtists: getSavedObject('cached_top_artists', []),
             recentlyPlayed: getSavedObject('cached_recently_played', []),
             recentlyAdded: getSavedObject('cached_recently_added', []),
-            neverPlayed: getSavedObject('cached_never_played', [])
+            neverPlayed: getSavedObject('cached_never_played', []),
+            dailyStats: getSavedObject('daily_listening_stats', {})
         });
         const folderNames = getSavedObject('selected_music_folders', [] as string[]);
         set({ savedFolders: folderNames });
@@ -739,6 +826,30 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
             const merged = mergeSongData(cachedSongs, customMetadataRef, songMetadataRef);
             if (merged && merged.length > 0) {
                 merged.forEach(s => songMapRef.set(s.id, s));
+
+                // Healing missing or invalid durations in MMKV cached features:
+                const currentLiked = get().likedSongs;
+                if (currentLiked && currentLiked.length > 0) {
+                    const patchedLiked = currentLiked.map(s => {
+                        const fresh = songMapRef.get(s.id);
+                        return fresh ? { ...s, duration: fresh.duration || s.duration || 0 } : s;
+                    });
+                    set({ likedSongs: patchedLiked });
+                    saveObject('liked_songs', patchedLiked);
+                }
+
+                const currentPlaylists = get().playlists;
+                if (currentPlaylists && currentPlaylists.length > 0) {
+                    const patchedPlaylists = currentPlaylists.map(p => ({
+                        ...p,
+                        songs: p.songs.map(s => {
+                           const fresh = songMapRef.get(s.id);
+                           return fresh ? { ...s, duration: fresh.duration || s.duration || 0 } : s;
+                        })
+                    }));
+                    set({ playlists: patchedPlaylists });
+                    saveObject('user_playlists', patchedPlaylists);
+                }
 
                 // Sorting 10k songs once here is much better than in every frame
                 const sorted = [...merged].sort((a, b) => (a.title || '').localeCompare(b.title || ''));

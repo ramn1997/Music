@@ -160,8 +160,8 @@ class ImportService {
     }
 
     private createSongFromAsset(asset: any): Song {
-        // Native module provides MS, MediaLibrary provides seconds.
-        const durationMs = asset.duration > 1000000 || typeof asset.duration === 'number' && asset.albumId ? asset.duration : asset.duration * 1000;
+        const rawDur = Number(asset.duration) || 0;
+        const durationMs = (rawDur > 1000000 || (rawDur > 0 && asset.albumId)) ? rawDur : rawDur * 1000;
 
         const { title: parsedTitle, artist: parsedArtist, album: parsedAlbum } = this.parseFilename(asset.filename);
 
@@ -289,7 +289,7 @@ class ImportService {
                                         picture: forceDeepScan // SKIP massive image parsing to maintain fast sync!
                                     }, song.id, song.uri);
 
-                                    // Aggressive timeout for faster processing of stubborn files
+                                    // Keep timeout short to prevent blocking UI/icon loading on bulk deep scans
                                     const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 600));
 
                                     const meta = await Promise.race([extractionPromise, timeoutPromise]);

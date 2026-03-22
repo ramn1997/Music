@@ -210,9 +210,6 @@ export const FavoritesScreen = () => {
     return (
         <ScreenContainer variant="default">
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.iconButton}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
-                </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: theme.text }]}>Favorites</Text>
             </View>
 
@@ -284,23 +281,23 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingTop: 16,
-        paddingBottom: 12,
-        height: 72,
+        paddingHorizontal: 16,
+        paddingTop: 10,
+        paddingBottom: 20,
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: 32,
         fontFamily: 'PlusJakartaSans_700Bold',
-        letterSpacing: -0.2,
-        marginLeft: 8,
+        letterSpacing: -1,
+        marginLeft: 0,
     },
-    iconButton: {
+    backButton: {
         width: 40,
         height: 40,
-        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
+        borderRadius: 20,
+        backgroundColor: 'transparent',
     },
     scrollContent: {
         paddingHorizontal: GRID_PADDING,

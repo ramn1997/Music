@@ -112,69 +112,71 @@ export const PlaylistsScreen = () => {
 
     const renderItem = React.useCallback(({ item }: { item: any }) => {
         return (
-            <View
-                style={{
-                    flex: 1,
-                    paddingHorizontal: 8,
-                    marginBottom: 24,
-                    alignItems: 'center'
-                }}
-            >
+            <View style={{ flex: 1, paddingHorizontal: 10, marginBottom: 28 }}>
                 <TouchableOpacity
-                    style={{ width: '100%' }}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                     onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'playlist' })}
                     onLongPress={() => confirmDelete(item)}
                     delayLongPress={500}
+                    style={{
+                        backgroundColor: theme.card,
+                        borderRadius: 24,
+                        padding: 10,
+                        borderWidth: 1,
+                        borderColor: theme.cardBorder,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 6 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 12,
+                        elevation: 5,
+                    }}
                 >
-                    <View style={[
-                        {
-                            width: '100%',
-                            aspectRatio: 1,
-                            borderRadius: 16,
-                            overflow: 'hidden',
-                            marginBottom: 12,
-                            backgroundColor: 'rgba(255,255,255,0.02)',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255,255,255,0.06)',
-                        }
-                    ]}>
+                    <View style={{
+                        width: '100%',
+                        aspectRatio: 1,
+                        borderRadius: 18,
+                        overflow: 'hidden',
+                        marginBottom: 14,
+                        backgroundColor: 'rgba(0,0,0,0.1)',
+                    }}>
                         <PlaylistCollage
                             songs={item.songs}
-                            size={itemWidth}
-                            width={'100%' as any}
-                            iconSize={40}
+                            size={itemWidth - 20}
+                            width={itemWidth - 20}
+                            iconSize={32}
+                            showIcon={false}
                             iconName={item.id === 'liked' ? "heart" : "musical-notes"}
                             gradientColors={getGradientColors(item.id)}
                             showBubbles={false}
-                            borderRadius={0}
+                            borderRadius={12}
                             opacity={0.9}
+                            overlayColor="rgba(0,0,0,0.15)"
                         />
                     </View>
 
-                    <Text
-                        numberOfLines={1}
-                        style={{
-                            color: theme.text,
-                            fontSize: 15,
-                            fontFamily: 'PlusJakartaSans_700Bold',
-                            textAlign: 'center',
-                            width: '100%',
-                            letterSpacing: 0.2
-                        }}
-                    >
-                        {item.name}
-                    </Text>
-                    <Text style={{
-                        color: theme.textSecondary,
-                        fontSize: 13,
-                        marginTop: 4,
-                        fontFamily: 'PlusJakartaSans_500Medium',
-                        textAlign: 'center',
-                        width: '100%'
-                    }}>
-                        {item.count} {item.count === 1 ? 'song' : 'songs'}
-                    </Text>
+                    <View style={{ paddingHorizontal: 4, paddingBottom: 6 }}>
+                        <Text
+                            numberOfLines={1}
+                            style={{
+                                color: theme.text,
+                                fontSize: 16,
+                                fontFamily: 'PlusJakartaSans_800ExtraBold',
+                                textAlign: 'left',
+                                letterSpacing: -0.3
+                            }}
+                        >
+                            {item.name}
+                        </Text>
+                        <Text style={{
+                            color: theme.textSecondary,
+                            fontSize: 12,
+                            marginTop: 2,
+                            fontFamily: 'PlusJakartaSans_600SemiBold',
+                            opacity: 0.6
+                        }}>
+                            {item.count} {item.count === 1 ? 'song' : 'songs'}
+                        </Text>
+                    </View>
                 </TouchableOpacity>
             </View>
         );
