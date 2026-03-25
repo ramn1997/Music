@@ -8,6 +8,13 @@ A premium, comprehensive, and feature-rich music player application built with R
 -   **Contextual Recommendations**: The new "Start Mix" engine analyzes your currently playing music to instantly find and queue tracks with the same album, artist, or genre in your local library.
 -   **Next-Gen Performance Engine**: Completely overhauled the React render cycle and background listeners. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(1)` algorithmic maps and indexing, eliminating background CPU lockups and maintaining 60fps scrolling on massive libraries.
 
+## ✨ Highlights from v1.5.0
+
+-   **Adaptive Landscape Experience**: Full side-navigation sidebar support for tablets and landscape orientations, ensuring every screen is perfectly responsive.
+-   **Integrated MiniPlayer**: A compact, sidebar-integrated MiniPlayer featuring a minimalist "Art-Pill" design with overlay controls for seamless landscape playback.
+-   **Refined Artwork Carousel**: Perfectly balanced and non-overlapping swipable artwork in landscape mode for both Material and Classic player styles, featuring subtle transparency and scaled side-art.
+-   **Intelligent Voice Search**: Robust error handling and improved stability for voice-activated commands, including informative feedback in limited environments.
+
 ## ✨ Highlights from v1.4.0
 
 -   **Daily Listening Analytics**: Track your total play counts and active listening time for today, fully persistent across sessions.
