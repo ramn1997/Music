@@ -15,6 +15,7 @@ interface GenreListItemProps {
         songs?: Song[];
     };
     layoutMode: 'list' | 'grid2' | 'grid3';
+    numColumns?: number;
     onPress: () => void;
 }
 
@@ -33,14 +34,14 @@ const getGradientColors = (id: string): [string, string] => {
     return userColors[hash % userColors.length];
 };
 
-export const GenreListItem = memo(({ item, layoutMode, onPress }: GenreListItemProps) => {
+export const GenreListItem = memo(({ item, layoutMode, numColumns, onPress }: GenreListItemProps) => {
     const { theme } = useTheme();
     const colors = getGradientColors(item.id);
     const isList = layoutMode === 'list';
-    const isGrid3 = layoutMode === 'grid3';
+    const isGrid3 = layoutMode === 'grid3' || (numColumns !== undefined && numColumns >= 3);
 
     return (
-        <View style={{ flex: isList ? 1 : (isGrid3 ? 1 / 3 : 1 / 2), paddingHorizontal: isList ? 0 : 8, marginBottom: isList ? 0 : 16 }}>
+        <View style={{ flex: 1, paddingHorizontal: isList ? 0 : 8, marginBottom: isList ? 0 : 16 }}>
             {isList ? (
                 <TouchableOpacity style={styles.listItem} onPress={onPress}>
                     <View style={styles.row}>

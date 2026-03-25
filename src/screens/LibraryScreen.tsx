@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: '900',
         letterSpacing: -0.5,
     },

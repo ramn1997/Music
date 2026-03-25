@@ -101,20 +101,20 @@ const Themes: Record<Exclude<ThemeType, 'system'>, Theme> = {
         primaryLight: '#e86b50',
     },
     nebula: {
-        background: '#020505',
-        primary: '#0891b2', // Muted Cyan/Teal
-        secondary: '#164e63', // Deep Slate Blue
-        text: '#ecfeff',
-        textSecondary: '#64748b', // Muted Slate
-        card: 'rgba(20, 40, 50, 0.4)',
-        cardBorder: 'rgba(8, 145, 178, 0.1)',
-        gradient: ['#155e75', '#083344', '#020505', '#020505'], // Deep Teal -> Midnight Cyan -> Black
-        gradientLocations: [0, 0.08, 0.3, 1],
+        background: '#04020a',
+        primary: '#a855f7', // Vivid Purple
+        secondary: '#4c1d95', // Deep Purple
+        text: '#f5f3ff',
+        textSecondary: '#94a3b8',
+        card: 'rgba(35, 20, 50, 0.4)',
+        cardBorder: 'rgba(168, 85, 247, 0.15)',
+        gradient: ['#4c1d95', '#1e1b4b', '#04020a', '#04020a'], // Deep Purple -> Midnight Indigo -> Deep Space
+        gradientLocations: [0, 0.08, 0.4, 1],
         gradientStart: { x: 0.5, y: 0 },
         gradientEnd: { x: 0.5, y: 1 },
-        menuBackground: '#083344',
+        menuBackground: '#1e1b4b',
         textOnPrimary: '#000000',
-        primaryLight: '#4fbad4',
+        primaryLight: '#c084fc',
     },
     light: {
         background: '#ffffff',

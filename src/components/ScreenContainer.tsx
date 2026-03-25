@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ViewStyle, View } from 'react-native';
+import { StyleSheet, ViewStyle, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
@@ -14,7 +14,7 @@ import Animated, {
     withRepeat,
     Easing
 } from 'react-native-reanimated';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useNavigationState } from '@react-navigation/native';
 import { useEffect } from 'react';
 
 interface ScreenContainerProps {
@@ -39,6 +39,14 @@ export const ScreenContainer = ({ children, variant = 'default', style }: Screen
     const isFocused = useIsFocused();
     const opacity = useSharedValue(0);
     const translateY = useSharedValue(10);
+    
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+    const isLandscape = windowWidth > windowHeight;
+    const currentRouteName = useNavigationState(state =>
+        state ? (state.routes[state.index]?.name || null) : null
+    );
+    const noTabBarScreens = ['Player', 'Settings', 'EditSong', 'Lyrics'];
+    const hasSidebars = isLandscape && variant !== 'player' && !noTabBarScreens.includes(currentRouteName || '');
 
     useEffect(() => {
         if (isFocused) {
@@ -65,8 +73,8 @@ export const ScreenContainer = ({ children, variant = 'default', style }: Screen
             locations={gradientLocations as any}
             style={[styles.container, style]}
         >
-            <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-                <View style={{ flex: 1 }}>
+            <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right', 'bottom']}>
+                <View style={{ flex: 1, paddingLeft: hasSidebars ? 108 : 0, paddingRight: 0 }}>
                     {children}
                 </View>
             </SafeAreaView>

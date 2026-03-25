@@ -107,8 +107,11 @@ export const PlaylistsScreen = () => {
         }
     };
 
-    const { width } = require('react-native').Dimensions.get('window');
-    const itemWidth = (width - 30 - 16) / 2; // 30 = generic horizontal padding, 16 = gap
+    const { width, height } = require('react-native').useWindowDimensions();
+    const isLandscape = width > height;
+    const numColumns = isLandscape ? 4 : 2;
+    const containerWidth = isLandscape ? width - 180 : width;
+    const itemWidth = (containerWidth - 30 - (16 * (numColumns - 1))) / numColumns;
 
     const renderItem = React.useCallback(({ item }: { item: any }) => {
         return (
@@ -208,7 +211,8 @@ export const PlaylistsScreen = () => {
                     data={displayPlaylists}
                     keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
-                    numColumns={2}
+                    key={numColumns} // Force remount on column change
+                    numColumns={numColumns}
                     estimatedItemSize={220}
                     drawDistance={250}
                     contentContainerStyle={styles.listContent}
@@ -303,7 +307,7 @@ const styles = StyleSheet.create({
         gap: 15
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 24,
         fontFamily: 'PlusJakartaSans_700Bold',
         flex: 1,
         letterSpacing: -1,

@@ -38,10 +38,11 @@ const CardDesign = () => (
     </>
 );
 
-const MemoizedAlbumItem = React.memo(({ item, layoutMode, theme, onPress }: { item: any, layoutMode: string, theme: any, onPress: (item: any) => void }) => {
-    const isGrid3 = layoutMode === 'grid3';
+const MemoizedAlbumItem = React.memo(({ item, layoutMode, theme, onPress, numColumns }: { item: any, layoutMode: string, theme: any, onPress: (item: any) => void, numColumns?: number }) => {
+    const isGrid3 = layoutMode === 'grid3' || numColumns! >= 3;
+    const isList = layoutMode === 'list';
     return (
-        <View style={{ flex: layoutMode === 'list' ? 1 : (isGrid3 ? 1 / 3 : 1 / 2), paddingHorizontal: layoutMode === 'list' ? 0 : 8, marginBottom: layoutMode === 'list' ? 0 : 16 }}>
+        <View style={{ flex: 1, paddingHorizontal: isList ? 0 : 8, marginBottom: isList ? 0 : 16 }}>
             {layoutMode === 'list' ? (
                 <TouchableOpacity
                     style={styles.listItem}
@@ -130,7 +131,7 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const songs = useLibraryStore(state => state.songs);
     const loading = useLibraryStore(state => state.loading);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
+    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid2');
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [sortOption, setSortOption] = useState<SortOption>('az');
@@ -210,13 +211,17 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
 
 
+    const { width, height } = require('react-native').useWindowDimensions();
+    const isLandscape = width > height;
+    const numColumns = layoutMode === 'list' ? (isLandscape ? 2 : 1) : (layoutMode === 'grid2' ? (isLandscape ? 4 : 2) : (isLandscape ? 6 : 3));
+
     const handlePress = React.useCallback((item: any) => {
         navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'album' });
     }, [navigation]);
 
     const renderItem = React.useCallback(({ item }: { item: any }) => {
-        return <MemoizedAlbumItem item={item} layoutMode={layoutMode} theme={theme} onPress={handlePress} />;
-    }, [theme, layoutMode, handlePress]);
+        return <MemoizedAlbumItem item={item} layoutMode={layoutMode} theme={theme} onPress={handlePress} numColumns={numColumns} />;
+    }, [theme, layoutMode, handlePress, numColumns]);
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (event) => {
@@ -248,45 +253,48 @@ export const AlbumsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 ) : <View style={{ flex: 1 }} />}
             </View>
 
-            {/* Material 3 Search Bar & Options */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10, gap: 12 }}>
-                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, borderWidth: 1, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="search" size={20} color={theme.textSecondary} style={{ marginRight: 12 }} />
-                    <TextInput
-                        style={[styles.searchInput, { color: theme.text, fontFamily: 'PlusJakartaSans_500Medium' }]}
-                        placeholder="Search albums..."
-                        placeholderTextColor={theme.textSecondary + '80'}
-                        value={searchQuery}
-                        onChangeText={(text) => setSearchQuery(text)}
-                        selectionColor={theme.primary}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                    )}
-                </View>
-                <TouchableOpacity
-                    onPress={() => setSortModalVisible(true)}
-                    style={[styles.layoutButton, { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.cardBorder }]}
-                >
-                    <Ionicons name="filter" size={20} color={theme.primary} />
-                </TouchableOpacity>
-            </View>
+
 
             <View style={{ flex: 1, paddingTop: isEmbedded ? 10 : 0 }}>
                 <SafeAnimatedFlashList
                     onScroll={scrollHandler}
                     scrollEventThrottle={16}
-                    key={layoutMode}
+                    key={numColumns}
                     style={{ flex: 1 }} // Force FlashList to take available width
                     data={albums}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
-                    numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid2' ? 2 : 3)}
+                    numColumns={numColumns}
                     estimatedItemSize={150}
                     drawDistance={250}
+                    extraData={searchQuery}
                     contentContainerStyle={styles.listContent}
+                    ListHeaderComponent={
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 12 }}>
+                            <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                                <Ionicons name="search" size={20} color={theme.textSecondary} style={{ marginRight: 12 }} />
+                                <TextInput
+                                    style={[styles.searchInput, { color: theme.text, fontFamily: 'PlusJakartaSans_500Medium' }]}
+                                    placeholder="Search albums..."
+                                    placeholderTextColor={theme.textSecondary + '80'}
+                                    value={searchQuery}
+                                    onChangeText={(text) => setSearchQuery(text)}
+                                    selectionColor={theme.primary}
+                                />
+                                {searchQuery.length > 0 && (
+                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                        <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setSortModalVisible(true)}
+                                style={[styles.layoutButton, { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.cardBorder }]}
+                            >
+                                <Ionicons name="filter" size={20} color={theme.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    }
                     ListEmptyComponent={
                         <View style={styles.center}>
                             <Text style={{ color: theme.textSecondary }}>No albums found.</Text>

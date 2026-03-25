@@ -4,7 +4,7 @@
     "slug": "MusicApp",
     "scheme": "musicapp",
     "version": "1.3.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/discicon.png",
     "userInterfaceStyle": "light",
     "splash": {

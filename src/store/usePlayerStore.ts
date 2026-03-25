@@ -77,6 +77,7 @@ interface PlayerState {
     } | null;
     isPlayerReady: boolean;
     isRestored: boolean;
+    originalPlaylist: Song[]; // Added to track original order for un-shuffling
 
     // Actions
     play: (song: Song) => Promise<void>;
@@ -131,6 +132,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     isPlayerReady: false,
     isRestored: false,
     playlist: [],
+    originalPlaylist: [],
 
     setCurrentTrack: (song) => {
         set({ currentTrack: song, currentTrackMetadata: null });
@@ -313,19 +315,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                 console.log('[PlayerStore] Player setup successful');
             } catch (error: any) {
                 const message = error.message || String(error);
-                if (message.includes('foreground') && retries > 1) {
+                const isForegroundError = message.toLowerCase().includes('foreground');
+                const isAlreadyInitialized = message.toLowerCase().includes('already') || error.code === 'player_already_initialized';
+
+                if (isForegroundError && retries > 1) {
                     console.log(`[PlayerStore] Foreground required, retrying... (${retries - 1} left)`);
-                    await new Promise(r => setTimeout(r, 1000));
+                    await new Promise(r => setTimeout(r, 1500));
                     retries--;
-                } else if ((message.includes('already') || error.code === 'player_already_initialized') && !success) {
-                    // If it says already initialized but getQueue failed, try to force a success state
+                    continue; // Skip the error reporting and try again
+                } 
+                
+                if (isAlreadyInitialized && !success) {
                     console.log('[PlayerStore] Player already initialized according to error');
                     set({ isPlayerReady: true, isGapless });
                     success = true;
-                } else {
-                    console.error('[PlayerStore] Critical Error setting up TrackPlayer:', error);
-                    break;
                 }
+
+                if (success) {
+                    const mode = state.repeatMode === 'one' ? RepeatMode.Track
+                        : state.repeatMode === 'all' ? RepeatMode.Queue
+                            : RepeatMode.Off;
+                    await TrackPlayer.setRepeatMode(mode);
+                } else {
+                    // Only log error and break if we have exhausted retries or it's non-retriable
+                    if (retries <= 1 || !isForegroundError) {
+                        console.error('[PlayerStore] Critical Error setting up TrackPlayer:', error);
+                        break;
+                    }
+                }
+                retries--;
             }
         }
     },
@@ -341,7 +359,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                 const updates: Partial<PlayerState> = {};
 
                 if (data.shuffle !== undefined) updates.isShuffleOn = data.shuffle;
-                if (data.repeat !== undefined) updates.repeatMode = data.repeat;
+                if (data.repeat !== undefined) {
+                    updates.repeatMode = data.repeat;
+                    const mode = data.repeat === 'one' ? RepeatMode.Track
+                        : data.repeat === 'all' ? RepeatMode.Queue
+                            : RepeatMode.Off;
+                    await TrackPlayer.setRepeatMode(mode);
+                }
                 if (data.speed !== undefined) {
                     updates.playbackSpeed = data.speed;
                     await TrackPlayer.setRate(data.speed);
@@ -459,6 +483,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     },
 
     setQueue: async (songs, index = 0) => {
+        const state = get();
         const activeTrack = await TrackPlayer.getActiveTrack();
         if (songs.length > index && activeTrack && String(activeTrack.id) === String(songs[index].id)) {
             await TrackPlayer.play();
@@ -466,26 +491,40 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             return;
         }
 
+        let finalSongs = [...songs];
+        let finalIndex = index;
+
+        if (state.isShuffleOn) {
+            const selectedSong = finalSongs[index];
+            const others = finalSongs.filter((_, i) => i !== index);
+            for (let i = others.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [others[i], others[j]] = [others[j], others[i]];
+            }
+            finalSongs = [selectedSong, ...others];
+            finalIndex = 0;
+        }
+
         await TrackPlayer.reset();
-        await TrackPlayer.add(songs.map(songToTrack));
+        await TrackPlayer.add(finalSongs.map(songToTrack));
 
-        set({ playlist: songs });
+        set({ 
+            playlist: finalSongs,
+            originalPlaylist: songs,
+            currentIndex: finalIndex, 
+            currentTrack: finalSongs[finalIndex],
+            isPlaying: true 
+        });
 
-        if (songs.length > index) {
-            set({
-                currentIndex: index,
-                currentTrack: songs[index],
-                isPlaying: true
-            });
-            await TrackPlayer.skip(index);
+        if (finalSongs.length > finalIndex) {
+            await TrackPlayer.skip(finalIndex);
             await TrackPlayer.play();
 
-            const state = get();
             const mode = state.repeatMode === 'one' ? RepeatMode.Track
                 : state.repeatMode === 'all' ? RepeatMode.Queue
                     : RepeatMode.Off;
             await TrackPlayer.setRepeatMode(mode);
-            state.saveState();
+            get().saveState();
         }
     },
 
@@ -500,25 +539,39 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
             return;
         }
 
+        let finalSongs = [...songs];
+        let finalIndex = index;
+
+        if (state.isShuffleOn) {
+            // Pivot shuffle: Keep the selected song at index 0, shuffle the rest
+            const selectedSong = finalSongs[index];
+            const others = finalSongs.filter((_, i) => i !== index);
+            for (let i = others.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [others[i], others[j]] = [others[j], others[i]];
+            }
+            finalSongs = [selectedSong, ...others];
+            finalIndex = 0;
+        }
+
         // Safe Native Push Boundary: Limit batch to 1000 to elegantly bypass Android IPC Binder limits (1MB)
-        // while remaining functionally infinite for 99% of user session permutations.
-        const safeWindowEnd = Math.min(songs.length, index + 1000);
-        const window = songs.slice(index, safeWindowEnd);
+        const safeWindowEnd = Math.min(finalSongs.length, finalIndex + 1000);
+        const window = finalSongs.slice(finalIndex, safeWindowEnd);
         const tracks = window.map(songToTrack);
 
         await TrackPlayer.reset();
         await TrackPlayer.add(tracks);
 
-        // Natively sync directly with the pushed 0-indexed window natively
         try {
             await TrackPlayer.skip(0);
         } catch (e) { }
 
         set({
-            playlist: songs,
+            playlist: finalSongs,
+            originalPlaylist: songs, // Always store the unshuffled source
             playlistName,
-            currentIndex: index,
-            currentTrack: songs[index],
+            currentIndex: finalIndex,
+            currentTrack: finalSongs[finalIndex],
             isPlaying: true
         });
 
@@ -535,19 +588,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     addToQueue: async (song) => {
         await TrackPlayer.add([songToTrack(song)]);
-        set(state => {
-            const newPlaylist = [...state.playlist, song];
-            storage.set(PLAYER_STATE_KEY, JSON.stringify({ ...state, playlist: newPlaylist }));
-            return { playlist: newPlaylist };
-        });
+        const state = get();
+        const newPlaylist = [...state.playlist, song];
+        const newOriginal = state.originalPlaylist.length > 0 ? [...state.originalPlaylist, song] : [];
+        set({ playlist: newPlaylist, originalPlaylist: newOriginal });
+        get().saveState();
     },
 
     addNext: async (song) => {
         const state = get();
         await TrackPlayer.add([songToTrack(song)], state.currentIndex + 1);
+        
         const newPlaylist = [...state.playlist];
         newPlaylist.splice(state.currentIndex + 1, 0, song);
-        set({ playlist: newPlaylist });
+        
+        let newOriginal = state.originalPlaylist;
+        if (newOriginal.length > 0) {
+            newOriginal = [...newOriginal];
+            // If shuffle is on, we don't know where to add it in original.
+            // Best bet: add it at the end or after the current track's original position.
+            const currentSongId = state.currentTrack?.id;
+            const originalIdx = newOriginal.findIndex(s => s.id === currentSongId);
+            if (originalIdx !== -1) {
+                newOriginal.splice(originalIdx + 1, 0, song);
+            } else {
+                newOriginal.push(song);
+            }
+        }
+        
+        set({ playlist: newPlaylist, originalPlaylist: newOriginal });
         state.saveState();
     },
 
@@ -587,11 +656,76 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         state.saveState();
     },
 
-    toggleShuffle: () => {
-        set(state => {
-            const newShuffle = !state.isShuffleOn;
-            return { isShuffleOn: newShuffle };
-        });
+    toggleShuffle: async () => {
+        const state = get();
+        const turningOn = !state.isShuffleOn;
+
+        if (turningOn) {
+            if (state.playlist.length <= 1) {
+                set({ isShuffleOn: true });
+                return;
+            }
+
+            const currentIdx = state.currentIndex;
+            const currentSong = state.playlist[currentIdx];
+            const others = state.playlist.filter((_, i) => i !== currentIdx);
+
+            // Fisher-Yates
+            for (let i = others.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [others[i], others[j]] = [others[j], others[i]];
+            }
+
+            const shuffled = [currentSong, ...others];
+            set({
+                isShuffleOn: true,
+                originalPlaylist: state.playlist,
+                playlist: shuffled,
+                currentIndex: 0
+            });
+        } else {
+            const original = state.originalPlaylist;
+            if (original && original.length > 0) {
+                const currentSongId = state.currentTrack?.id;
+                const newIdx = original.findIndex(s => s.id === currentSongId);
+                
+                set({
+                    isShuffleOn: false,
+                    playlist: original,
+                    currentIndex: newIdx !== -1 ? newIdx : 0,
+                    originalPlaylist: []
+                });
+            } else {
+                set({ isShuffleOn: false });
+            }
+        }
+
+        // Apply to native queue immediately for seamless "Up Next"
+        const newState = get();
+        if (newState.isPlayerReady && newState.currentTrack) {
+            try {
+                const queue = await TrackPlayer.getQueue();
+                const activeIdx = await TrackPlayer.getActiveTrackIndex();
+                
+                if (typeof activeIdx === 'number') {
+                    // Remove everything after current track
+                    if (activeIdx < queue.length - 1) {
+                        const indicesToRemove = [];
+                        for (let i = activeIdx + 1; i < queue.length; i++) indicesToRemove.push(i);
+                        await TrackPlayer.remove(indicesToRemove);
+                    }
+                    
+                    // Add new shuffled/unshuffled next items (limit to 100 for IPC safety/speed)
+                    const nextItems = newState.playlist.slice(newState.currentIndex + 1, newState.currentIndex + 101);
+                    if (nextItems.length > 0) {
+                        await TrackPlayer.add(nextItems.map(songToTrack));
+                    }
+                }
+            } catch (e) {
+                console.warn('[PlayerStore] Failed to sync native queue after shuffle toggle:', e);
+            }
+        }
+
         get().saveState();
     },
 
@@ -849,21 +983,22 @@ export const initializePlayerEvents = () => {
                 state.syncWidget();
             }
 
-            // ARTIFICIAL GAPLESS CUT-OVER FOR UNREGULATED LOCAL MP3 FILES
-            // If the user's mp3 files have built-in silence at the end (from web rippers), 
-            // native ExoPlayer gapless cannot remove it natively. We manually force skip 0.4s 
-            // before file termination to simulate a gapless crossfade cut if gapless is enabled.
             if (state.isGapless && event.duration > 0) {
                 const msRemaining = event.duration - event.position;
                 // If within 0.4 seconds of physical termination 
                 if (msRemaining > 0 && msRemaining <= 0.4) {
                     try {
-                        const nativeQueue = await TrackPlayer.getQueue();
                         const nativeIdx = await TrackPlayer.getActiveTrackIndex();
                         if (nativeIdx !== null && nativeIdx !== undefined) {
-                            if (nativeIdx < nativeQueue.length - 1 || state.repeatMode === 'all') {
-                                console.log('[PlayerStore] Triggering artificial gapless cut-over');
-                                await TrackPlayer.skipToNext();
+                            if (state.repeatMode === 'one') {
+                                // Manual loop for gapless one-track repeat
+                                await TrackPlayer.seekTo(0);
+                            } else {
+                                const nativeQueue = await TrackPlayer.getQueue();
+                                if (nativeIdx < nativeQueue.length - 1 || state.repeatMode === 'all') {
+                                    console.log('[PlayerStore] Triggering artificial gapless cut-over');
+                                    await TrackPlayer.skipToNext();
+                                }
                             }
                         }
                     } catch (e) {}

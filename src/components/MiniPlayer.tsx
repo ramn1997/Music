@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Dimensions } from 'react-native';
-const { width } = Dimensions.get('window');
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlayerStore } from '../store/usePlayerStore';
@@ -12,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useProgress } from 'react-native-track-player';
 import { useLibraryStore } from '../store/useLibraryStore';
 
-export const MiniPlayer = () => {
+export const MiniPlayer = ({ isSidebar = false }: { isSidebar?: boolean }) => {
     const navigation = useNavigation<any>();
     const currentSong = usePlayerStore(state => state.currentTrack);
     const isPlaying = usePlayerStore(state => state.isPlaying);
@@ -24,40 +23,39 @@ export const MiniPlayer = () => {
     const seek = usePlayerStore(state => state.seek);
     const { theme, themeType, playerStyle, navigationStyle } = useTheme();
     const insets = useSafeAreaInsets();
-    const { position, duration } = useProgress(1000); // 1s update for mini player is enough
+    const { position, duration } = useProgress(1000);
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+    const isLandscape = windowWidth > windowHeight;
 
-    // Get current route name to hide mini player when on Player screen
     const currentRouteName = useNavigationState(state =>
-        state ? state.routes[state.index].name : null
+        state ? (state.routes[state.index]?.name || null) : null
     );
 
     const seekInterval = useRef<NodeJS.Timeout | null>(null);
 
-    // Only hide mini player when on the full Player screen, Queue screen, Settings screen, About screen, Equalizer screen, or if no song exists
     const isHiddenScreen = currentRouteName === 'Player' || currentRouteName === 'Queue' || currentRouteName === 'Settings' || currentRouteName === 'About' || currentRouteName === 'Equalizer';
     if (!currentSong || isHiddenScreen) return null;
+    
+    // If we're not in sidebar mode but it's landscape, hide standalone player
+    // because it's now integrated into the sidebar on the left.
+    if (!isSidebar && isLandscape) return null;
 
-    // List of screens that DO NOT have a bottom tab bar
     const noTabBarScreens = ['Player', 'Settings', 'EditSong', 'Lyrics'];
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
-    // The tab bar is floating with bottom offset. Adjust mini player to sit perfectly above it.
-    const isPillNav = navigationStyle === 'pill';
+    const isPillNav = navigationStyle === 'pill' || isLandscape;
     const bottomOffset = hasTabBar
-        ? (isPillNav ? 115 : (68 + insets.bottom))
-        : (isPillNav ? (20 + insets.bottom) : insets.bottom);
+        ? (isPillNav ? (isLandscape ? 105 : 105 + insets.bottom) : (68 + insets.bottom))
+        : (isPillNav ? (15 + insets.bottom) : insets.bottom);
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
 
     const getMiniRadius = () => {
         switch (playerStyle) {
             case 'circle': return 19;
-
             case 'sharp': return 0;
-            // @ts-ignore
-            case 'soft': return 12;
             case 'square': return 4;
-            default: return 6;
+            default: return 8;
         }
     };
 
@@ -66,16 +64,11 @@ export const MiniPlayer = () => {
         let skipAmount = 2000;
         let currentPosMs = position * 1000;
         const durMs = duration * 1000;
-        const acceleration = 1.3;
-        const maxSkip = 30000;
-        currentPosMs = direction === 'forward' ? currentPosMs + 2000 : currentPosMs - 2000;
-        currentPosMs = Math.min(Math.max(currentPosMs, 0), durMs);
-        seek(currentPosMs);
         seekInterval.current = setInterval(() => {
             currentPosMs = direction === 'forward' ? currentPosMs + skipAmount : currentPosMs - skipAmount;
             currentPosMs = Math.min(Math.max(currentPosMs, 0), durMs);
             seek(currentPosMs);
-            skipAmount = Math.min(skipAmount * acceleration, maxSkip);
+            skipAmount = Math.min(skipAmount * 1.3, 30000);
         }, 150);
     };
 
@@ -86,114 +79,86 @@ export const MiniPlayer = () => {
         }
     };
 
-
     return (
-        <View
-            style={[styles.container, { bottom: bottomOffset }]}
-            key={currentSong?.id || 'no-song'}
-        >
+        <View key={`miniplayer-${isLandscape ? 'landscape' : 'portrait'}`} style={[
+            !isSidebar && styles.container, 
+            !isSidebar && (isLandscape ? {
+                top: (insets?.top || 0) + 15,
+                bottom: (insets?.bottom || 0) + 15,
+                right: 15,
+                left: 'auto',
+                width: 72,
+                justifyContent: 'center'
+            } : { bottom: bottomOffset }),
+            isSidebar && { width: '100%', alignItems: 'center', marginTop: 'auto' }
+        ]}>
             <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => navigation.navigate('Player')}
                 style={[
                     styles.pillContainer,
-                    isPillNav ? styles.floatingPill : styles.standardBar,
+                    isPillNav && !isLandscape ? [styles.floatingPill, { width: windowWidth - 30 }] :
+                    isLandscape ? [styles.floatingPill, { width: 88, height: isSidebar ? 64 : '100%' }] : styles.standardBar,
                     {
-                        overflow: 'hidden',
-                        backgroundColor: theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card
+                        maxWidth: isLandscape ? 88 : '100%',
+                        borderWidth: isSidebar ? 0 : (isPillNav ? 1 : 0),
+                        backgroundColor: isSidebar ? 'transparent' : (theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card)
                     }
                 ]}
             >
-                {/* Adaptive Background based on Album Art */}
-                <View style={StyleSheet.absoluteFill}>
-                    <MusicImage
-                        uri={currentSong?.coverImage}
-                        id={currentSong?.id || ''}
-                        assetUri={currentSong?.uri}
-                        style={StyleSheet.absoluteFill}
-                        resizeMode="cover"
-                        blurRadius={Platform.OS === 'ios' ? 20 : 30}
-                        iconSize={0}
-                    />
-                    <BlurView
-                        intensity={Platform.OS === 'ios' ? 30 : 60}
-                        tint={['black', 'forest', 'water', 'fire', 'cyber'].includes(themeType) ? 'dark' : 'light'}
-                        style={StyleSheet.absoluteFill}
-                    />
-                    {/* Subtle Gradient Overlay for depth */}
-                    <LinearGradient
-                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']}
-                        style={StyleSheet.absoluteFill}
-                    />
-                </View>
+                {!isSidebar && (
+                    <View style={StyleSheet.absoluteFill}>
+                        <MusicImage uri={currentSong?.coverImage} id={currentSong?.id || ''} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={30} iconSize={0} />
+                        <BlurView intensity={Platform.OS === 'ios' ? 30 : 60} tint={['black', 'forest', 'water', 'fire', 'cyber'].includes(themeType) ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+                        <LinearGradient colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.6)']} style={StyleSheet.absoluteFill} />
+                    </View>
+                )}
 
                 <View style={styles.blurContainer}>
-                    {/* Progress Bar Line */}
-                    <View style={styles.progressTrack}>
-                        <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
-                    </View>
-                    <View style={styles.contentRow}>
-                        {/* Album Art */}
-                        <View style={styles.artContainer}>
-                            <MusicImage
-                                uri={currentSong?.coverImage}
-                                id={currentSong?.id || ''}
-                                style={[styles.albumArt, { borderRadius: getMiniRadius() }]}
-                                iconSize={20}
-                                containerStyle={[styles.albumArt, { backgroundColor: theme.card, borderRadius: getMiniRadius() }]}
-                            />
+                    {!isLandscape && (
+                        <View style={styles.progressTrack}>
+                            <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.primary }]} />
                         </View>
-
-                        {/* Song Info */}
-                        <View style={styles.textContainer}>
-                            <Text style={[styles.title, { color: 'white' }]} numberOfLines={1}>
-                                {currentSong?.title || 'No Song Playing'}
-                            </Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Text style={[styles.artist, { color: 'rgba(255,255,255,0.7)', flex: 1 }]} numberOfLines={1}>
-                                    {currentSong?.artist || 'Unknown Artist'}
-                                </Text>
+                    )}
+                    <View style={isLandscape ? [styles.contentRow, { flexDirection: 'column', paddingVertical: 0, paddingHorizontal: 0, justifyContent: 'center', alignItems: 'center' }] : styles.contentRow}>
+                        {isLandscape ? (
+                            <View style={{ width: 64, height: 64, borderRadius: 16, overflow: 'hidden' }}>
+                                <MusicImage uri={currentSong?.coverImage} id={currentSong?.id || ''} style={StyleSheet.absoluteFill} iconSize={20} />
+                                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.2)', justifyContent: 'center', alignItems: 'center' }]}>
+                                    <TouchableOpacity 
+                                        activeOpacity={0.7} 
+                                        onPress={(e) => { e.stopPropagation(); playPause(); }} 
+                                        style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}
+                                    >
+                                        <Ionicons name={isPlaying ? "pause" : "play"} size={24} color="white" />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                        </View>
-
-                        {/* Controls */}
-                        <View style={styles.controls}>
-                            <TouchableOpacity
-                                onPress={(e) => { e.stopPropagation(); toggleLike(currentSong!); }}
-                                style={styles.controlButton}
-                            >
-                                <Ionicons
-                                    name={isLiked ? "heart" : "heart-outline"}
-                                    size={22}
-                                    color={isLiked ? "#ef4444" : "white"}
-                                />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={(e) => { e.stopPropagation(); prevTrack(); }}
-                                onLongPress={(e) => { e.stopPropagation(); startSeeking('backward'); }}
-                                onPressOut={(e) => { e.stopPropagation(); stopSeeking(); }}
-                                delayLongPress={300}
-                                style={styles.controlButton}
-                            >
-                                <Ionicons name="play-skip-back" size={22} color="white" />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={(e) => { e.stopPropagation(); playPause(); }} style={styles.controlButton}>
-                                <Ionicons
-                                    name={isPlaying ? "pause" : "play"}
-                                    size={28}
-                                    color="white"
-                                />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={(e) => { e.stopPropagation(); nextTrack(); }}
-                                onLongPress={(e) => { e.stopPropagation(); startSeeking('forward'); }}
-                                onPressOut={(e) => { e.stopPropagation(); stopSeeking(); }}
-                                delayLongPress={300}
-                                style={styles.controlButton}
-                            >
-                                <Ionicons name="play-skip-forward" size={22} color="white" />
-                            </TouchableOpacity>
-                        </View>
+                        ) : (
+                            <>
+                                <View style={styles.artContainer}>
+                                    <MusicImage uri={currentSong?.coverImage} id={currentSong?.id || ''} style={[styles.albumArt, { borderRadius: getMiniRadius() + 2 }]} iconSize={20} />
+                                </View>
+                                <View style={styles.textContainer}>
+                                    <Text style={[styles.title, { color: 'white' }]} numberOfLines={1}>{currentSong?.title || 'No Song'}</Text>
+                                    <Text style={[styles.artist, { color: 'rgba(255,255,255,0.7)' }]} numberOfLines={1}>{currentSong?.artist || 'Unknown'}</Text>
+                                </View>
+                                <View style={styles.controls}>
+                                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); toggleLike(currentSong!); }} style={styles.controlButton}>
+                                        <Ionicons name={isLiked ? "heart" : "heart-outline"} size={22} color={isLiked ? "#ef4444" : "white"} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); prevTrack(); }} style={styles.controlButton}>
+                                        <Ionicons name="play-skip-back" size={22} color="white" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); playPause(); }} style={styles.controlButton}>
+                                        <Ionicons name={isPlaying ? "pause" : "play"} size={26} color="white" />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={(e) => { e.stopPropagation(); nextTrack(); }} style={styles.controlButton}>
+                                        <Ionicons name="play-skip-forward" size={22} color="white" />
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
             </TouchableOpacity>
@@ -206,27 +171,18 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
-        zIndex: 1000, // Significantly higher to be above everything
+        zIndex: 1000,
         alignItems: 'center',
     },
     pillContainer: {
         width: '100%',
         height: 68,
         overflow: 'hidden',
-        backgroundColor: '#121212',
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: -4,
-        },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
         elevation: 20,
     },
     floatingPill: {
-        width: width - 30,
         borderRadius: 36,
-        height: 74,
+        height: 72,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
     },
@@ -237,62 +193,23 @@ const styles = StyleSheet.create({
         borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.1)',
     },
-    blurContainer: {
-        flex: 1,
-        justifyContent: 'center',
-    },
+    blurContainer: { flex: 1, justifyContent: 'center' },
     progressTrack: {
         position: 'absolute',
         bottom: 0,
-        left: 0, // full width
+        left: 0,
         right: 0,
         height: 2,
         backgroundColor: 'rgba(255,255,255,0.1)',
         zIndex: 10,
     },
-    progressFill: {
-        height: '100%',
-        borderRadius: 1,
-    },
-    contentRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        height: '100%',
-    },
-    albumArt: {
-        width: 48, // Increased size
-        height: 48,
-        borderRadius: 10,
-        marginRight: 8,
-        backgroundColor: 'transparent'
-    },
-    textContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        marginRight: 6,
-    },
-    title: {
-        fontSize: 13,
-        fontWeight: 'bold',
-    },
-    artist: {
-        fontSize: 11,
-        opacity: 0.7,
-    },
-
-    controls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    controlButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    artContainer: {
-        position: 'relative',
-        marginRight: 10,
-    }
+    progressFill: { height: '100%', borderRadius: 1 },
+    contentRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: '100%' },
+    albumArt: { width: 44, height: 44, borderRadius: 10, marginRight: 8 },
+    textContainer: { flex: 1, justifyContent: 'center', marginRight: 6 },
+    title: { fontSize: 13, fontWeight: 'bold' },
+    artist: { fontSize: 11, opacity: 0.7 },
+    controls: { flexDirection: 'row', alignItems: 'center' },
+    controlButton: { width: 38, height: 38, justifyContent: 'center', alignItems: 'center' },
+    artContainer: { position: 'relative', marginRight: 10 }
 });

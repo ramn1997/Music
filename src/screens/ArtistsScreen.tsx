@@ -38,7 +38,7 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const songs = useLibraryStore(state => state.songs);
     const loading = useLibraryStore(state => state.loading);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
+    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid2');
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [sortOption, setSortOption] = useState<SortOption>('az');
@@ -110,16 +110,20 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
 
 
 
+    const { width, height } = require('react-native').useWindowDimensions();
+    const isLandscape = width > height;
+    const numColumns = layoutMode === 'list' ? (isLandscape ? 2 : 1) : (layoutMode === 'grid2' ? (isLandscape ? 4 : 2) : (isLandscape ? 6 : 3));
 
     const renderItem = React.useCallback(({ item, index }: { item: any, index: number }) => {
         return (
             <ArtistListItem
                 item={item}
                 layoutMode={layoutMode}
+                numColumns={numColumns}
                 onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'artist' })}
             />
         );
-    }, [navigation, layoutMode]);
+    }, [navigation, layoutMode, numColumns]);
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (event) => {
@@ -151,39 +155,42 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 ) : <View style={{ flex: 1 }} />}
             </View>
 
-            {/* Material 3 Search Bar Row */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, marginVertical: 10, gap: 12 }}>
-                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, borderWidth: 1, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="search" size={20} color={theme.textSecondary} style={{ marginRight: 12 }} />
-                    <TextInput
-                        style={[styles.searchInput, { color: theme.text, fontFamily: 'PlusJakartaSans_500Medium' }]}
-                        placeholder="Search artists..."
-                        placeholderTextColor={theme.textSecondary + '80'}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        selectionColor={theme.primary}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                    )}
-                </View>
-                <TouchableOpacity onPress={() => setSortModalVisible(true)} style={[styles.layoutButton, { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="filter" size={20} color={theme.primary} />
-                </TouchableOpacity>
-            </View>
+
             <SafeAnimatedFlashList
                 onScroll={scrollHandler}
                 scrollEventThrottle={16}
-                key={layoutMode}
+                key={numColumns}
                 data={artists}
                 keyExtractor={(item: any) => item.id}
                 renderItem={renderItem}
-                numColumns={layoutMode === 'list' ? 1 : (layoutMode === 'grid2' ? 2 : 3)}
+                numColumns={numColumns}
                 estimatedItemSize={150}
                 drawDistance={250}
+                extraData={searchQuery}
                 contentContainerStyle={styles.listContent}
+                ListHeaderComponent={
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 12 }}>
+                        <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                            <Ionicons name="search" size={20} color={theme.textSecondary} style={{ marginRight: 12 }} />
+                            <TextInput
+                                style={[styles.searchInput, { color: theme.text, fontFamily: 'PlusJakartaSans_500Medium' }]}
+                                placeholder="Search artists..."
+                                placeholderTextColor={theme.textSecondary + '80'}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                                selectionColor={theme.primary}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <TouchableOpacity onPress={() => setSortModalVisible(true)} style={[styles.layoutButton, { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                            <Ionicons name="filter" size={20} color={theme.primary} />
+                        </TouchableOpacity>
+                    </View>
+                }
                 ListEmptyComponent={
                     <View style={styles.center}>
                         <Text style={{ color: theme.textSecondary }}>No artists found.</Text>

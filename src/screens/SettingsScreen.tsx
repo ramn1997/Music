@@ -467,7 +467,19 @@ export const SettingsScreen = () => {
                             />
                         </View>
                         <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
-
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="calendar-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Memory Lane</Text>
+                            </View>
+                            <Switch
+                                value={sectionVisibility.yearMix}
+                                onValueChange={() => toggleSectionVisibility('yearMix')}
+                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
+                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
                         <View style={styles.toggleRow}>
                             <View style={styles.toggleRowInfo}>
                                 <Ionicons name="sparkles-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
@@ -671,7 +683,7 @@ const styles = StyleSheet.create({
         padding: 5,
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 24,
         fontFamily: 'PlusJakartaSans_700Bold',
         letterSpacing: -0.5,
     },

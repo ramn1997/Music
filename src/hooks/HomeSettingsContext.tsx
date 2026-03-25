@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type HomeSection = 'collections' | 'likedSongs' | 'mostlyPlayed' | 'history' | 'topSongs' | 'topAlbums' | 'topArtists' | 'playlists' | 'favorites' | 'madeForYou' | 'dailyTracking' | 'dailyMix';
+export type HomeSection = 'collections' | 'likedSongs' | 'mostlyPlayed' | 'history' | 'topSongs' | 'topAlbums' | 'topArtists' | 'playlists' | 'favorites' | 'madeForYou' | 'dailyTracking' | 'dailyMix' | 'yearMix';
  
 interface HomeSettingsContextType {
     sectionVisibility: Record<HomeSection, boolean>;
@@ -24,6 +24,7 @@ const DEFAULT_VISIBILITY: Record<HomeSection, boolean> = {
     madeForYou: true,
     dailyTracking: true,
     dailyMix: true,
+    yearMix: true,
 };
 
 export const HomeSettingsProvider = ({ children }: { children: ReactNode }) => {

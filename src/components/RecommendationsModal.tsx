@@ -19,16 +19,25 @@ export const RecommendationsModal = ({ visible, onClose, song }: Recommendations
     const { width, height } = Dimensions.get('window');
 
     const recommended = useMemo(() => {
-        if (!song || !songs) return { sameAlbum: [], sameArtist: [], sameGenre: [] };
+        if (!song || !songs) return { sameAlbum: [], sameArtist: [], sameGenre: [], sameYear: [] };
 
         const sameAlbum = songs.filter(s => s.album === song.album && s.album !== 'Unknown Album' && s.id !== song.id);
         const sameArtist = songs.filter(s => s.artist === song.artist && s.artist !== 'Unknown Artist' && s.album !== song.album && s.id !== song.id);
         const sameGenre = songs.filter(s => s.genre === song.genre && s.genre !== 'Unknown Genre' && s.artist !== song.artist && s.id !== song.id);
+        
+        const sameYear = songs.filter(s => {
+            if (!s.year || !song.year || s.id === song.id) return false;
+            const y1 = s.year.toString().trim().slice(0, 4);
+            const y2 = song.year.toString().trim().slice(0, 4);
+            // Show songs from same year but different artists if possible for variety
+            return y1 === y2 && y1.length === 4 && s.artist !== song.artist;
+        });
 
         return {
             sameAlbum: sameAlbum.slice(0, 15),
             sameArtist: sameArtist.slice(0, 15),
-            sameGenre: sameGenre.slice(0, 15)
+            sameGenre: sameGenre.slice(0, 15),
+            sameYear: sameYear.slice(0, 15)
         };
     }, [song, songs]);
 
@@ -52,7 +61,7 @@ export const RecommendationsModal = ({ visible, onClose, song }: Recommendations
         </TouchableOpacity>
     );
 
-    const hasRecommendations = recommended.sameAlbum.length > 0 || recommended.sameArtist.length > 0 || recommended.sameGenre.length > 0;
+    const hasRecommendations = recommended.sameAlbum.length > 0 || recommended.sameArtist.length > 0 || recommended.sameGenre.length > 0 || recommended.sameYear.length > 0;
 
     return (
         <Modal
@@ -96,6 +105,15 @@ export const RecommendationsModal = ({ visible, onClose, song }: Recommendations
                                 <Text style={[styles.sectionTitle, { color: theme.text }]}>More by {song?.artist}</Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
                                     {recommended.sameArtist.map(s => renderSongItem(s, recommended.sameArtist))}
+                                </ScrollView>
+                            </View>
+                        )}
+
+                        {recommended.sameYear.length > 0 && (
+                            <View style={styles.section}>
+                                <Text style={[styles.sectionTitle, { color: theme.text }]}>Tracks from {song?.year?.toString().trim().slice(0, 4)}</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                                    {recommended.sameYear.map(s => renderSongItem(s, recommended.sameYear))}
                                 </ScrollView>
                             </View>
                         )}

@@ -178,8 +178,10 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
         isSelectionMode,
         selectedSongIds,
         themeType,
-        theme
-    }), [currentSong?.id, isSelectionMode, selectedSongIds, themeType, theme]);
+        theme,
+        searchQuery,
+        filteredSongsLength: filteredSongs.length
+    }), [currentSong?.id, isSelectionMode, selectedSongIds, themeType, theme, searchQuery, filteredSongs.length]);
 
     const scrollHandler = useAnimatedScrollHandler({
         onScroll: (event) => {},
@@ -240,63 +242,7 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                 )}
             </View>
 
-            {/* Material 3 Search Bar & Filter */}
-            <View style={styles.searchRow}>
-                <View style={[styles.searchContainer, { backgroundColor: surfaceContainer, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="search" size={20} color={onSurfaceVariant} style={{ marginRight: 12 }} />
-                    <TextInput
-                        style={[styles.searchInput, { color: onSurface }]}
-                        placeholder="Search songs..."
-                        placeholderTextColor={onSurfaceVariant + '80'}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        selectionColor={theme.primary}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={18} color={onSurfaceVariant} />
-                        </TouchableOpacity>
-                    )}
-                </View>
-                <TouchableOpacity
-                    onPress={() => setSortModalVisible(true)}
-                    style={[styles.filterButton, { backgroundColor: surfaceContainer, borderColor: theme.cardBorder }]}
-                >
-                    <Ionicons name="filter" size={20} color={theme.primary} />
-                </TouchableOpacity>
-            </View>
 
-            {/* Material 3 Action Buttons */}
-            <View style={styles.mainActions}>
-                <Pressable
-                    android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
-                    style={[styles.primaryAction, { backgroundColor: theme.primary }]}
-                    onPress={() => {
-                        if (filteredSongs.length > 0) {
-                            playSongInPlaylist(filteredSongs, 0, "All Songs");
-                            navigation.navigate('Player', { trackIndex: 0 });
-                        }
-                    }}
-                >
-                    <Ionicons name="play" size={18} color={theme.textOnPrimary} />
-                    <Text style={[styles.actionLabel, { color: theme.textOnPrimary }]}>Play All</Text>
-                </Pressable>
-
-                <Pressable
-                    android_ripple={{ color: theme.primary + '20' }}
-                    style={[styles.secondaryAction, { backgroundColor: primaryContainer, borderColor: theme.primary + '40' }]}
-                    onPress={() => {
-                        if (filteredSongs.length > 0) {
-                            const shuffled = [...filteredSongs].sort(() => Math.random() - 0.5);
-                            playSongInPlaylist(shuffled, 0, "Shuffle Play");
-                            navigation.navigate('Player', { trackIndex: 0 });
-                        }
-                    }}
-                >
-                    <Ionicons name="shuffle" size={18} color={theme.primary} />
-                    <Text style={[styles.actionLabel, { color: theme.primary }]}>Shuffle</Text>
-                </Pressable>
-            </View>
 
             {loading ? (
                 <View style={styles.center}>
@@ -318,6 +264,67 @@ export const SongsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
                         maxToRenderPerBatch={10}
                         drawDistance={250}
                         contentContainerStyle={styles.listContent}
+                        ListHeaderComponent={
+                            <View style={{ paddingBottom: 5 }}>
+                                {/* Material 3 Search Bar & Filter */}
+                                <View style={styles.searchRow}>
+                                    <View style={[styles.searchContainer, { backgroundColor: surfaceContainer, borderColor: theme.cardBorder }]}>
+                                        <Ionicons name="search" size={20} color={onSurfaceVariant} style={{ marginRight: 12 }} />
+                                        <TextInput
+                                            style={[styles.searchInput, { color: onSurface }]}
+                                            placeholder="Search songs..."
+                                            placeholderTextColor={onSurfaceVariant + '80'}
+                                            value={searchQuery}
+                                            onChangeText={setSearchQuery}
+                                            selectionColor={theme.primary}
+                                        />
+                                        {searchQuery.length > 0 && (
+                                            <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                                <Ionicons name="close-circle" size={18} color={onSurfaceVariant} />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => setSortModalVisible(true)}
+                                        style={[styles.filterButton, { backgroundColor: surfaceContainer, borderColor: theme.cardBorder }]}
+                                    >
+                                        <Ionicons name="filter" size={20} color={theme.primary} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Material 3 Action Buttons */}
+                                <View style={styles.mainActions}>
+                                    <Pressable
+                                        android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
+                                        style={[styles.primaryAction, { backgroundColor: theme.primary }]}
+                                        onPress={() => {
+                                            if (filteredSongs.length > 0) {
+                                                playSongInPlaylist(filteredSongs, 0, "All Songs");
+                                                navigation.navigate('Player', { trackIndex: 0 });
+                                            }
+                                        }}
+                                    >
+                                        <Ionicons name="play" size={18} color={theme.textOnPrimary} />
+                                        <Text style={[styles.actionLabel, { color: theme.textOnPrimary }]}>Play All</Text>
+                                    </Pressable>
+
+                                    <Pressable
+                                        android_ripple={{ color: theme.primary + '20' }}
+                                        style={[styles.secondaryAction, { backgroundColor: primaryContainer, borderColor: theme.primary + '40' }]}
+                                        onPress={() => {
+                                            if (filteredSongs.length > 0) {
+                                                const shuffled = [...filteredSongs].sort(() => Math.random() - 0.5);
+                                                playSongInPlaylist(shuffled, 0, "Shuffle Play");
+                                                navigation.navigate('Player', { trackIndex: 0 });
+                                            }
+                                        }}
+                                    >
+                                        <Ionicons name="shuffle" size={18} color={theme.primary} />
+                                        <Text style={[styles.actionLabel, { color: theme.primary }]}>Shuffle</Text>
+                                    </Pressable>
+                                </View>
+                            </View>
+                        }
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
                                 <Ionicons name="musical-notes-outline" size={48} color={onSurfaceVariant + '40'} />

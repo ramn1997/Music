@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, PanResponder, Animated, Modal, Platform } from 'react-native';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, PanResponder, Animated, Modal, Platform, useWindowDimensions } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 const FlashListAny = FlashList as any;
 import ReAnimated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, withSpring, withDelay, Easing, runOnJS } from 'react-native-reanimated';
@@ -31,7 +31,6 @@ import { SpatialAudioEngine } from '../components/SpatialAudioEngine';
 import * as Network from 'expo-network';
 import { Alert } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
 
 const ProgressBar = React.memo(({ seek, isPlaying, theme }: { seek: (pos: number) => void, isPlaying: boolean, theme: any }) => {
     const { position: rawPosition, duration: rawDuration } = useProgress(250);
@@ -142,6 +141,9 @@ const ProgressBar = React.memo(({ seek, isPlaying, theme }: { seek: (pos: number
 
 
 export const ClassicPlayerScreen = () => {
+    const { width, height } = useWindowDimensions();
+    const isLandscape = width > height;
+
     const navigation = useNavigation<any>();
     const currentSong = usePlayerStore(state => state.currentTrack);
     const isPlaying = usePlayerStore(state => state.isPlaying);
@@ -165,8 +167,8 @@ export const ClassicPlayerScreen = () => {
     const { theme, themeType, playerStyle, isCarouselEnabled, isSwipeEnabled } = useTheme();
     const { toggleLike, isLiked, updateSongMetadata } = useMusicLibrary();
 
-    const getArtStyle = () => {
-        const size = width - 60;
+    const dynamicArtStyle = useMemo(() => {
+        const size = isLandscape ? height * 0.75 : width - 60;
         let borderRadius = 12;
         switch (playerStyle) {
             case 'circle': borderRadius = size / 2; break;
@@ -174,20 +176,23 @@ export const ClassicPlayerScreen = () => {
             case 'square': default: borderRadius = 12; break;
         }
         return { width: size, height: size, borderRadius };
-    };
-    const dynamicArtStyle = getArtStyle();
+    }, [width, height, isLandscape, playerStyle]);
 
-    const getSideArtStyle = () => {
-        const size = width * 0.6;
-        let borderRadius = 16;
+    const dynamicSideArtStyle = useMemo(() => {
+        const size = isLandscape ? height * 0.4 : width * 0.6;
+        let borderRadius = 12;
         switch (playerStyle) {
             case 'circle': borderRadius = size / 2; break;
             case 'sharp': borderRadius = 0; break;
             case 'square': default: borderRadius = 8; break;
         }
         return { width: size, height: size, borderRadius };
-    };
-    const dynamicSideArtStyle = getSideArtStyle();
+    }, [width, height, isLandscape, playerStyle]);
+
+    const dynamicCarouselStyle = useMemo(() => ({
+        height: isLandscape ? height * 0.6 : width - 60,
+    }), [width, height, isLandscape]);
+
 
     const prevSong = currentIndex > 0 ? playlist[currentIndex - 1] : (repeatMode === 'all' ? playlist[playlist.length - 1] : null);
     const nextSong = repeatMode === 'one' ? currentSong : (currentIndex < playlist.length - 1 ? playlist[currentIndex + 1] : (repeatMode === 'all' ? playlist[0] : null));
@@ -202,7 +207,10 @@ export const ClassicPlayerScreen = () => {
     const [shareModalVisible, setShareModalVisible] = useState(false);
     const [recommendationsVisible, setRecommendationsVisible] = useState(false);
 
-    const likeScale = useRef(new Animated.Value(1)).current;
+    const likeScale = useSharedValue(1);
+    const animeLike = useAnimatedStyle(() => ({
+        transform: [{ scale: likeScale.value }]
+    }));
     const shuffleScale = useSharedValue(1);
     const repeatScale = useSharedValue(1);
     const playPauseScale = useSharedValue(1);
@@ -238,10 +246,10 @@ export const ClassicPlayerScreen = () => {
 
     const handleLike = () => {
         if (!currentSong) return;
-        Animated.sequence([
-            Animated.spring(likeScale, { toValue: 1.4, friction: 3, useNativeDriver: true }),
-            Animated.spring(likeScale, { toValue: 1, friction: 3, useNativeDriver: true })
-        ]).start();
+        likeScale.value = withSequence(
+            withSpring(1.4, { damping: 3, stiffness: 200 }),
+            withSpring(1, { damping: 3, stiffness: 200 })
+        );
         toggleLike(currentSong);
     };
 
@@ -358,7 +366,7 @@ export const ClassicPlayerScreen = () => {
     const doubleTapGesture = Gesture.Tap()
         .numberOfTaps(2)
         .onStart((e) => {
-            const artworkWidth = width - 60;
+            const artworkWidth = dynamicArtStyle.width;
             const isRightSide = e.x > artworkWidth / 2;
             if (isRightSide) {
                 runOnJS(showFeedback)('forward');
@@ -390,45 +398,189 @@ export const ClassicPlayerScreen = () => {
 
     return (
         <ScreenContainer variant="player">
-            <SafeAreaView style={styles.safeArea}>
-                <View style={[styles.header, { zIndex: 1000 }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}>
-                            <Ionicons name="chevron-down" size={30} color={theme.text} />
-                        </TouchableOpacity>
-                        <View style={{ marginLeft: 10, flex: 1 }}>
-                            <Text style={[styles.headerSubTitle, { color: theme.textSecondary }]}>Now Playing</Text>
+            <View style={styles.safeArea}>
+                {!isLandscape && (
+                    <View style={[styles.header, { zIndex: 1000, marginTop: 15 }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                            <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')}>
+                                <Ionicons name="chevron-down" size={30} color={theme.text} />
+                            </TouchableOpacity>
+                            <View style={{ marginLeft: 10, flex: 1 }}>
+                                <Text style={[styles.headerSubTitle, { color: theme.textSecondary, fontSize: 11, textTransform: 'uppercase' }]}>Now Playing</Text>
+                            </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
+                            <TouchableOpacity onPress={handleLike}>
+                                <ReAnimated.View style={animeLike}>
+                                    <Ionicons name={liked ? "heart" : "heart-outline"} size={22} color={liked ? '#ef4444' : theme.textSecondary} />
+                                </ReAnimated.View>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setRecommendationsVisible(true)}>
+                                <Ionicons name="color-wand-outline" size={24} color={theme.textSecondary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setLyricsModalVisible(true)}>
+                                <Ionicons name="document-text-outline" size={24} color={theme.textSecondary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setOptionsModalVisible(true)}>
+                                <Ionicons name="ellipsis-vertical" size={26} color={theme.text} />
+                            </TouchableOpacity>
                         </View>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-                        <TouchableOpacity onPress={handleLike}>
-                            <Animated.View style={{ transform: [{ scale: likeScale }] }}>
-                                <Ionicons name={liked ? "heart" : "heart-outline"} size={24} color={liked ? '#ef4444' : theme.textSecondary} />
-                            </Animated.View>
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setRecommendationsVisible(true)}>
-                            <Ionicons name="color-wand-outline" size={24} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setLyricsModalVisible(true)}>
-                            <Ionicons name="document-text-outline" size={24} color={theme.textSecondary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => setOptionsModalVisible(true)}>
-                            <Ionicons name="ellipsis-vertical" size={26} color={theme.text} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                )}
 
-                <View style={{ flex: 1, justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
-                        {isCarouselEnabled ? (
-                            <GestureDetector gesture={combinedGesture}>
-                                <View style={styles.carouselContainer}>
-                                    <ReAnimated.View style={[styles.sideArtContainer, { left: -width * 0.45 }, contentTransitionStyle]}>
-                                        <View style={[styles.sideArtCard, dynamicSideArtStyle, { opacity: 0.4, transform: [{ scale: 0.8 }] }]}>
-                                            <MusicImage uri={prevSong?.coverImage} id={prevSong?.id} style={{ width: '100%', height: '100%' }} iconSize={40} />
-                                        </View>
+                {isLandscape ? (
+                    <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 30, alignItems: 'center', position: 'relative' }}>
+                        <TouchableOpacity 
+                            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} 
+                            style={{ position: 'absolute', top: 20, right: 20, zIndex: 100, padding: 10 }}
+                        >
+                            <Ionicons name="chevron-down" size={32} color={theme.text} />
+                        </TouchableOpacity>
+                        {/* Left Side: Art */}
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                            {isCarouselEnabled ? (
+                                <GestureDetector gesture={combinedGesture}>
+                                    <View style={styles.carouselContainer}>
+                                        <ReAnimated.View style={[styles.sideArtContainer, { left: -width * 0.25, opacity: 0.15, transform: [{ scale: 0.5 }] }, contentTransitionStyle]}>
+                                            <View style={[styles.sideArtCard, dynamicSideArtStyle]}>
+                                                <MusicImage uri={prevSong?.coverImage} id={prevSong?.id} style={{ width: '100%', height: '100%' }} iconSize={40} />
+                                            </View>
+                                        </ReAnimated.View>
+                                        <ReAnimated.View style={[styles.artContainer, contentTransitionStyle, { zIndex: 10 }]}>
+                                        <GlassCard style={[styles.artCard, dynamicArtStyle]} contentStyle={{ padding: 0, width: '100%', height: '100%' }}>
+                                                <MusicImage uri={currentSong?.coverImage} id={currentSong?.id} assetUri={currentSong?.uri} style={{ width: '100%', height: '100%' }} iconSize={height * 0.3} />
+                                            </GlassCard>
+                                        </ReAnimated.View>
+                                        <ReAnimated.View style={[styles.sideArtContainer, { right: -width * 0.25, opacity: 0.15, transform: [{ scale: 0.5 }] }, contentTransitionStyle]}>
+                                            <View style={[styles.sideArtCard, dynamicSideArtStyle]}>
+                                                <MusicImage uri={nextSong?.coverImage} id={nextSong?.id} style={{ width: '100%', height: '100%' }} iconSize={40} />
+                                            </View>
+                                        </ReAnimated.View>
+                                    </View>
+                                </GestureDetector>
+                            ) : (
+                                <GestureDetector gesture={combinedGesture}>
+                                    <ReAnimated.View style={[styles.artContainer, contentTransitionStyle]}>
+                                        <GlassCard style={[styles.artCard, dynamicArtStyle]} contentStyle={{ padding: 0, width: '100%', height: '100%' }}>
+                                            <MusicImage uri={currentSong?.coverImage} id={currentSong?.id} assetUri={currentSong?.uri} style={{ width: '100%', height: '100%' }} iconSize={height * 0.3} />
+                                        </GlassCard>
                                     </ReAnimated.View>
-                                    <ReAnimated.View style={[styles.artContainer, contentTransitionStyle, { zIndex: 10 }]}>
+                                </GestureDetector>
+                            )}
+                        </View>
+
+                        {/* Right Side: Info and Controls */}
+                        <View style={{ flex: 1.2, justifyContent: 'center', paddingLeft: 40 }}>
+                            <ReAnimated.View style={[styles.infoContainer, { paddingHorizontal: 0, marginBottom: 10, flexDirection: 'column', alignItems: 'flex-start' }, contentTransitionStyle]}>
+                                <MarqueeText
+                                    text={currentSong?.title || "Not Playing"}
+                                    style={[styles.songTitle, { color: theme.text, fontSize: 20 }]}
+                                />
+                                <Text numberOfLines={1} style={[styles.artistName, { color: theme.textSecondary, fontSize: 13 }]}>{currentSong?.artist || "Select a song"}</Text>
+                                <Text numberOfLines={1} style={[styles.albumName, { color: theme.textSecondary, opacity: 0.6, fontSize: 11 }]}>{currentSong?.album || "Unknown Album"}</Text>
+                            </ReAnimated.View>
+
+                            <ProgressBar seek={seek} isPlaying={isPlaying} theme={theme} />
+
+                            <View style={[styles.controlsContainer, { marginTop: 10, marginBottom: 5, paddingHorizontal: 0 }]}>
+                                <TouchableOpacity onPress={handleShufflePress}>
+                                    <ReAnimated.View style={animeShuffle}>
+                                        <Ionicons name="shuffle-outline" size={20} color={isShuffleOn ? theme.primary : theme.textSecondary} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPressIn={handlePrevIn} onPressOut={handlePrevOut} activeOpacity={0.7}>
+                                    <ReAnimated.View style={animatePrev}>
+                                        <Ionicons name="play-skip-back-sharp" size={24} color={theme.text} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.playButton, { width: 52, height: 52 }]} onPress={handlePlayPausePress}>
+                                    <ReAnimated.View style={animatePlayPause}>
+                                        <Ionicons name={isPlaying ? "pause-sharp" : "play-sharp"} size={32} color={theme.text} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPressIn={handleNextIn} onPressOut={handleNextOut} activeOpacity={0.7}>
+                                    <ReAnimated.View style={animateNext}>
+                                        <Ionicons name="play-skip-forward-sharp" size={24} color={theme.text} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleRepeatPress}>
+                                    <ReAnimated.View style={animeRepeat}>
+                                        <Ionicons name="repeat-outline" size={20} color={repeatMode !== 'off' ? theme.primary : theme.textSecondary} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <TouchableOpacity onPress={handleLike} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                    <ReAnimated.View style={animeLike}>
+                                        <Ionicons name={liked ? "heart" : "heart-outline"} size={22} color={liked ? '#ef4444' : theme.textSecondary} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setRecommendationsVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                    <Ionicons name="color-wand-outline" size={22} color={theme.textSecondary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setLyricsModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                    <Ionicons name="document-text-outline" size={22} color={theme.textSecondary} />
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => setOptionsModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                    <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
+                                </TouchableOpacity>
+                            </View>
+
+
+                            <TouchableOpacity style={[styles.upNextContainer, { marginBottom: 10 }]} onPress={() => navigation.navigate('Queue')}>
+                                <View style={styles.upNextLeft}>
+                                    <Text style={[styles.upNextLabel, { color: theme.textSecondary }]}>Up next</Text>
+                                    <Text style={[styles.upNextSong, { color: theme.text }]} numberOfLines={1}>{nextSong ? nextSong.title : 'End of queue'}</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ) : (
+                    <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 40 : 30 }}>
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                            {isCarouselEnabled ? (
+                                <GestureDetector gesture={combinedGesture}>
+                                    <View style={styles.carouselContainer}>
+                                        <ReAnimated.View style={[styles.sideArtContainer, { left: -width * 0.45 }, contentTransitionStyle]}>
+                                            <View style={[styles.sideArtCard, dynamicSideArtStyle, { opacity: 0.4, transform: [{ scale: 0.8 }] }]}>
+                                                <MusicImage uri={prevSong?.coverImage} id={prevSong?.id} style={{ width: '100%', height: '100%' }} iconSize={40} />
+                                            </View>
+                                        </ReAnimated.View>
+                                        <ReAnimated.View style={[styles.artContainer, contentTransitionStyle, { zIndex: 10 }]}>
+                                            <GlassCard style={[styles.artCard, dynamicArtStyle]} contentStyle={{ padding: 0, width: '100%', height: '100%' }}>
+                                                <MusicImage uri={currentSong?.coverImage} id={currentSong?.id} assetUri={currentSong?.uri} style={{ width: '100%', height: '100%' }} iconSize={width * 0.4} />
+                                                {feedback && (
+                                                    <ReAnimated.View style={[styles.feedbackOverlay, feedbackStyle]}>
+                                                        <LinearGradient
+                                                            colors={['transparent', 'rgba(0,0,0,0.5)', 'transparent']}
+                                                            style={StyleSheet.absoluteFill}
+                                                        />
+                                                        <View style={styles.feedbackContent}>
+                                                            <Ionicons
+                                                                name={feedback === 'forward' ? "play-forward-sharp" : "play-back-sharp"}
+                                                                size={50}
+                                                                color="#fff"
+                                                            />
+                                                            <Text style={styles.feedbackText}>
+                                                                {feedback === 'forward' ? '+10s' : '-10s'}
+                                                            </Text>
+                                                        </View>
+                                                    </ReAnimated.View>
+                                                )}
+                                            </GlassCard>
+                                        </ReAnimated.View>
+                                        <ReAnimated.View style={[styles.sideArtContainer, { right: -width * 0.45 }, contentTransitionStyle]}>
+                                            <View style={[styles.sideArtCard, dynamicSideArtStyle, { opacity: 0.4, transform: [{ scale: 0.8 }] }]}>
+                                                <MusicImage uri={nextSong?.coverImage} id={nextSong?.id} style={{ width: '100%', height: '100%' }} iconSize={40} />
+                                            </View>
+                                        </ReAnimated.View>
+                                    </View>
+                                </GestureDetector>
+                            ) : (
+                                <GestureDetector gesture={combinedGesture}>
+                                    <ReAnimated.View style={[styles.artContainer, contentTransitionStyle]}>
                                         <GlassCard style={[styles.artCard, dynamicArtStyle]} contentStyle={{ padding: 0, width: '100%', height: '100%' }}>
                                             <MusicImage uri={currentSong?.coverImage} id={currentSong?.id} assetUri={currentSong?.uri} style={{ width: '100%', height: '100%' }} iconSize={width * 0.4} />
                                             {feedback && (
@@ -440,7 +592,7 @@ export const ClassicPlayerScreen = () => {
                                                     <View style={styles.feedbackContent}>
                                                         <Ionicons
                                                             name={feedback === 'forward' ? "play-forward-sharp" : "play-back-sharp"}
-                                                            size={50}
+                                                            size={60}
                                                             color="#fff"
                                                         />
                                                         <Text style={styles.feedbackText}>
@@ -451,156 +603,129 @@ export const ClassicPlayerScreen = () => {
                                             )}
                                         </GlassCard>
                                     </ReAnimated.View>
-                                    <ReAnimated.View style={[styles.sideArtContainer, { right: -width * 0.45 }, contentTransitionStyle]}>
-                                        <View style={[styles.sideArtCard, dynamicSideArtStyle, { opacity: 0.4, transform: [{ scale: 0.8 }] }]}>
-                                            <MusicImage uri={nextSong?.coverImage} id={nextSong?.id} style={{ width: '100%', height: '100%' }} iconSize={40} />
-                                        </View>
-                                    </ReAnimated.View>
-                                </View>
-                            </GestureDetector>
-                        ) : (
-                            <GestureDetector gesture={combinedGesture}>
-                                <ReAnimated.View style={[styles.artContainer, contentTransitionStyle]}>
-                                    <GlassCard style={[styles.artCard, dynamicArtStyle]} contentStyle={{ padding: 0, width: '100%', height: '100%' }}>
-                                        <MusicImage uri={currentSong?.coverImage} id={currentSong?.id} assetUri={currentSong?.uri} style={{ width: '100%', height: '100%' }} iconSize={width * 0.4} />
-                                        {feedback && (
-                                            <ReAnimated.View style={[styles.feedbackOverlay, feedbackStyle]}>
-                                                <LinearGradient
-                                                    colors={['transparent', 'rgba(0,0,0,0.5)', 'transparent']}
-                                                    style={StyleSheet.absoluteFill}
-                                                />
-                                                <View style={styles.feedbackContent}>
-                                                    <Ionicons
-                                                        name={feedback === 'forward' ? "play-forward-sharp" : "play-back-sharp"}
-                                                        size={60}
-                                                        color="#fff"
-                                                    />
-                                                    <Text style={styles.feedbackText}>
-                                                        {feedback === 'forward' ? '+10s' : '-10s'}
-                                                    </Text>
-                                                </View>
-                                            </ReAnimated.View>
-                                        )}
-                                    </GlassCard>
-                                </ReAnimated.View>
-                            </GestureDetector>
-                        )}
-                    </View>
-
-                    <View style={styles.bottomControlsBlock}>
-                        {isSpatial && (
-                            <SpatialAudioEngine 
-                                songUrl={currentSong?.uri} 
-                                isPlaying={isPlaying} 
-                                onEnded={nextTrack}
-                                onProgress={() => {}} 
-                                seekPosition={null} 
-                            />
-                        )}
-
-                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 30, marginBottom: 15 }}>
-                            {/* Removed Spatial and Quality toggles from here per request */}
+                                </GestureDetector>
+                            )}
                         </View>
 
-                        <ReAnimated.View style={[styles.infoContainer, contentTransitionStyle]}>
-                            <View style={{ flex: 1 }}>
-                                <MarqueeText
-                                    text={currentSong?.title || "Not Playing"}
-                                    style={[styles.songTitle, { color: theme.text }]}
+
+
+                        <View style={{ flex: 1, justifyContent: 'space-evenly', width: '100%', paddingTop: 10 }}>
+                            <View style={[styles.bottomControlsBlock, { width: '100%' }]}>
+                            {isSpatial && (
+                                <SpatialAudioEngine 
+                                    songUrl={currentSong?.uri} 
+                                    isPlaying={isPlaying} 
+                                    onEnded={nextTrack}
+                                    onProgress={() => {}} 
+                                    seekPosition={null} 
                                 />
-                                <Text
-                                    numberOfLines={1}
-                                    style={[styles.albumName, { color: theme.textSecondary }]}
-                                >
-                                    {currentSong?.album || "Unknown Album"}
-                                </Text>
-                                <Text
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                    style={[styles.artistName, { color: theme.textSecondary, opacity: 0.6 }]}
-                                >
-                                    {currentSong?.artist || "Select a song"}
-                                </Text>
+                            )}
+
+                            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, paddingHorizontal: 30, marginBottom: 15 }}>
+                                {/* Removed Spatial and Quality toggles from here per request */}
                             </View>
 
-                        </ReAnimated.View>
+                            <ReAnimated.View style={[styles.infoContainer, contentTransitionStyle, { marginTop: 0 }]}>
+                                <View style={{ flex: 1 }}>
+                                    <MarqueeText
+                                        text={currentSong?.title || "Not Playing"}
+                                        style={[styles.songTitle, { color: theme.text }]}
+                                    />
+                                    <Text
+                                        numberOfLines={1}
+                                        style={[styles.albumName, { color: theme.textSecondary }]}
+                                    >
+                                        {currentSong?.album || "Unknown Album"}
+                                    </Text>
+                                    <Text
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                        style={[styles.artistName, { color: theme.textSecondary, opacity: 0.6 }]}
+                                    >
+                                        {currentSong?.artist || "Select a song"}
+                                    </Text>
+                                </View>
 
-                        <ProgressBar seek={seek} isPlaying={isPlaying} theme={theme} />
+                            </ReAnimated.View>
+
+                            <ProgressBar seek={seek} isPlaying={isPlaying} theme={theme} />
 
 
 
-                        <View style={styles.controlsContainer}>
-                            <TouchableOpacity onPress={handleShufflePress}>
-                                <ReAnimated.View style={animeShuffle}>
-                                    <Ionicons name="shuffle-outline" size={24} color={isShuffleOn ? theme.primary : theme.textSecondary} />
-                                </ReAnimated.View>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPressIn={handlePrevIn}
-                                onPressOut={handlePrevOut}
-                                activeOpacity={0.7}
-                            >
-                                <ReAnimated.View style={animatePrev}>
-                                    <Ionicons name="play-skip-back-sharp" size={30} color={theme.text} />
-                                </ReAnimated.View>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.playButton} onPress={handlePlayPausePress}>
-                                <ReAnimated.View style={animatePlayPause}>
-                                    <Ionicons name={isPlaying ? "pause-sharp" : "play-sharp"} size={52} color={theme.text} />
-                                </ReAnimated.View>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPressIn={handleNextIn}
-                                onPressOut={handleNextOut}
-                                activeOpacity={0.7}
-                            >
-                                <ReAnimated.View style={animateNext}>
-                                    <Ionicons name="play-skip-forward-sharp" size={30} color={theme.text} />
-                                </ReAnimated.View>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={handleRepeatPress}>
-                                <ReAnimated.View style={animeRepeat}>
-                                    <View style={{ position: 'relative' }}>
-                                        <Ionicons name="repeat-outline" size={24} color={repeatMode !== 'off' ? theme.primary : theme.textSecondary} />
-                                        {repeatMode === 'one' && (
-                                            <View style={{
-                                                position: 'absolute',
-                                                top: 6,
-                                                right: -2,
-                                                backgroundColor: theme.primary,
-                                                borderRadius: 5,
-                                                width: 10,
-                                                height: 10,
-                                                justifyContent: 'center',
-                                                alignItems: 'center'
-                                            }}>
-                                                <Text style={{ fontSize: 7, color: theme.textOnPrimary, fontWeight: 'bold' }}>1</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                </ReAnimated.View>
-                            </TouchableOpacity>
+                            <View style={styles.controlsContainer}>
+                                <TouchableOpacity onPress={handleShufflePress}>
+                                    <ReAnimated.View style={animeShuffle}>
+                                        <Ionicons name="shuffle-outline" size={24} color={isShuffleOn ? theme.primary : theme.textSecondary} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPressIn={handlePrevIn}
+                                    onPressOut={handlePrevOut}
+                                    activeOpacity={0.7}
+                                >
+                                    <ReAnimated.View style={animatePrev}>
+                                        <Ionicons name="play-skip-back-sharp" size={30} color={theme.text} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.playButton} onPress={handlePlayPausePress}>
+                                    <ReAnimated.View style={animatePlayPause}>
+                                        <Ionicons name={isPlaying ? "pause-sharp" : "play-sharp"} size={52} color={theme.text} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPressIn={handleNextIn}
+                                    onPressOut={handleNextOut}
+                                    activeOpacity={0.7}
+                                >
+                                    <ReAnimated.View style={animateNext}>
+                                        <Ionicons name="play-skip-forward-sharp" size={30} color={theme.text} />
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={handleRepeatPress}>
+                                    <ReAnimated.View style={animeRepeat}>
+                                        <View style={{ position: 'relative' }}>
+                                            <Ionicons name="repeat-outline" size={24} color={repeatMode !== 'off' ? theme.primary : theme.textSecondary} />
+                                            {repeatMode === 'one' && (
+                                                <View style={{
+                                                    position: 'absolute',
+                                                    top: 6,
+                                                    right: -2,
+                                                    backgroundColor: theme.primary,
+                                                    borderRadius: 5,
+                                                    width: 10,
+                                                    height: 10,
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center'
+                                                }}>
+                                                    <Text style={{ fontSize: 7, color: theme.textOnPrimary, fontWeight: 'bold' }}>1</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    </ReAnimated.View>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.upNextContainer, { width: '85%', alignSelf: 'center', marginBottom: 0 }]}
+                            onPress={() => navigation.navigate('Queue')}
+                        >
+                            <View style={styles.upNextLeft}>
+                                <Text style={[styles.upNextLabel, { color: theme.textSecondary }]}>
+                                    {repeatMode === 'one' ? 'Repeating' : 'Up next'}
+                                </Text>
+                                <Text style={[styles.upNextSong, { color: theme.text }]} numberOfLines={1}>
+                                    {nextSong
+                                        ? `${nextSong.title} — ${nextSong.artist}`
+                                        : 'End of queue'}
+                                </Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                        </TouchableOpacity>
                         </View>
                     </View>
-
-                    <TouchableOpacity
-                        style={styles.upNextContainer}
-                        onPress={() => navigation.navigate('Queue')}
-                    >
-                        <View style={styles.upNextLeft}>
-                            <Text style={[styles.upNextLabel, { color: theme.textSecondary }]}>
-                                {repeatMode === 'one' ? 'Repeating' : 'Up next'}
-                            </Text>
-                            <Text style={[styles.upNextSong, { color: theme.text }]} numberOfLines={1}>
-                                {nextSong
-                                    ? `${nextSong.title} — ${nextSong.artist}`
-                                    : 'End of queue'}
-                            </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
+                )}
+            </View>
 
             <SongOptionsMenu
                 visible={optionsModalVisible}
@@ -690,8 +815,8 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 20 },
     headerSubTitle: { fontSize: 10, letterSpacing: 1, fontFamily: 'PlusJakartaSans_600SemiBold', opacity: 0.7 },
     headerMainTitle: { fontSize: 13, fontFamily: 'PlusJakartaSans_700Bold' },
-    artContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 20 },
-    artCard: { width: width - 60, height: width - 60, borderRadius: 12, overflow: 'hidden', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 15 },
+    artContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 0, marginBottom: 0 },
+    artCard: { borderRadius: 12, overflow: 'hidden', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 15 },
     infoContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 30, marginBottom: 20 },
     songTitle: { fontSize: 24, fontFamily: 'PlusJakartaSans_700Bold', marginBottom: 2 },
     albumName: { fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium', opacity: 0.8, marginBottom: 1 },
@@ -726,7 +851,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: width - 60,
         width: '100%',
         marginTop: 20,
         marginBottom: 20,

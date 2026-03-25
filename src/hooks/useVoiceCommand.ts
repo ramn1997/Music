@@ -41,7 +41,7 @@ export const useVoiceCommand = (onCommand: (command: string) => void): VoiceComm
         isVoiceReady.current = !!Voice && hasNativeVoice;
 
         if (!hasNativeVoice) {
-            console.error('[Voice] CRITICAL: No native voice module found in NativeModules!');
+            console.log('[Voice] Info: Native voice module not found (standard for Expo Go)');
         }
 
         return hasNativeVoice;
@@ -97,8 +97,7 @@ export const useVoiceCommand = (onCommand: (command: string) => void): VoiceComm
 
     const startListening = useCallback(async () => {
         if (!isVoiceReady.current) {
-            setError("Native Voice module not detected. Please ensure you are not using Expo Go and have rebuilt the app locally (npx expo run:android).");
-            console.error('[Voice] Cannot start: Native module is missing');
+            setError("Voice Search is only available in the full build. (Not available in Expo Go)");
             return;
         }
         try {

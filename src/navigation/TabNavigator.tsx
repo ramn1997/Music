@@ -5,23 +5,20 @@ import { FavoritesNavigator } from './FavoritesNavigator';
 import { PlaylistsNavigator } from './PlaylistsNavigator';
 import { LibraryNavigator } from './LibraryNavigator';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
 import { useTheme } from '../hooks/ThemeContext';
-import { View, TouchableOpacity, Text, StyleSheet, Platform, Dimensions } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Platform, Dimensions, useWindowDimensions } from 'react-native';
+import { MiniPlayer } from '../components/MiniPlayer';
 const { width } = Dimensions.get('window');
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
     useAnimatedStyle,
-    withSpring,
     withTiming,
     useSharedValue,
-    SlideInRight,
-    SlideInLeft,
 } from 'react-native-reanimated';
 
 const Tab = createBottomTabNavigator();
 
-const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
+const TabItem = ({ route, isFocused, onPress, label, theme, isLandscape }: any) => {
     const progress = useSharedValue(isFocused ? 1 : 0);
 
     useEffect(() => {
@@ -37,7 +34,7 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
     };
 
     const containerStyle = useAnimatedStyle(() => ({
-        flex: 1 + (progress.value * 1.0), // Expands flex width up to 2x for active tab
+        flex: isLandscape ? 0 : 1 + (progress.value * 1.0),
     }));
 
     const activeStyle = useAnimatedStyle(() => ({
@@ -53,24 +50,19 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
     }));
 
     return (
-        <Animated.View style={[{ height: 48, justifyContent: 'center', alignItems: 'center' }, containerStyle]}>
+        <Animated.View style={[isLandscape ? { width: '92%', height: 50, justifyContent: 'center', alignItems: 'center', marginVertical: 2 } : { height: 48, justifyContent: 'center', alignItems: 'center' }, containerStyle]}>
             <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }]}>
-
-                {/* Active Pill Layout */}
                 <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, activeStyle]} pointerEvents="none">
-                    <View style={[styles.activePillInner, { backgroundColor: theme.primaryLight || theme.primary }]}>
+                    <View style={[styles.activePillInner, isLandscape && { flexDirection: 'column', width: '100%', height: '100%', paddingHorizontal: 0, paddingVertical: 10, borderRadius: 20 }, { backgroundColor: theme.primaryLight || theme.primary }]}>
                         <Ionicons name={iconName() as any} size={22} color={theme.textOnPrimary} />
-                        <Text style={[styles.activeText, { color: theme.textOnPrimary }]} numberOfLines={1}>{label}</Text>
+                        <Text style={[styles.activeText, isLandscape && { marginLeft: 0, marginTop: 6, fontSize: 10 }, { color: theme.textOnPrimary }]} numberOfLines={1}>{label}</Text>
                     </View>
                 </Animated.View>
-
-                {/* Inactive Circle Layout */}
                 <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, inactiveStyle]} pointerEvents="none">
-                    <View style={[styles.inactiveCircle, { backgroundColor: 'transparent' }]}>
+                    <View style={[styles.inactiveCircle, isLandscape && { width: '100%', height: '100%', borderRadius: 20 }, { backgroundColor: 'transparent' }]}>
                         <Ionicons name={iconName() as any} size={24} color={theme.background === '#ffffff' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.7)"} />
                     </View>
                 </Animated.View>
-
             </TouchableOpacity>
         </Animated.View>
     );
@@ -79,10 +71,10 @@ const TabItem = ({ route, isFocused, onPress, label, theme }: any) => {
 import { BlurView } from 'expo-blur';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 
-const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) => {
+const CustomTabBar = ({ state, descriptors, navigation, insets, theme, isLandscape }: any) => {
     const route = state.routes[state.index];
     const focusedName = getFocusedRouteNameFromRoute(route) ?? route.name;
-    const hideOnScreens = ['Albums', 'Artists']; // Hide bottom tab bar in these full-page screens
+    const hideOnScreens = ['Albums', 'Artists'];
 
     if (hideOnScreens.includes(focusedName)) {
         return null;
@@ -90,24 +82,39 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
 
     const { navigationStyle } = useTheme();
     const isLight = theme.background === '#ffffff';
-    const isPill = navigationStyle === 'pill';
+    const isPillNav = navigationStyle === 'pill' || isLandscape;
 
     return (
         <View style={[
             styles.tabBarWrapper,
-            { bottom: isPill ? (insets?.bottom || 20) : 0 },
-            isPill && styles.pillWrapper
+            isPillNav && !isLandscape && styles.pillWrapper,
+            isLandscape ? {
+                top: (insets?.top || 0) + 10,
+                bottom: (insets?.bottom || 0) + 10,
+                left: 10,
+                width: 88,
+                justifyContent: 'center',
+                borderRadius: 24,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'),
+            } : {
+                bottom: isPillNav ? (15 + (insets?.bottom || 0)) : 0,
+            }
         ]}>
             <View style={[
                 styles.tabBarContainer,
-                {
+                isLandscape ? {
+                    height: '100%',
                     backgroundColor: 'transparent',
-                    height: (isPill ? 85 : 68) + (isPill ? 0 : (insets?.bottom || 0)),
-                    paddingBottom: isPill ? 0 : (insets?.bottom || 0),
+                } : {
+                    backgroundColor: 'transparent',
+                    height: (isPillNav ? 80 : 68) + (isPillNav ? 0 : (insets?.bottom || 0)),
+                    paddingBottom: isPillNav ? 0 : (insets?.bottom || 0),
                     overflow: 'hidden',
-                    borderTopWidth: isPill ? 0 : 1,
+                    borderTopWidth: isPillNav ? 0 : 1,
                     borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'),
-                    borderRadius: isPill ? 42 : 0,
+                    borderRadius: isPillNav ? 40 : 0,
                 }
             ]}>
                 <BlurView
@@ -115,118 +122,75 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme }: any) =>
                     tint={isLight ? 'light' : 'dark'}
                     style={StyleSheet.absoluteFill}
                 />
-                {/* Semi-transparent overlay to better match theme background */}
                 <View
                     style={[
                         StyleSheet.absoluteFill,
                         {
                             backgroundColor: isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
-                            // For OLED black theme, we might want it slightly darker
                             ...(theme.background === '#000000' && { backgroundColor: 'rgba(0,0,0,0.8)' })
                         }
                     ]}
                 />
-                <View style={[styles.tabBarInner, { height: isPill ? 85 : 68 }]}>
+                <View style={[
+                    styles.tabBarInner,
+                    isLandscape ? {
+                        flexDirection: 'column',
+                        height: '100%',
+                        paddingVertical: 15,
+                        paddingHorizontal: 0,
+                        alignItems: 'center',
+                    } : {
+                        height: isPillNav ? 80 : 68
+                    }
+                ]}>
                     {state.routes.map((route: any, index: number) => {
                         const { options } = descriptors[route.key];
-                        const label = options.tabBarLabel !== undefined
-                            ? options.tabBarLabel
-                            : options.title !== undefined
-                                ? options.title
-                                : route.name;
+                        const label = options.tabBarLabel !== undefined ? options.tabBarLabel : options.title !== undefined ? options.title : route.name;
                         const isFocused = state.index === index;
-
                         const onPress = () => {
-                            const event = navigation.emit({
-                                type: 'tabPress',
-                                target: route.key,
-                                canPreventDefault: true,
-                            });
-
+                            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
                             if (!event.defaultPrevented) {
-                                // Forcing a navigation to the tab's sub-screen (Home, LibraryScreen, etc)
-                                // directly by resetting the state.
-                                navigation.navigate({
-                                    name: route.name,
-                                    params: { screen: undefined }, // This helps reset stacks
-                                    merge: false, // Ensures we don't just stay where we are in a stack
-                                });
+                                navigation.navigate({ name: route.name, params: { screen: undefined }, merge: false });
                             }
                         };
-
                         return (
-                            <TabItem
-                                key={route.key}
-                                route={route}
-                                isFocused={isFocused}
-                                onPress={onPress}
-                                label={label}
-                                theme={theme}
-                            />
+                            <TabItem key={route.key} route={route} isFocused={isFocused} onPress={onPress} label={label} theme={theme} isLandscape={isLandscape} />
                         );
                     })}
+                    {isLandscape && (
+                        <View style={{ marginTop: 'auto', width: '100%', alignItems: 'center', paddingBottom: 5 }}>
+                            <MiniPlayer isSidebar={true} />
+                        </View>
+                    )}
                 </View>
             </View>
         </View>
     );
 };
 
-const HomeTabScreen = () => (
-    <View style={{ flex: 1 }}>
-        <HomeNavigator />
-    </View>
-);
-
-const FavoritesTabScreen = () => (
-    <View style={{ flex: 1 }}>
-        <FavoritesNavigator />
-    </View>
-);
-
-const PlaylistsTabScreen = () => (
-    <View style={{ flex: 1 }}>
-        <PlaylistsNavigator />
-    </View>
-);
-
-const LibraryTabScreen = () => (
-    <View style={{ flex: 1 }}>
-        <LibraryNavigator />
-    </View>
-);
+const HomeTabScreen = () => (<View style={{ flex: 1 }}><HomeNavigator /></View>);
+const FavoritesTabScreen = () => (<View style={{ flex: 1 }}><FavoritesNavigator /></View>);
+const PlaylistsTabScreen = () => (<View style={{ flex: 1 }}><PlaylistsNavigator /></View>);
+const LibraryTabScreen = () => (<View style={{ flex: 1 }}><LibraryNavigator /></View>);
 
 export const TabNavigator = () => {
     const insets = useSafeAreaInsets();
     const { theme } = useTheme();
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+    const isLandscape = windowWidth > windowHeight;
 
     return (
         <Tab.Navigator
-            tabBar={(props) => <CustomTabBar {...props} insets={insets} theme={theme} />}
+            tabBar={(props) => <CustomTabBar {...props} insets={insets} theme={theme} isLandscape={isLandscape} />}
             screenOptions={{
                 headerShown: false,
                 unmountOnBlur: true,
             }}
         >
-            <Tab.Screen
-                name="HomeTab"
-                component={HomeTabScreen}
-                options={{ tabBarLabel: 'Home' }}
-            />
-            <Tab.Screen
-                name="Library"
-                component={LibraryTabScreen}
-                options={{ tabBarLabel: 'Library' }}
-            />
-            <Tab.Screen
-                name="Favorites"
-                component={FavoritesTabScreen}
-                options={{ tabBarLabel: 'Favorites' }}
-            />
-            <Tab.Screen
-                name="Playlists"
-                component={PlaylistsTabScreen}
-                options={{ tabBarLabel: 'Playlists' }}
-            />
+            <Tab.Screen name="HomeTab" component={HomeTabScreen} options={{ tabBarLabel: 'Home' }} />
+            <Tab.Screen name="Library" component={LibraryTabScreen} options={{ tabBarLabel: 'Library' }} />
+            <Tab.Screen name="Favorites" component={FavoritesTabScreen} options={{ tabBarLabel: 'Favorites' }} />
+            <Tab.Screen name="Playlists" component={PlaylistsTabScreen} options={{ tabBarLabel: 'Playlists' }} />
         </Tab.Navigator>
     );
 };
@@ -248,10 +212,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     pillWrapper: {
-        bottom: 20,
-        left: 20,
-        right: 20,
-        width: width - 40,
+        marginHorizontal: 20,
         borderRadius: 35,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
@@ -263,18 +224,12 @@ const styles = StyleSheet.create({
         height: 70,
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-    },
-    activePill: {
-        flex: 1.5,
-        height: 48,
-        justifyContent: 'center',
-        alignItems: 'center',
+        paddingHorizontal: 15,
     },
     activePillInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 18,
         height: '100%',
         borderRadius: 100,
     },
@@ -282,22 +237,13 @@ const styles = StyleSheet.create({
         color: '#000',
         fontWeight: 'bold',
         marginLeft: 6,
-        fontSize: 13,
-    },
-    tabItemInactive: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
+        fontSize: 12,
     },
     inactiveCircle: {
-        width: 48,
-        height: 48,
+        width: 44,
+        height: 44,
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    tabLabel: {
-        fontSize: 14,
-        fontWeight: '700',
-    }
 });

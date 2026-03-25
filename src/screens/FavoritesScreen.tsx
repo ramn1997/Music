@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 24,
         fontFamily: 'PlusJakartaSans_700Bold',
         letterSpacing: -1,
         marginLeft: 0,

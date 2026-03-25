@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Modal, TextInput, Alert, ActivityIndicator, Dimensions, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -200,6 +200,8 @@ const formatPlaylistDuration = (ms: number) => {
 export const PlaylistScreen = ({ route, navigation }: Props) => {
     const { id, name } = route.params;
     const type = route.params.type as any;
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+    const isLandscape = windowWidth > windowHeight;
 
     // Selectors from Library Store
     const songs = useLibraryStore(state => state.songs);
@@ -786,7 +788,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                             data={(viewMode === 'songs' ? displaySongs : groupedContent) as any[]}
                             keyExtractor={(item, index) => (item as any).id || (item as any).name || String(index)}
                             renderItem={viewMode === 'songs' ? renderSong : (viewMode === 'albums' ? renderAlbumItem : renderArtistItem)}
-                            contentContainerStyle={styles.listContent}
+                            contentContainerStyle={[styles.listContent, isLandscape && { paddingHorizontal: 40 }]}
                             estimatedItemSize={70}
                             extraData={[currentSong?.id, theme, viewMode]}
                             getItemType={(item) => viewMode === 'songs' ? 'song' : 'item'}
@@ -798,10 +800,10 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                 </View>
                             }
                             ListHeaderComponent={
-                                <View style={[styles.playlistHeader, (type === 'artist' || type === 'album' || type === 'genre') && { paddingHorizontal: 0, paddingTop: 0 }]}>
+                                <View style={[styles.playlistHeader, (type === 'artist' || type === 'album' || type === 'genre') && { paddingHorizontal: 0, paddingTop: 0 }, isLandscape && { paddingBottom: 20 }]}>
                                     {(type === 'artist' || type === 'album' || type === 'genre') ? (
-                                        <>
-                                            <View style={{ width: '100%', aspectRatio: 1.1, marginBottom: 15 }}>
+                                        <View style={isLandscape ? { flexDirection: 'row', alignItems: 'center', padding: 20 } : null}>
+                                            <View style={isLandscape ? { width: 180, height: 180, borderRadius: 20, overflow: 'hidden', marginRight: 25 } : { width: '100%', aspectRatio: 1.1, marginBottom: 15 }}>
                                                 {type === 'genre' ? (
                                                     <PlaylistCollage
                                                         songs={collageSongsForHeader}
@@ -833,7 +835,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     </TouchableOpacity>
                                                 )}
                                             </View>
-                                            <View style={{ paddingHorizontal: 20, marginBottom: 10 }}>
+                                            <View style={isLandscape ? { flex: 1, paddingRight: 20 } : { paddingHorizontal: 20, marginBottom: 10 }}>
                                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                                     <MarqueeText
                                                         text={displayName}
@@ -873,20 +875,20 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                     </Text>
                                                 )}
                                             </View>
-                                        </>
+                                        </View>
                                     ) : (
-                                        <>
-                                            <View style={{ alignItems: 'center', width: '100%', paddingHorizontal: 0 }}>
+                                        <View style={isLandscape ? { flexDirection: 'row', alignItems: 'center', padding: 20 } : { width: '100%' }}>
+                                            <View style={isLandscape ? { alignItems: 'flex-start' } : { alignItems: 'center', width: '100%', paddingHorizontal: 0 }}>
                                                 <View
                                                     style={[
                                                         styles.playlistArtCard,
-                                                        { overflow: 'hidden', width: 220, height: 220, marginBottom: 20, marginRight: 0 }
+                                                        { overflow: 'hidden', width: isLandscape ? 180 : 220, height: isLandscape ? 180 : 220, marginBottom: isLandscape ? 0 : 20, marginRight: isLandscape ? 25 : 0 }
                                                     ]}
                                                 >
                                                     <PlaylistCollage
                                                         songs={collageSongsForHeader}
-                                                        size={220}
-                                                        iconSize={100}
+                                                        size={isLandscape ? 180 : 220}
+                                                        iconSize={isLandscape ? 80 : 100}
                                                         iconName={
                                                             id === 'liked' ? 'heart' :
                                                                 (id === 'most_played' || type === 'most_played') ? 'refresh' :
@@ -899,89 +901,92 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                         gradientColors={gradientColors as [string, string]}
                                                     />
                                                 </View>
+                                            </View>
 
-                                                <View style={{ alignItems: 'center', width: '100%' }}>
-                                                    {isEditing ? (
-                                                        <TextInput
-                                                            value={editName}
-                                                            onChangeText={setEditName}
-                                                            onSubmitEditing={handleRename}
-                                                            onBlur={() => setIsEditing(false)}
-                                                            autoFocus
-                                                            style={[
-                                                                styles.playlistName,
-                                                                {
-                                                                    color: theme.text,
-                                                                    fontSize: 24,
-                                                                    marginBottom: 4,
-                                                                    textAlign: 'center',
-                                                                    width: '80%',
-                                                                    borderBottomWidth: 1,
-                                                                    borderBottomColor: theme.primary,
-                                                                    paddingVertical: 4
+                                            <View style={isLandscape ? { flex: 1, alignItems: 'flex-start', justifyContent: 'center' } : { alignItems: 'center', width: '100%' }}>
+                                                {isEditing ? (
+                                                    <TextInput
+                                                        value={editName}
+                                                        onChangeText={setEditName}
+                                                        onSubmitEditing={handleRename}
+                                                        onBlur={() => setIsEditing(false)}
+                                                        autoFocus
+                                                        style={[
+                                                            styles.playlistName,
+                                                            {
+                                                                color: theme.text,
+                                                                fontSize: 24,
+                                                                marginBottom: 4,
+                                                                textAlign: isLandscape ? 'left' : 'center',
+                                                                width: '80%',
+                                                                borderBottomWidth: 1,
+                                                                borderBottomColor: theme.primary,
+                                                                paddingVertical: 4
+                                                            }
+                                                        ]}
+                                                    />
+                                                ) : (
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isLandscape ? 'flex-start' : 'center', width: '100%' }}>
+                                                        <TouchableOpacity
+                                                            disabled={type !== 'playlist' || id === 'liked'}
+                                                            onPress={() => {
+                                                                if (type === 'playlist' && id !== 'liked') {
+                                                                    setEditName(displayName);
+                                                                    setIsEditing(true);
                                                                 }
-                                                            ]}
-                                                        />
-                                                    ) : (
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                                                            <TouchableOpacity
-                                                                disabled={type !== 'playlist' || id === 'liked'}
-                                                                onPress={() => {
-                                                                    if (type === 'playlist' && id !== 'liked') {
-                                                                        setEditName(displayName);
-                                                                        setIsEditing(true);
+                                                            }}
+                                                            activeOpacity={0.7}
+                                                            style={{ maxWidth: '80%' }}
+                                                        >
+                                                            <MarqueeText
+                                                                text={displayName}
+                                                                style={[
+                                                                    styles.playlistName,
+                                                                    {
+                                                                        color: theme.text,
+                                                                        fontSize: 28,
+                                                                        marginBottom: 4,
+                                                                        textAlign: isLandscape ? 'left' : 'center',
+                                                                        paddingHorizontal: 0
                                                                     }
+                                                                ]}
+                                                            />
+                                                        </TouchableOpacity>
+                                                        {type === 'playlist' && id !== 'liked' && (
+                                                            <TouchableOpacity
+                                                                onPress={() => {
+                                                                    setEditName(displayName);
+                                                                    setIsEditing(true);
                                                                 }}
-                                                                activeOpacity={0.7}
-                                                                style={{ maxWidth: '80%' }}
+                                                                style={{ marginLeft: 8, padding: 5 }}
                                                             >
-                                                                <MarqueeText
-                                                                    text={displayName}
-                                                                    style={[
-                                                                        styles.playlistName,
-                                                                        {
-                                                                            color: theme.text,
-                                                                            fontSize: 28,
-                                                                            marginBottom: 4,
-                                                                            textAlign: 'center',
-                                                                            paddingHorizontal: 0
-                                                                        }
-                                                                    ]}
-                                                                />
+                                                                <Ionicons name="pencil" size={18} color={theme.textSecondary} />
                                                             </TouchableOpacity>
-                                                            {type === 'playlist' && id !== 'liked' && (
-                                                                <TouchableOpacity
-                                                                    onPress={() => {
-                                                                        setEditName(displayName);
-                                                                        setIsEditing(true);
-                                                                    }}
-                                                                    style={{ marginLeft: 8, padding: 5 }}
-                                                                >
-                                                                    <Ionicons name="pencil" size={18} color={theme.textSecondary} />
-                                                                </TouchableOpacity>
-                                                            )}
-                                                        </View>
-                                                    )}
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                                            <Ionicons name="musical-notes-outline" size={14} color={theme.textSecondary} />
-                                                            <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
-                                                                {displaySongs.length} Songs
-                                                            </Text>
-                                                        </View>
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                                            <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
-                                                            <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
-                                                                {formatPlaylistDuration(totalDuration)}
-                                                            </Text>
-                                                        </View>
+                                                        )}
+                                                    </View>
+                                                )}
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: isLandscape ? 'flex-start' : 'center', gap: 12 }}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                        <Ionicons name="musical-notes-outline" size={14} color={theme.textSecondary} />
+                                                        <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
+                                                            {displaySongs.length} Songs
+                                                        </Text>
+                                                    </View>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                        <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
+                                                        <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: '600' }}>
+                                                            {formatPlaylistDuration(totalDuration)}
+                                                        </Text>
                                                     </View>
                                                 </View>
                                             </View>
-                                        </>
+                                        </View>
                                     )}
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, paddingHorizontal: (type === 'artist' || type === 'album' || type === 'genre') ? 20 : 0 }}>
+                                    <View style={[
+                                        { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18 },
+                                        (type === 'artist' || type === 'album' || type === 'genre') ? { paddingHorizontal: 20 } : (isLandscape ? { justifyContent: 'flex-start', width: '100%' } : { justifyContent: 'center', width: '100%' })
+                                    ]}>
                                         <TouchableOpacity
                                             activeOpacity={0.8}
                                             style={[styles.playAllButton, { backgroundColor: theme.primary }]}
@@ -1025,7 +1030,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                             style={{
                                                 flexDirection: 'row',
                                                 alignItems: 'center',
-                                                justifyContent: 'center',
+                                                justifyContent: isLandscape ? 'flex-start' : 'center',
                                                 backgroundColor: theme.card,
                                                 paddingVertical: 10,
                                                 paddingHorizontal: 24,
@@ -1033,7 +1038,9 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                 borderRadius: 24,
                                                 borderWidth: 1,
                                                 borderColor: theme.cardBorder,
-                                                gap: 8
+                                                gap: 8,
+                                                alignSelf: isLandscape ? 'flex-start' : 'center',
+                                                marginLeft: 0
                                             }}
                                             onPress={() => setIsAddSongsModalVisible(true)}
                                             activeOpacity={0.7}

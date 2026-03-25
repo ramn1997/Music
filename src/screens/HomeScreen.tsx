@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Keyboard, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Keyboard, FlatList, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -178,26 +178,6 @@ const DailyStatsCard = React.memo(({ theme, songs }: { theme: any, songs: Song[]
         return (topSongId && Array.isArray(songs)) ? songs.find(s => s && s.id === topSongId) : null;
     }, [topSongId, songs]);
 
-    // Calculate weekly summary for the graph
-    const last7Days = useMemo(() => {
-        const statsArr = [];
-        let maxTime = 1; // avoid divide by zero
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toISOString().split('T')[0];
-            const d = dailyStats[dateStr] || { songsPlayed: 0, listeningTimeMs: 0 };
-            if (d.listeningTimeMs > maxTime) maxTime = d.listeningTimeMs;
-            
-            statsArr.push({
-                label: ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()],
-                timeMs: d.listeningTimeMs,
-                isToday: i === 0
-            });
-        }
-        return { statsArr, maxTime };
-    }, [dailyStats]);
-
     return (
         <View style={styles.statsCardWrapper}>
             <LinearGradient
@@ -208,32 +188,9 @@ const DailyStatsCard = React.memo(({ theme, songs }: { theme: any, songs: Song[]
                     <View style={[styles.statsIconBox, { backgroundColor: theme.primary + '20' }]}>
                         <Ionicons name="analytics" size={14} color={theme.primary} />
                     </View>
-                    <Text style={[styles.statsTitle, { color: theme.textSecondary }]}>Weekly Insights</Text>
+                    <Text style={[styles.statsTitle, { color: theme.textSecondary }]}>Daily Insights</Text>
                 </View>
 
-                {/* Graph Section */}
-                <View style={styles.graphContainer}>
-                    {last7Days.statsArr.map((d, i) => {
-                        const barHeight = Math.max(8, (d.timeMs / last7Days.maxTime) * 40);
-                        return (
-                            <View key={i} style={styles.barColumn}>
-                                <View style={[styles.barBg, { backgroundColor: theme.textSecondary + '10' }]}>
-                                    <View style={[
-                                        styles.barFill, 
-                                        { 
-                                            height: barHeight, 
-                                            backgroundColor: d.isToday ? theme.primary : theme.textSecondary + '40'
-                                        }
-                                    ]} />
-                                </View>
-                                <Text style={[styles.barLabel, { color: d.isToday ? theme.primary : theme.textSecondary }]}>{d.label}</Text>
-                            </View>
-                        );
-                    })}
-                </View>
-
-                <View style={[styles.statDividerRow, { backgroundColor: theme.textSecondary + '10' }]} />
-                
                 <View style={styles.statsGrid}>
                     <View style={styles.statItem}>
                         <Text style={[styles.statValue, { color: theme.text }]}>{day.songsPlayed}</Text>
@@ -273,13 +230,15 @@ const DailyMixCard = React.memo(({ theme, songs, navigation, onPlayMix }: { them
                 onPress={() => onPlayMix(songs)}
             >
                 <LinearGradient
-                    colors={[theme.primary + '30', 'transparent']}
+                    colors={[theme.primary + (theme.background === '#000000' ? '15' : '30'), 'transparent']}
                     style={StyleSheet.absoluteFill}
                 />
                 
                 <View style={styles.dailyMixHeader}>
                     <View style={{ flex: 1 }}>
-                        <Text style={[styles.dailyMixBadge, { color: theme.primary, borderColor: theme.primary }]}>DAILY PICK</Text>
+                        <View style={[styles.dailyMixBadgeContainer, { backgroundColor: theme.primary + '20', borderColor: theme.primary + '40' }]}>
+                            <Text style={[styles.dailyMixBadgeText, { color: theme.primary }]}>DAILY PICK</Text>
+                        </View>
                         <Text style={[styles.dailyMixTitle, { color: theme.text }]}>Fresh Mix</Text>
                         <Text style={[styles.dailyMixSubtitle, { color: theme.textSecondary }]}>Handpicked for today</Text>
                     </View>
@@ -287,7 +246,7 @@ const DailyMixCard = React.memo(({ theme, songs, navigation, onPlayMix }: { them
                         style={[styles.dailyMixPlayBtn, { backgroundColor: theme.primary }]}
                         onPress={() => onPlayMix(songs)}
                     >
-                        <Ionicons name="play" size={24} color="#fff" />
+                        <Ionicons name="play" size={24} color={theme.textOnPrimary} style={{ marginLeft: 2 }} />
                     </TouchableOpacity>
                 </View>
 
@@ -321,6 +280,84 @@ const DailyMixCard = React.memo(({ theme, songs, navigation, onPlayMix }: { them
                 </View>
             </TouchableOpacity>
         </View>
+    );
+});
+
+const decadeGradients: Record<string, [string, string]> = {
+    '2020s': ['#CC0044', '#CC4400'],
+    '2010s': ['#0088CC', '#0044BB'],
+    '2000s': ['#8800CC', '#CC00CC'],
+    '90s': ['#CCAA00', '#CC4400'],
+    '80s': ['#00CC66', '#0066AA'],
+    'classic': ['#00AA77', '#006699']
+};
+
+const getYearGradient = (year: string): [string, string] => {
+    const y = parseInt(year);
+    if (y >= 2020) return decadeGradients['2020s'];
+    if (y >= 2010) return decadeGradients['2010s'];
+    if (y >= 2000) return decadeGradients['2000s'];
+    if (y >= 1990) return decadeGradients['90s'];
+    if (y >= 1980) return decadeGradients['80s'];
+    return decadeGradients['classic'];
+};
+
+const YearMixCard = React.memo(({ item, theme, onPlayMix }: { item: any, theme: any, onPlayMix: (songs: Song[]) => void }) => {
+    const [isExpanded, setIsExpanded] = React.useState(false);
+    const displaySongs = isExpanded ? item.songs.slice(0, 8) : item.songs.slice(0, 3);
+
+    return (
+        <TouchableOpacity
+            style={[styles.yearMixCard, isExpanded && { minHeight: 140, height: 'auto' }]}
+            onPress={() => onPlayMix(item.songs)}
+            activeOpacity={0.9}
+        >
+            <LinearGradient
+                colors={getYearGradient(item.year)}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
+            <View style={styles.yearMixInnerContent}>
+                <View style={styles.yearMixHeaderSmall}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.yearMixBadgeSmall}>COLLECTION</Text>
+                        <Text style={styles.yearMixTitleSmall}>{item.title}</Text>
+                    </View>
+                    <TouchableOpacity 
+                        style={styles.yearMixPlayBtnSmall}
+                        onPress={(e) => { e.stopPropagation(); onPlayMix(item.songs); }}
+                    >
+                        <Ionicons name="play" size={20} color="#fff" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Song list in card */}
+                <View style={{ marginTop: 15, gap: 10 }}>
+                    {displaySongs.map((s: Song) => (
+                        <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <MusicImage uri={s.coverImage} id={s.id} style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.1)' }} iconSize={12} />
+                            <View style={{ flex: 1 }}>
+                                <Text numberOfLines={1} style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: -0.2 }}>{s.title}</Text>
+                                <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' }}>{s.artist}</Text>
+                            </View>
+                        </View>
+                    ))}
+                </View>
+
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 }}>
+                    <Text style={styles.yearMixCountSmall}>{item.songs.length} tracks from {item.year}</Text>
+                    {item.songs.length > 3 && (
+                        <TouchableOpacity 
+                            onPress={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}
+                        >
+                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>{isExpanded ? 'SEE LESS' : `+ ${item.songs.length - 3} MORE`}</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+        </TouchableOpacity>
     );
 });
 
@@ -765,6 +802,8 @@ const TopArtistCard = React.memo(({ artist, appTheme, onPress, customImage }: an
 
 export const HomeScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+    const isLandscape = windowWidth > windowHeight;
     const { theme: appTheme, themeType } = useTheme();
     const songs = useLibraryStore(state => state.songs);
     const loading = useLibraryStore(state => state.loading);
@@ -1136,7 +1175,6 @@ export const HomeScreen = () => {
         }
         return [];
     }, [songs]);
-
     const dailyMixSongs = useMemo(() => {
         if (!songs || songs.length === 0) return [];
         const todayStr = new Date().toISOString().split('T')[0];
@@ -1147,6 +1185,32 @@ export const HomeScreen = () => {
             return (seed / 233280) - 0.5;
         });
         return shuffled.slice(0, 10);
+    }, [songs]);
+
+    const yearRecommendations = useMemo(() => {
+        if (!songs || songs.length === 0) return [];
+        const yearMap = new Map<string, Song[]>();
+        songs.forEach(s => {
+            if (s.year) {
+                const y = s.year.toString().trim().slice(0, 4);
+                if (y.length === 4 && !isNaN(parseInt(y))) {
+                    if (!yearMap.has(y)) yearMap.set(y, []);
+                    yearMap.get(y)!.push(s);
+                }
+            }
+        });
+
+        return Array.from(yearMap.entries())
+            .filter(([_, yearSongs]) => yearSongs.length >= 3)
+            .sort((a, b) => b[0].localeCompare(a[0])) // Most recent years first
+            .slice(0, 8)
+            .map(([year, yearSongs]) => ({
+                id: `year_${year}`,
+                title: `Best of ${year}`,
+                year,
+                songs: yearSongs.sort(() => Math.random() - 0.5).slice(0, 15),
+                type: 'year'
+            }));
     }, [songs]);
 
     const handlePlayDailyMix = (mixSongs: Song[]) => {
@@ -1348,15 +1412,39 @@ export const HomeScreen = () => {
                 onScroll={scrollHandler}
                 scrollEventThrottle={16}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 220 }}
+                contentContainerStyle={{ paddingBottom: isLandscape ? 120 : 220 }}
             >
 
                 {collectionsWithSongs.length > 0 && (
-                    <View style={[styles.heroGrid, { marginTop: 10 }]}>
+                    <View style={[styles.heroGrid, { marginTop: 10 }, isLandscape && { justifyContent: 'center', gap: 20 }]}>
                         {collectionsWithSongs.map((item) => (
-                            <CollectionCollageHeroCard key={item.id} item={item} theme={appTheme} navigation={navigation} />
+                            <View key={item.id} style={isLandscape ? { width: 280 } : { width: '48%' }}>
+                                <CollectionCollageHeroCard item={item} theme={appTheme} navigation={navigation} />
+                            </View>
                         ))}
                     </View>
+                )}
+
+                {sectionVisibility.yearMix && yearRecommendations.length > 0 && (
+                    <>
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Memory Lane</Text>
+                        </View>
+                        <FlatList
+                            data={yearRecommendations}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => (
+                                <YearMixCard
+                                    item={item}
+                                    theme={appTheme}
+                                    onPlayMix={(s) => playSongInPlaylist(s, 0, item.title)}
+                                />
+                            )}
+                        />
+                    </>
                 )}
 
                 {sectionVisibility.dailyMix && (
@@ -1455,6 +1543,7 @@ export const HomeScreen = () => {
                 )}
 
                 {/* Mix features removed as requested */}
+
 
                 {sectionVisibility.topSongs && (
                     <>
@@ -1712,7 +1801,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     heroCardWrapper: {
-        width: '48%',
+        width: '100%',
         height: 64,
     },
     heroCardInner: {
@@ -2022,16 +2111,18 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 20,
     },
-    dailyMixBadge: {
-        fontSize: 10,
-        fontWeight: '900',
-        letterSpacing: 1,
+    dailyMixBadgeContainer: {
         borderWidth: 1,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 6,
         alignSelf: 'flex-start',
         marginBottom: 8,
+    },
+    dailyMixBadgeText: {
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
     dailyMixTitle: {
         fontSize: 28,
@@ -2112,5 +2203,59 @@ const styles = StyleSheet.create({
         width: 1,
         height: 24,
         backgroundColor: 'rgba(128,128,128,0.15)',
+    },
+    yearMixCard: {
+        width: 270,
+        height: 220, // Default closed height with 3 songs
+        borderRadius: 28,
+        marginRight: 16,
+        overflow: 'hidden',
+        elevation: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+    },
+    yearMixInnerContent: {
+        flex: 1,
+        padding: 22,
+        justifyContent: 'space-between',
+        backgroundColor: 'rgba(0,0,0,0.25)', // Middle ground
+    },
+    yearMixHeaderSmall: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    yearMixBadgeSmall: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1.2,
+        marginBottom: 4,
+    },
+    yearMixTitleSmall: {
+        color: '#fff',
+        fontSize: 24,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    yearMixPlayBtnSmall: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    yearMixFooterSmall: {
+        opacity: 0.9,
+    },
+    yearMixCountSmall: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '600',
+        opacity: 0.8,
     },
 });

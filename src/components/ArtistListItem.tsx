@@ -36,20 +36,21 @@ interface ArtistListItemProps {
         count: number;
     };
     layoutMode: 'list' | 'grid2' | 'grid3';
+    numColumns?: number;
     onPress: () => void;
 }
 
-export const ArtistListItem = memo(({ item, layoutMode, onPress }: ArtistListItemProps) => {
+export const ArtistListItem = memo(({ item, layoutMode, numColumns, onPress }: ArtistListItemProps) => {
     const { theme } = useTheme();
     const { artistMetadata } = useMusicLibrary() || { artistMetadata: {} };
     const fetchedImage = useArtistImage(item.name);
     const displayImage = artistMetadata[item.name]?.coverImage || fetchedImage || item.coverImage;
 
-    const isGrid3 = layoutMode === 'grid3';
+    const isGrid3 = layoutMode === 'grid3' || (numColumns !== undefined && numColumns >= 3);
     const isList = layoutMode === 'list';
 
     return (
-        <View style={{ flex: isList ? 1 : (isGrid3 ? 1 / 3 : 1 / 2), paddingHorizontal: isList ? 0 : 8, marginBottom: isList ? 0 : 16 }}>
+        <View style={{ flex: 1, paddingHorizontal: isList ? 0 : 8, marginBottom: isList ? 0 : 16 }}>
             {isList ? (
                 <TouchableOpacity style={styles.listItem} onPress={onPress}>
                     <View style={styles.row}>
