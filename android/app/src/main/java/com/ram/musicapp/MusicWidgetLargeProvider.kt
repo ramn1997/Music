@@ -18,10 +18,10 @@ import android.widget.RemoteViews
 import java.io.InputStream
 import kotlin.concurrent.thread
 
-class MusicWidgetProvider : AppWidgetProvider() {
+class MusicWidgetLargeProvider : AppWidgetProvider() {
 
     companion object {
-        private const val TAG = "MusicWidget"
+        private const val TAG = "MusicWidgetLarge"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -29,7 +29,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val action = intent.action
         if (action == "com.ram.musicapp.UPDATE_WIDGET") {
             val appWidgetManager = AppWidgetManager.getInstance(context)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetLargeProvider::class.java))
             onUpdate(context, appWidgetManager, appWidgetIds)
         } else if (action?.startsWith("com.ram.musicapp.WIDGET_") == true) {
             val eventName = action.replace("com.ram.musicapp.", "")
@@ -44,13 +44,13 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 MusicWidgetModule.sendEvent(eventName)
             }
             
-            // If it's WIDGET_LIKE, optimistically update UI so user has instant feedback
+            // Optimistic update for LIKE (reusing provider's own IDs)
             if (eventName == "WIDGET_LIKE") {
                val sharedPref = context.getSharedPreferences("WidgetData", Context.MODE_PRIVATE)
                val isLiked = sharedPref.getBoolean("isLiked", false)
                sharedPref.edit().putBoolean("isLiked", !isLiked).apply()
                val appWidgetManager = AppWidgetManager.getInstance(context)
-               val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
+               val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetLargeProvider::class.java))
                onUpdate(context, appWidgetManager, appWidgetIds)
             }
         }
@@ -65,12 +65,12 @@ class MusicWidgetProvider : AppWidgetProvider() {
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         val appWidgetManager = AppWidgetManager.getInstance(context)
-        val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetProvider::class.java))
+        val appWidgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, MusicWidgetLargeProvider::class.java))
         onUpdate(context, appWidgetManager, appWidgetIds)
     }
 
     private fun getPendingIntent(context: Context, action: String): PendingIntent {
-        val intent = Intent(context, MusicWidgetProvider::class.java)
+        val intent = Intent(context, MusicWidgetLargeProvider::class.java)
         intent.action = action
         return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
@@ -81,17 +81,16 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val title = sharedPref.getString("title", "No Song")
             val artist = sharedPref.getString("artist", "Unknown Artist")
             val isPlaying = sharedPref.getBoolean("isPlaying", false)
-            val isLiked = sharedPref.getBoolean("isLiked", false)
+            val artworkUriStr = sharedPref.getString("artwork", null)
             val progress = sharedPref.getFloat("progress", 0f)
             val duration = sharedPref.getFloat("duration", 0f)
-            val artworkUriStr = sharedPref.getString("artwork", "")
 
-            val views = RemoteViews(context.packageName, R.layout.widget_music)
+            val views = RemoteViews(context.packageName, R.layout.widget_music_large)
 
             views.setTextViewText(R.id.widget_title, title)
             views.setTextViewText(R.id.widget_artist, artist)
 
-            // Progress Bar
+            // Progress Bar (0 to 1000 range for smoothness)
             if (duration > 0) {
                 val progressPercent = (progress / duration * 1000).toInt()
                 views.setProgressBar(R.id.widget_progress, 1000, progressPercent, false)
@@ -116,11 +115,12 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget_container, pendingLaunchIntent)
             }
 
-            // Set placeholder and update immediately
+            // SET PLACEHOLDERS AND UPDATE IMMEDIATELY so widget "loads" fast
             views.setImageViewResource(R.id.widget_album_art, R.drawable.widget_default_cover)
+            views.setImageViewResource(R.id.widget_bg_image, R.drawable.widget_default_cover)
             appWidgetManager.updateAppWidget(appWidgetId, views)
 
-            // Load Image Asynchronously
+            // Load Image Asynchronously in background
             val pkgName = context.packageName
             thread {
                 try {
@@ -146,11 +146,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
                             }
                         }
                     }
-
+                    
                     // Create a FRESH RemoteViews for the bitmap update
-                    val updatedViews = RemoteViews(pkgName, R.layout.widget_music)
+                    val updatedViews = RemoteViews(pkgName, R.layout.widget_music_large)
 
-                    // Re-set all text and controls
+                    // Re-set all text and controls (RemoteViews replaces entire view)
                     updatedViews.setTextViewText(R.id.widget_title, title)
                     updatedViews.setTextViewText(R.id.widget_artist, artist)
 
@@ -175,31 +175,38 @@ class MusicWidgetProvider : AppWidgetProvider() {
                         val pendingLaunchIntent = PendingIntent.getActivity(context, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                         updatedViews.setOnClickPendingIntent(R.id.widget_container, pendingLaunchIntent)
                     }
-                    
-                    if (bitmap != null) {
-                        // Dynamic background color matching
-                        val centerColor = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
-                        val r = Color.red(centerColor)
-                        val g = Color.green(centerColor)
-                        val b = Color.blue(centerColor)
-                        updatedViews.setInt(R.id.widget_container, "setBackgroundColor", Color.rgb(r / 6, g / 6, b / 6))
 
-                        val scaledArt = getScaledBitmap(bitmap, 200)
-                        val roundedArt = getRoundedBitmap(scaledArt, 32)
+                    if (bitmap != null) {
+                        // Extract dominant color from center
+                        val centerPixel = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
+                        val r = Color.red(centerPixel)
+                        val g = Color.green(centerPixel)
+                        val b = Color.blue(centerPixel)
+                        
+                        // Create a VERY dark version for the container background base
+                        val bgColor = Color.rgb(r / 6, g / 6, b / 6)
+                        updatedViews.setInt(R.id.widget_container, "setBackgroundColor", bgColor)
+
+                        // 1. Scaled & Rounded Artwork (High Res)
+                        val scaledArt = getScaledBitmap(bitmap, 300)
+                        val roundedArt = getRoundedBitmap(scaledArt, 40) // Modern 40px radius
                         updatedViews.setImageViewBitmap(R.id.widget_album_art, roundedArt)
                         
-                        // Small widget background (optional subtle darkening)
-                        val darkenedBitmap = darkenBitmap(bitmap)
-                        if (darkenedBitmap != null) {
-                            updatedViews.setImageViewBitmap(R.id.widget_bg_image, darkenedBitmap)
-                            updatedViews.setViewVisibility(R.id.widget_bg_image, android.view.View.VISIBLE)
+                        // 2. Immersive Background (Subtly based on art)
+                        val bgBitmap = darkenBitmap(bitmap)
+                        if (bgBitmap != null) {
+                            updatedViews.setImageViewBitmap(R.id.widget_bg_image, bgBitmap)
+                        } else {
+                            updatedViews.setImageViewResource(R.id.widget_bg_image, R.drawable.widget_default_cover)
                         }
                         
+                        // Cleanup
                         scaledArt.recycle()
                         bitmap.recycle()
                     } else {
                         updatedViews.setImageViewResource(R.id.widget_album_art, R.drawable.widget_default_cover)
-                        updatedViews.setInt(R.id.widget_container, "setBackgroundColor", Color.parseColor("#202020"))
+                        updatedViews.setImageViewResource(R.id.widget_bg_image, R.drawable.widget_default_cover)
+                        updatedViews.setInt(R.id.widget_container, "setBackgroundColor", Color.parseColor("#1A1A1A"))
                     }
                     
                     appWidgetManager.updateAppWidget(appWidgetId, updatedViews)
@@ -242,12 +249,13 @@ class MusicWidgetProvider : AppWidgetProvider() {
 
     private fun darkenBitmap(src: Bitmap): Bitmap? {
         return try {
-            val scaled = getScaledBitmap(src, 150)
+            val scaled = getScaledBitmap(src, 200) // Lower res for background performance
             val config = scaled.config ?: Bitmap.Config.ARGB_8888
             val dest = Bitmap.createBitmap(scaled.width, scaled.height, config)
             val canvas = Canvas(dest)
             canvas.drawBitmap(scaled, 0f, 0f, null)
-            canvas.drawColor(Color.parseColor("#E6000000"))
+            // Draw immersive translucent overlay (based on the color of the art)
+            canvas.drawColor(Color.parseColor("#E6000000")) // 90% black blend
             scaled.recycle()
             dest
         } catch (e: Exception) {
