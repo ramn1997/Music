@@ -24,8 +24,8 @@ import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { MarqueeText } from '../components/MarqueeText';
 import { ShareCardModal } from '../components/ShareCardModal';
 import { RecommendationsModal } from '../components/RecommendationsModal';
-import { useProgress } from 'react-native-track-player';
-import TrackPlayer from 'react-native-track-player';
+import { useProgress, useIsPlaying } from 'react-native-track-player';
+import TrackPlayer, { State } from 'react-native-track-player';
 import { Song } from '../hooks/MusicLibraryContext';
 import { SpatialAudioEngine } from '../components/SpatialAudioEngine';
 import * as Network from 'expo-network';
@@ -45,22 +45,20 @@ const ProgressBar = React.memo(({ seek, isPlaying, theme }: { seek: (pos: number
     useEffect(() => { barLayoutRef.current = barLayout; }, [barLayout]);
     useEffect(() => { durationRef.current = duration; }, [duration]);
 
-    const updateSeekPosition = (pageX: number) => {
+    const updateSeekPosition = (locationX: number) => {
         const layout = barLayoutRef.current;
         const dur = durationRef.current;
         if (layout.width > 0 && dur > 0) {
-            const relX = pageX - layout.x;
-            const newProgress = Math.min(Math.max(relX / layout.width, 0), 1);
+            const newProgress = Math.min(Math.max(locationX / layout.width, 0), 1);
             setSeekPosition(newProgress * dur);
         }
     };
 
-    const commitSeek = (pageX: number) => {
+    const commitSeek = (locationX: number) => {
         const layout = barLayoutRef.current;
         const dur = durationRef.current;
         if (layout.width > 0 && dur > 0) {
-            const relX = pageX - layout.x;
-            const newProgress = Math.min(Math.max(relX / layout.width, 0), 1);
+            const newProgress = Math.min(Math.max(locationX / layout.width, 0), 1);
             const targetPosition = newProgress * dur;
             seek(targetPosition);
             setSeekPosition(targetPosition);
@@ -88,13 +86,13 @@ const ProgressBar = React.memo(({ seek, isPlaying, theme }: { seek: (pos: number
             onMoveShouldSetPanResponder: () => true,
             onPanResponderGrant: (evt) => {
                 setIsSeeking(true);
-                updateSeekPosition(evt.nativeEvent.pageX);
+                updateSeekPosition(evt.nativeEvent.locationX);
             },
             onPanResponderMove: (evt) => {
-                updateSeekPosition(evt.nativeEvent.pageX);
+                updateSeekPosition(evt.nativeEvent.locationX);
             },
             onPanResponderRelease: (evt) => {
-                commitSeek(evt.nativeEvent.pageX);
+                commitSeek(evt.nativeEvent.locationX);
                 setIsSeeking(false);
             },
             onPanResponderTerminate: () => setIsSeeking(false),
@@ -128,7 +126,10 @@ const ProgressBar = React.memo(({ seek, isPlaying, theme }: { seek: (pos: number
                     </ReAnimated.View>
                 </View>
                 <View style={[styles.progressKnob, { left: `${progress * 100}%`, backgroundColor: theme.text }]} />
-                <View style={StyleSheet.absoluteFill} {...panHandlers} />
+                <View 
+                    style={{ position: 'absolute', top: -20, bottom: -20, left: 0, right: 0 }} 
+                    {...panHandlers} 
+                />
             </View>
             <View style={styles.timeContainer}>
                 <Text style={[styles.timeText, { color: theme.textSecondary }]}>{formatTime(currentPosition)}</Text>
@@ -146,7 +147,8 @@ export const ClassicPlayerScreen = () => {
 
     const navigation = useNavigation<any>();
     const currentSong = usePlayerStore(state => state.currentTrack);
-    const isPlaying = usePlayerStore(state => state.isPlaying);
+    const { playing: nativeIsPlaying, bufferingDuringPlay: isBuffering } = useIsPlaying();
+    const isPlaying = nativeIsPlaying || isBuffering;
     const playPause = usePlayerStore(state => state.playPause);
     const nextTrack = usePlayerStore(state => state.nextTrack);
     const prevTrack = usePlayerStore(state => state.prevTrack);
@@ -429,16 +431,24 @@ export const ClassicPlayerScreen = () => {
                 )}
 
                 {isLandscape ? (
-                    <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 30, alignItems: 'center', position: 'relative' }}>
-                        <TouchableOpacity 
-                            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} 
-                            style={{ position: 'absolute', top: 20, right: 20, zIndex: 100, padding: 10 }}
-                        >
-                            <Ionicons name="chevron-down" size={32} color={theme.text} />
-                        </TouchableOpacity>
-                        {/* Left Side: Art */}
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
-                            {isCarouselEnabled ? (
+                    <View style={{ flex: 1 }}>
+                        <View style={{ position: 'absolute', top: 15, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, zIndex: 100 }} pointerEvents="box-none">
+                            <TouchableOpacity 
+                                onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} 
+                                style={{ padding: 10 }}
+                            >
+                                <Ionicons name="chevron-down" size={32} color={theme.text} />
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                onPress={() => setOptionsModalVisible(true)} 
+                                style={{ padding: 10 }}
+                            >
+                                <Ionicons name="ellipsis-vertical" size={26} color={theme.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 30, alignItems: 'center', zIndex: 1 }}>
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                                {isCarouselEnabled ? (
                                 <GestureDetector gesture={combinedGesture}>
                                     <View style={styles.carouselContainer}>
                                         <ReAnimated.View style={[styles.sideArtContainer, { left: -width * 0.25, opacity: 0.15, transform: [{ scale: 0.5 }] }, contentTransitionStyle]}>
@@ -449,6 +459,20 @@ export const ClassicPlayerScreen = () => {
                                         <ReAnimated.View style={[styles.artContainer, contentTransitionStyle, { zIndex: 10 }]}>
                                         <GlassCard style={[styles.artCard, dynamicArtStyle]} contentStyle={{ padding: 0, width: '100%', height: '100%' }}>
                                                 <MusicImage uri={currentSong?.coverImage} id={currentSong?.id} assetUri={currentSong?.uri} style={{ width: '100%', height: '100%' }} iconSize={height * 0.3} />
+                                                {feedback && (
+                                                    <ReAnimated.View style={[styles.feedbackOverlay, feedbackStyle]}>
+                                                        <View style={styles.feedbackContent}>
+                                                            <Ionicons
+                                                                name={feedback === 'forward' ? "play-forward-sharp" : "play-back-sharp"}
+                                                                size={height * 0.15}
+                                                                color="#fff"
+                                                            />
+                                                            <Text style={[styles.feedbackText, { fontSize: height * 0.05 }]}>
+                                                                {feedback === 'forward' ? '+10s' : '-10s'}
+                                                            </Text>
+                                                        </View>
+                                                    </ReAnimated.View>
+                                                )}
                                             </GlassCard>
                                         </ReAnimated.View>
                                         <ReAnimated.View style={[styles.sideArtContainer, { right: -width * 0.25, opacity: 0.15, transform: [{ scale: 0.5 }] }, contentTransitionStyle]}>
@@ -463,6 +487,20 @@ export const ClassicPlayerScreen = () => {
                                     <ReAnimated.View style={[styles.artContainer, contentTransitionStyle]}>
                                         <GlassCard style={[styles.artCard, dynamicArtStyle]} contentStyle={{ padding: 0, width: '100%', height: '100%' }}>
                                             <MusicImage uri={currentSong?.coverImage} id={currentSong?.id} assetUri={currentSong?.uri} style={{ width: '100%', height: '100%' }} iconSize={height * 0.3} />
+                                            {feedback && (
+                                                <ReAnimated.View style={[styles.feedbackOverlay, feedbackStyle]}>
+                                                    <View style={styles.feedbackContent}>
+                                                        <Ionicons
+                                                            name={feedback === 'forward' ? "play-forward-sharp" : "play-back-sharp"}
+                                                            size={height * 0.15}
+                                                            color="#fff"
+                                                        />
+                                                        <Text style={[styles.feedbackText, { fontSize: height * 0.05 }]}>
+                                                            {feedback === 'forward' ? '+10s' : '-10s'}
+                                                        </Text>
+                                                    </View>
+                                                </ReAnimated.View>
+                                            )}
                                         </GlassCard>
                                     </ReAnimated.View>
                                 </GestureDetector>
@@ -470,7 +508,7 @@ export const ClassicPlayerScreen = () => {
                         </View>
 
                         {/* Right Side: Info and Controls */}
-                        <View style={{ flex: 1.2, justifyContent: 'center', paddingLeft: 40 }}>
+                        <View style={{ flex: 1.2, justifyContent: 'center', paddingLeft: 30, paddingRight: 10, paddingTop: 40 }}>
                             <ReAnimated.View style={[styles.infoContainer, { paddingHorizontal: 0, marginBottom: 10, flexDirection: 'column', alignItems: 'flex-start' }, contentTransitionStyle]}>
                                 <MarqueeText
                                     text={currentSong?.title || "Not Playing"}
@@ -522,23 +560,21 @@ export const ClassicPlayerScreen = () => {
                                 <TouchableOpacity onPress={() => setLyricsModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                                     <Ionicons name="document-text-outline" size={22} color={theme.textSecondary} />
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={() => setOptionsModalVisible(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                    <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
-                                </TouchableOpacity>
                             </View>
 
 
-                            <TouchableOpacity style={[styles.upNextContainer, { marginBottom: 10 }]} onPress={() => navigation.navigate('Queue')}>
+                            <TouchableOpacity style={[styles.upNextContainer, { marginBottom: 10, width: '100%', marginHorizontal: 0 }]} onPress={() => navigation.navigate('Queue')}>
                                 <View style={styles.upNextLeft}>
                                     <Text style={[styles.upNextLabel, { color: theme.textSecondary }]}>Up next</Text>
                                     <Text style={[styles.upNextSong, { color: theme.text }]} numberOfLines={1}>{nextSong ? nextSong.title : 'End of queue'}</Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                                <Ionicons name="chevron-forward" size={22} color={theme.textSecondary} />
                             </TouchableOpacity>
                         </View>
                     </View>
+                    </View>
                 ) : (
-                    <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 40 : 30 }}>
+                    <View style={{ flex: 1, paddingHorizontal: 0, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 40 : 30 }}>
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', width: '100%' }}>
                             {isCarouselEnabled ? (
                                 <GestureDetector gesture={combinedGesture}>
@@ -707,7 +743,7 @@ export const ClassicPlayerScreen = () => {
                         </View>
 
                         <TouchableOpacity
-                            style={[styles.upNextContainer, { width: '85%', alignSelf: 'center', marginBottom: 0 }]}
+                            style={[styles.upNextContainer, { width: '80%', alignSelf: 'center', marginBottom: 0 }]}
                             onPress={() => navigation.navigate('Queue')}
                         >
                             <View style={styles.upNextLeft}>
@@ -720,7 +756,7 @@ export const ClassicPlayerScreen = () => {
                                         : 'End of queue'}
                                 </Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                            <Ionicons name="chevron-forward" size={22} color={theme.textSecondary} />
                         </TouchableOpacity>
                         </View>
                     </View>
@@ -812,23 +848,23 @@ export const ClassicPlayerScreen = () => {
 
 const styles = StyleSheet.create({
     safeArea: { flex: 1 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 20 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 25 },
     headerSubTitle: { fontSize: 10, letterSpacing: 1, fontFamily: 'PlusJakartaSans_600SemiBold', opacity: 0.7 },
     headerMainTitle: { fontSize: 13, fontFamily: 'PlusJakartaSans_700Bold' },
     artContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 0, marginBottom: 0 },
     artCard: { borderRadius: 12, overflow: 'hidden', elevation: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 15 },
-    infoContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 30, marginBottom: 20 },
+    infoContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 25, marginBottom: 20 },
     songTitle: { fontSize: 24, fontFamily: 'PlusJakartaSans_700Bold', marginBottom: 2 },
     albumName: { fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium', opacity: 0.8, marginBottom: 1 },
     artistName: { fontSize: 13, fontFamily: 'PlusJakartaSans_400Regular' },
-    progressContainer: { paddingHorizontal: 30, marginBottom: 10 },
+    progressContainer: { paddingHorizontal: 25, marginBottom: 10 },
     progressBarBg: { height: 4, backgroundColor: 'rgba(150,150,150,0.2)', borderRadius: 2, marginBottom: 10, position: 'relative' },
     progressBarFill: { height: '100%', borderRadius: 2 },
     progressKnob: { width: 12, height: 12, borderRadius: 6, position: 'absolute', top: -4, marginLeft: -6 },
     timeContainer: { flexDirection: 'row', justifyContent: 'space-between' },
     timeText: { fontSize: 12 },
     bottomControlsBlock: { marginBottom: 10 },
-    controlsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 30, marginBottom: 20 },
+    controlsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, marginBottom: 20 },
     playButton: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
     repeatOneBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: colors.primary, borderRadius: 6, width: 12, height: 12, justifyContent: 'center', alignItems: 'center' },
     iconButton: { justifyContent: 'center', alignItems: 'center', width: 44, height: 44, borderRadius: 22 },
@@ -838,10 +874,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: 'rgba(255,255,255,0.05)',
-        marginHorizontal: 20,
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        borderRadius: 12,
+        paddingVertical: 11,
+        paddingHorizontal: 16,
+        borderRadius: 14,
         marginBottom: 20
     },
     upNextLeft: { flex: 1 },

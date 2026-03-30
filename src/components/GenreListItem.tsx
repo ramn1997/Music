@@ -40,6 +40,14 @@ export const GenreListItem = memo(({ item, layoutMode, numColumns, onPress }: Ge
     const isList = layoutMode === 'list';
     const isGrid3 = layoutMode === 'grid3' || (numColumns !== undefined && numColumns >= 3);
 
+    // Modern 'Leaf' shape for Genres to differentiate from standard playlists/albums
+    const shapeStyle = {
+        borderTopLeftRadius: isList ? 14 : 44,
+        borderBottomRightRadius: isList ? 14 : 44,
+        borderTopRightRadius: isList ? 4 : 10,
+        borderBottomLeftRadius: isList ? 4 : 10,
+    };
+
     return (
         <View style={{ flex: 1, paddingHorizontal: isList ? 0 : 8, marginBottom: isList ? 0 : 16 }}>
             {isList ? (
@@ -51,12 +59,20 @@ export const GenreListItem = memo(({ item, layoutMode, numColumns, onPress }: Ge
                                 size={72}
                                 iconSize={24}
                                 iconName="pricetags"
-                                borderRadius={16}
+                                borderRadius={0} // Managed by wrapper
                                 showBubbles={false}
                                 gradientColors={colors}
                                 opacity={0.6}
                                 showIcon={false}
+                                // Custom wrapper around collage for the shape
+                                width={72}
                             />
+                            <View style={[StyleSheet.absoluteFill, { 
+                                ...shapeStyle, 
+                                overflow: 'hidden', 
+                                borderWidth: 1, 
+                                borderColor: 'rgba(255,255,255,0.1)' 
+                            }]} pointerEvents="none" />
                         </View>
                         <View style={styles.info}>
                             <MarqueeText text={item.name} style={[styles.title, { color: theme.text, textAlign: 'left', fontSize: 17 }]} />
@@ -78,15 +94,17 @@ export const GenreListItem = memo(({ item, layoutMode, numColumns, onPress }: Ge
                             {
                                 width: '100%',
                                 aspectRatio: 1,
-                                borderRadius: 24,
                                 elevation: 8,
                                 shadowColor: colors[0],
-                                shadowOffset: { width: 0, height: 4 },
-                                shadowOpacity: 0.3,
-                                shadowRadius: 8,
+                                shadowOffset: { width: 0, height: 6 },
+                                shadowOpacity: 0.4,
+                                shadowRadius: 10,
+                                // Apply the leaf shape
+                                ...shapeStyle,
+                                backgroundColor: theme.card, // Ensure background is visible
                             }
                         ]}>
-                            <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+                            <View style={[StyleSheet.absoluteFill, { ...shapeStyle, overflow: 'hidden' }]}>
                                 <PlaylistCollage
                                     songs={item.songs || []}
                                     size="100%"
@@ -101,7 +119,7 @@ export const GenreListItem = memo(({ item, layoutMode, numColumns, onPress }: Ge
                                 />
                             </View>
                         </View>
-                        <View style={{ marginTop: 8, paddingHorizontal: 4 }}>
+                        <View style={{ marginTop: 10, paddingHorizontal: 4 }}>
                             <MarqueeText
                                 text={item.name}
                                 style={{

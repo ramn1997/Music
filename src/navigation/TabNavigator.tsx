@@ -53,9 +53,9 @@ const TabItem = ({ route, isFocused, onPress, label, theme, isLandscape }: any) 
         <Animated.View style={[isLandscape ? { width: '92%', height: 50, justifyContent: 'center', alignItems: 'center', marginVertical: 2 } : { height: 48, justifyContent: 'center', alignItems: 'center' }, containerStyle]}>
             <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }]}>
                 <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, activeStyle]} pointerEvents="none">
-                    <View style={[styles.activePillInner, isLandscape && { flexDirection: 'column', width: '100%', height: '100%', paddingHorizontal: 0, paddingVertical: 10, borderRadius: 20 }, { backgroundColor: theme.primaryLight || theme.primary }]}>
+                    <View style={[styles.activePillInner, isLandscape && { flexDirection: 'column', width: '100%', height: '100%', paddingHorizontal: 8, paddingVertical: 10, borderRadius: 20 }, { backgroundColor: theme.primaryLight || theme.primary }]}>
                         <Ionicons name={iconName() as any} size={22} color={theme.textOnPrimary} />
-                        <Text style={[styles.activeText, isLandscape && { marginLeft: 0, marginTop: 6, fontSize: 10 }, { color: theme.textOnPrimary }]} numberOfLines={1}>{label}</Text>
+                        <Text style={[styles.activeText, isLandscape && { marginLeft: 0, marginTop: 4, fontSize: 10 }, { color: theme.textOnPrimary }]} numberOfLines={1}>{label}</Text>
                     </View>
                 </Animated.View>
                 <Animated.View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center' }, inactiveStyle]} pointerEvents="none">
@@ -82,12 +82,14 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme, isLandsca
 
     const { navigationStyle } = useTheme();
     const isLight = theme.background === '#ffffff';
-    const isPillNav = navigationStyle === 'pill' || isLandscape;
+    const isRectangular = navigationStyle === 'rectangular';
+    const isAnyFloating = isRectangular || isLandscape;
 
     return (
         <View style={[
             styles.tabBarWrapper,
-            isPillNav && !isLandscape && styles.pillWrapper,
+            isAnyFloating && !isLandscape && styles.pillWrapper,
+            isRectangular && { marginHorizontal: 12, borderRadius: 20 },
             isLandscape ? {
                 top: (insets?.top || 0) + 10,
                 bottom: (insets?.bottom || 0) + 10,
@@ -99,7 +101,7 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme, isLandsca
                 borderWidth: 1,
                 borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'),
             } : {
-                bottom: isPillNav ? (15 + (insets?.bottom || 0)) : 0,
+                bottom: isAnyFloating ? (15 + (insets?.bottom || 0)) : 0,
             }
         ]}>
             <View style={[
@@ -109,12 +111,12 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme, isLandsca
                     backgroundColor: 'transparent',
                 } : {
                     backgroundColor: 'transparent',
-                    height: (isPillNav ? 80 : 68) + (isPillNav ? 0 : (insets?.bottom || 0)),
-                    paddingBottom: isPillNav ? 0 : (insets?.bottom || 0),
+                    height: (isAnyFloating ? 80 : 68) + (isAnyFloating ? 0 : (insets?.bottom || 0)),
+                    paddingBottom: isAnyFloating ? 0 : (insets?.bottom || 0),
                     overflow: 'hidden',
-                    borderTopWidth: isPillNav ? 0 : 1,
+                    borderTopWidth: isAnyFloating ? 0 : 1,
                     borderColor: theme.cardBorder || (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.15)'),
-                    borderRadius: isPillNav ? 40 : 0,
+                    borderRadius: isRectangular ? 20 : 0,
                 }
             ]}>
                 <BlurView
@@ -140,7 +142,7 @@ const CustomTabBar = ({ state, descriptors, navigation, insets, theme, isLandsca
                         paddingHorizontal: 0,
                         alignItems: 'center',
                     } : {
-                        height: isPillNav ? 80 : 68
+                        height: isAnyFloating ? 80 : 68
                     }
                 ]}>
                     {state.routes.map((route: any, index: number) => {

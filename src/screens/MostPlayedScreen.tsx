@@ -21,19 +21,38 @@ const FlashListAny = FlashList as any;
 export const MostPlayedScreen = () => {
     const { theme } = useTheme();
     const songs = useLibraryStore(state => state.songs);
+    const dailyStats = useLibraryStore(state => state.dailyStats);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
     const currentSong = usePlayerStore(state => state.currentTrack);
 
-    // Sort songs by playCount desc
-    const sortedSongs = useMemo(() => {
-        return [...songs]
-            .filter(s => (s.playCount || 0) > 0)
-            .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
-    }, [songs]);
+    // Songs that reached a peak of 4+ plays in ONE day (30 day window)
+    const heavyRotation = useMemo(() => {
+        const peakCounts = new Map<string, number>();
+        
+        Object.values(dailyStats).forEach(day => {
+            if (!day.playsPerSong) return;
+            Object.entries(day.playsPerSong).forEach(([id, count]) => {
+                const currentPeak = peakCounts.get(id) || 0;
+                if (count > currentPeak) peakCounts.set(id, count);
+            });
+        });
+
+        return songs
+            .filter(s => (peakCounts.get(s.id) || 0) >= 5) // Only 5+ in a single day (Heavy Rotation)
+            .sort((a, b) => {
+                const pA = peakCounts.get(a.id) || 0;
+                const pB = peakCounts.get(b.id) || 0;
+                if (pB !== pA) return pB - pA;
+                const cA = a.playCount || 0;
+                const cB = b.playCount || 0;
+                if (cB !== cA) return cB - cA;
+                return (a.title || '').localeCompare(b.title || '');
+            });
+    }, [songs, dailyStats]);
 
     const handlePlaySong = (index: number) => {
-        playSongInPlaylist(sortedSongs, index, "Most Played");
+        playSongInPlaylist(heavyRotation, index, "Most Played");
         navigation.navigate('Player', { trackIndex: index });
     };
 
@@ -82,7 +101,7 @@ export const MostPlayedScreen = () => {
 
             <View style={{ flex: 1 }}>
                 <FlashListAny
-                    data={sortedSongs}
+                    data={heavyRotation}
                     keyExtractor={(item: Song) => item.id}
                     renderItem={renderSong}
                     estimatedItemSize={72}

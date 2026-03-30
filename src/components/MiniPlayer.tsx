@@ -8,13 +8,14 @@ import { MusicImage } from './MusicImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useProgress } from 'react-native-track-player';
+import { useProgress, useIsPlaying } from 'react-native-track-player';
 import { useLibraryStore } from '../store/useLibraryStore';
 
 export const MiniPlayer = ({ isSidebar = false }: { isSidebar?: boolean }) => {
     const navigation = useNavigation<any>();
     const currentSong = usePlayerStore(state => state.currentTrack);
-    const isPlaying = usePlayerStore(state => state.isPlaying);
+    const { playing: nativeIsPlaying, bufferingDuringPlay: isBuffering } = useIsPlaying();
+    const isPlaying = nativeIsPlaying || isBuffering;
     const playPause = usePlayerStore(state => state.playPause);
     const toggleLike = useLibraryStore(state => state.toggleLike);
     const isLiked = useLibraryStore(state => state.likedSongs.some(s => s.id === currentSong?.id));
@@ -43,10 +44,12 @@ export const MiniPlayer = ({ isSidebar = false }: { isSidebar?: boolean }) => {
     const noTabBarScreens = ['Player', 'Settings', 'EditSong', 'Lyrics'];
     const hasTabBar = !noTabBarScreens.includes(currentRouteName || '');
 
-    const isPillNav = navigationStyle === 'pill' || isLandscape;
+    const isRectangular = navigationStyle === 'rectangular';
+    const isAnyFloating = isRectangular || isLandscape;
+
     const bottomOffset = hasTabBar
-        ? (isPillNav ? (isLandscape ? 105 : 105 + insets.bottom) : (68 + insets.bottom))
-        : (isPillNav ? (15 + insets.bottom) : insets.bottom);
+        ? (isAnyFloating ? (isLandscape ? 105 : 105 + insets.bottom) : (68 + insets.bottom))
+        : (isAnyFloating ? (15 + insets.bottom) : insets.bottom);
 
     const progress = duration > 0 ? (position / duration) * 100 : 0;
 
@@ -97,11 +100,11 @@ export const MiniPlayer = ({ isSidebar = false }: { isSidebar?: boolean }) => {
                 onPress={() => navigation.navigate('Player')}
                 style={[
                     styles.pillContainer,
-                    isPillNav && !isLandscape ? [styles.floatingPill, { width: windowWidth - 30 }] :
+                    isAnyFloating && !isLandscape ? [styles.floatingPill, { width: windowWidth - 24, borderRadius: 20 }] :
                     isLandscape ? [styles.floatingPill, { width: 88, height: isSidebar ? 64 : '100%' }] : styles.standardBar,
                     {
                         maxWidth: isLandscape ? 88 : '100%',
-                        borderWidth: isSidebar ? 0 : (isPillNav ? 1 : 0),
+                        borderWidth: isSidebar ? 0 : (isAnyFloating ? 1 : 0),
                         backgroundColor: isSidebar ? 'transparent' : (theme.background === '#000' || theme.background === '#050505' ? 'rgba(20,20,20,0.9)' : theme.card)
                     }
                 ]}

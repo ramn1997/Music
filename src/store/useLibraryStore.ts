@@ -93,6 +93,7 @@ interface LibraryState {
     removeFromPlaylist: (playlistId: string, songId: string) => Promise<void>;
     renamePlaylist: (id: string, newName: string) => Promise<void>;
     incrementPlayCount: (songId: string) => Promise<void>;
+    recordRecentPlay: (songId: string) => Promise<void>;
     deleteSong: (song: Song) => Promise<void>;
     toggleFavoriteArtist: (artistName: string) => Promise<void>;
     isFavoriteArtist: (artistName: string) => boolean;
@@ -108,6 +109,7 @@ interface LibraryState {
     syncArtistImages: (names: string[]) => Promise<void>;
     calculateBackgroundStats: () => void;
     updateDailyStats: (songId: string, timeMs: number, isNewPlay?: boolean) => void;
+    updateSongAI: (songId: string, aiGenreTag: string, similarityVector: number[]) => Promise<void>;
 }
 
 export const useLibraryStore = create<LibraryState>((set, get) => ({
@@ -133,6 +135,10 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
 
 
     cancelImport: () => importService.cancel(),
+
+    updateSongAI: async (songId, aiGenreTag, similarityVector) => {
+        await get().updateSongMetadata(songId, { aiGenreTag, similarityVector });
+    },
 
     updateSongMetadata: async (songId, updates) => {
         if (!songId || !updates || typeof updates !== 'object') return;
@@ -580,28 +586,16 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         saveObject('song_metadata', songMetadataRef);
 
         set(state => {
-            // Find song anywhere we can
-            let currentSong = songMapRef.get(songId) ||
-                state.songs.find(s => s.id === songId) ||
-                state.recentlyPlayed.find(s => s.id === songId);
-
+            let currentSong = songMapRef.get(songId) || state.songs.find(s => s.id === songId);
             if (!currentSong) return state;
-
             const updatedSong = { ...currentSong, ...updatedMeta };
-            songMapRef.set(songId, updatedSong); // Update map too
-
-            // Update main songs array for reactive children (like Top Songs)
-            const newSongs = state.songs.map(s => s.id === songId ? updatedSong : s);
-            const newSortedSongs = state.sortedSongs.map(s => s.id === songId ? updatedSong : s);
+            songMapRef.set(songId, updatedSong);
 
             let newRecent = [...state.recentlyPlayed];
-            // Remove existing if present to move to top
-            const existingIndex = newRecent.findIndex(s => s.id === songId);
-            if (existingIndex !== -1) {
-                newRecent.splice(existingIndex, 1);
-            }
+            const existingIdx = newRecent.findIndex(s => s.id === songId);
+            if (existingIdx !== -1) newRecent.splice(existingIdx, 1);
             newRecent.unshift(updatedSong);
-            newRecent = newRecent.slice(0, 50); // Keep last 50
+            newRecent = newRecent.slice(0, 50);
 
             let newTop = state.topArtists;
             if (updatedSong.artist && updatedSong.artist !== 'Unknown Artist') {
@@ -613,31 +607,48 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
                     }
                     return a;
                 });
-                if (!found) {
-                    updated.push({ name: updatedSong.artist, totalPlays: 1, songCount: 1, score: 4, coverImage: updatedSong.coverImage });
-                }
+                if (!found) updated.push({ name: updatedSong.artist, totalPlays: 1, songCount: 1, score: 4, coverImage: updatedSong.coverImage });
                 newTop = updated.sort((a, b) => b.score - a.score).slice(0, 15);
             }
 
-            // Update Never Played list: remove if it was there
-            const newNever = state.neverPlayed.some(s => s.id === songId)
-                ? state.neverPlayed.filter(s => s.id !== songId)
-                : state.neverPlayed;
-
-            // Persistence for reliability
+            const newNever = state.neverPlayed.filter(s => s.id !== songId);
             saveObject('cached_recently_played', newRecent);
             saveObject('cached_top_artists', newTop);
             saveObject('cached_never_played', newNever);
 
-            // Update daily stats for "most listened today" and "songs played today"
-            get().updateDailyStats(songId, 0, true);
-
             return {
-                songs: newSongs,
-                sortedSongs: newSortedSongs,
+                songs: state.songs.map(s => s.id === songId ? updatedSong : s),
+                sortedSongs: state.sortedSongs.map(s => s.id === songId ? updatedSong : s),
                 recentlyPlayed: newRecent,
                 topArtists: newTop,
                 neverPlayed: newNever
+            };
+        });
+    },
+
+    recordRecentPlay: async (songId) => {
+        const now = Date.now();
+        const currentMeta = songMetadataRef[songId] || { playCount: 0, lastPlayed: 0, playHistory: [] };
+        const updatedMeta = { ...currentMeta, lastPlayed: now };
+        songMetadataRef[songId] = updatedMeta;
+        saveObject('song_metadata', songMetadataRef);
+
+        set(state => {
+            let currentSong = songMapRef.get(songId) || state.songs.find(s => s.id === songId);
+            if (!currentSong) return state;
+            const updatedSong = { ...currentSong, ...updatedMeta };
+            songMapRef.set(songId, updatedSong);
+
+            let newRecent = [...state.recentlyPlayed];
+            const existingIdx = newRecent.findIndex(s => s.id === songId);
+            if (existingIdx !== -1) newRecent.splice(existingIdx, 1);
+            newRecent.unshift(updatedSong);
+            newRecent = newRecent.slice(0, 50);
+            saveObject('cached_recently_played', newRecent);
+
+            return {
+                songs: state.songs.map(s => s.id === songId ? updatedSong : s),
+                recentlyPlayed: newRecent
             };
         });
     },

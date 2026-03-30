@@ -17,6 +17,7 @@ interface Song {
     lastPlayed?: number;
     scanStatus?: 'pending' | 'enhanced' | 'cached';
     folder?: string;
+    lyrics?: string;
 }
 
 interface DBStats {
@@ -66,17 +67,19 @@ class DatabaseService {
                         playCount INTEGER DEFAULT 0,
                         lastPlayed INTEGER DEFAULT 0,
                         scanStatus TEXT DEFAULT 'pending',
-                        folder TEXT
+                        folder TEXT,
+                        lyrics TEXT
                     );
                 `);
 
                 console.log('[DatabaseService] Handling schema migrations...');
                 try {
-                    // This handles backwards compatibility for users who created DB before 'genre' column existed
                     await this.db.execAsync(`ALTER TABLE songs ADD COLUMN genre TEXT;`);
-                } catch (e) {
-                    // Ignore column already exists error
-                }
+                } catch (e) { }
+
+                try {
+                    await this.db.execAsync(`ALTER TABLE songs ADD COLUMN lyrics TEXT;`);
+                } catch (e) { }
 
                 console.log('[DatabaseService] Creating indices...');
                 await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_scanStatus ON songs(scanStatus);');
@@ -117,8 +120,8 @@ class DatabaseService {
         const BATCH_SIZE = 500;
         const query = `
             INSERT OR REPLACE INTO songs 
-            (id, filename, uri, duration, title, artist, album, genre, year, albumId, coverImage, dateAdded, playCount, lastPlayed, scanStatus, folder)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            (id, filename, uri, duration, title, artist, album, genre, year, albumId, coverImage, dateAdded, playCount, lastPlayed, scanStatus, folder, lyrics)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         `;
 
         for (let i = 0; i < songs.length; i += BATCH_SIZE) {
@@ -150,7 +153,8 @@ class DatabaseService {
                                         this.sanitize(s.playCount),
                                         this.sanitize(s.lastPlayed),
                                         this.sanitize(s.scanStatus),
-                                        this.sanitize(s.folder)
+                                        this.sanitize(s.folder),
+                                        this.sanitize(s.lyrics)
                                     ]);
                                 }
                             } finally {

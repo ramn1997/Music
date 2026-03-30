@@ -23,8 +23,8 @@ import { AddToPlaylistModal } from '../components/AddToPlaylistModal';
 import { MarqueeText } from '../components/MarqueeText';
 import { ShareCardModal } from '../components/ShareCardModal';
 import { RecommendationsModal } from '../components/RecommendationsModal';
-import { useProgress } from 'react-native-track-player';
-import TrackPlayer from 'react-native-track-player';
+import { useProgress, useIsPlaying } from 'react-native-track-player';
+import TrackPlayer, { State } from 'react-native-track-player';
 import { Song } from '../hooks/MusicLibraryContext';
 import { SpatialAudioEngine } from '../components/SpatialAudioEngine';
 import * as Network from 'expo-network';
@@ -206,7 +206,8 @@ export const MaterialPlayerScreen = () => {
 
     const navigation = useNavigation<any>();
     const currentSong = usePlayerStore(state => state.currentTrack);
-    const isPlaying = usePlayerStore(state => state.isPlaying);
+    const { playing: nativeIsPlaying, bufferingDuringPlay: isBuffering } = useIsPlaying();
+    const isPlaying = nativeIsPlaying || isBuffering;
     const playPause = usePlayerStore(state => state.playPause);
     const nextTrack = usePlayerStore(state => state.nextTrack);
     const prevTrack = usePlayerStore(state => state.prevTrack);
@@ -482,15 +483,24 @@ export const MaterialPlayerScreen = () => {
                 )}
 
                 {isLandscape ? (
-                    <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 30, alignItems: 'center', position: 'relative' }}>
-                        <TouchableOpacity 
-                            onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} 
-                            style={{ position: 'absolute', top: 20, right: 20, zIndex: 100, padding: 10 }}
-                        >
-                            <Ionicons name="chevron-down" size={32} color={theme.text} />
-                        </TouchableOpacity>
-                        {/* Left Side: Art Section */}
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                    <View style={{ flex: 1 }}>
+                        <View style={{ position: 'absolute', top: 15, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 25, zIndex: 100 }} pointerEvents="box-none">
+                            <TouchableOpacity 
+                                onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} 
+                                style={{ padding: 10 }}
+                            >
+                                <Ionicons name="chevron-down" size={32} color={theme.text} />
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                onPress={() => setOptionsModalVisible(true)} 
+                                style={{ padding: 10 }}
+                            >
+                                <Ionicons name="ellipsis-vertical" size={26} color={theme.text} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 30, alignItems: 'center', zIndex: 1 }}>
+                            {/* Left Side: Art Section */}
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
                             {isCarouselEnabled ? (
                                 <GestureDetector gesture={combinedGesture}>
                                     <View style={styles.carouselContainer}>
@@ -559,7 +569,7 @@ export const MaterialPlayerScreen = () => {
                         </View>
 
                         {/* Right Side: Info and Controls */}
-                        <View style={{ flex: 1.2, justifyContent: 'center', paddingLeft: 20 }}>
+                        <View style={{ flex: 1.2, justifyContent: 'center', paddingLeft: 20, paddingTop: 40 }}>
                             <View style={[styles.infoContainerMaterial, { marginVertical: 0, paddingHorizontal: 0 }]}>
                                 <MarqueeText text={currentSong?.title || "Not Playing"} style={[styles.songTitleMaterial, { color: theme.text, fontSize: 24 }]} />
                                 <Text numberOfLines={1} style={[styles.artistNameMaterial, { color: theme.primary, fontSize: 16 }]}>{currentSong?.artist || "Select a song"}</Text>
@@ -628,6 +638,7 @@ export const MaterialPlayerScreen = () => {
                                 </TouchableOpacity>
                             </View>
                         </View>
+                    </View>
                     </View>
                 ) : (
                     <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 40 : 30 }}>

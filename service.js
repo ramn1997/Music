@@ -7,7 +7,8 @@ const PlaybackService = async function () {
 
     TrackPlayer.addEventListener(Event.RemoteNext, async () => {
         try {
-            await TrackPlayer.skipToNext();
+            const { usePlayerStore } = require('./src/store/usePlayerStore');
+            await usePlayerStore.getState().nextTrack();
         } catch (e) {
             console.log('RemoteNext failed', e);
         }
@@ -19,7 +20,8 @@ const PlaybackService = async function () {
             if (position > 5) {
                 await TrackPlayer.seekTo(0);
             } else {
-                await TrackPlayer.skipToPrevious();
+                const { usePlayerStore } = require('./src/store/usePlayerStore');
+                await usePlayerStore.getState().prevTrack();
             }
         } catch (e) {
             console.log('RemotePrevious failed', e);

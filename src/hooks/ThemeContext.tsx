@@ -145,8 +145,8 @@ interface ThemeContextType {
     setPlayerLayout: (layout: 'classic' | 'material') => void;
     isCarouselEnabled: boolean;
     setCarouselEnabled: (enabled: boolean) => void;
-    navigationStyle: 'full' | 'pill';
-    setNavigationStyle: (style: 'full' | 'pill') => void;
+    navigationStyle: 'full' | 'rectangular';
+    setNavigationStyle: (style: 'full' | 'rectangular') => void;
     isSwipeEnabled: boolean;
     setSwipeEnabled: (enabled: boolean) => void;
 }
@@ -160,7 +160,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [playerLayout, setPlayerLayoutState] = useState<'classic' | 'material'>('classic');
     const [isCarouselEnabled, setIsCarouselEnabledState] = useState<boolean>(false);
     const [isSwipeEnabled, setIsSwipeEnabledState] = useState<boolean>(true);
-    const [navigationStyle, setNavigationStyleState] = useState<'full' | 'pill'>('full');
+    const [navigationStyle, setNavigationStyleState] = useState<'full' | 'rectangular'>('full');
 
     useEffect(() => {
         const loadTheme = async () => {
@@ -193,7 +193,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
             const savedNavStyle = await AsyncStorage.getItem('navigationStyle');
             if (savedNavStyle) {
-                setNavigationStyleState(savedNavStyle as 'full' | 'pill');
+                if (savedNavStyle === 'pill' || savedNavStyle === 'curvy') {
+                    setNavigationStyleState('rectangular');
+                } else {
+                    setNavigationStyleState(savedNavStyle as 'full' | 'rectangular');
+                }
             }
             const savedSwipe = await AsyncStorage.getItem('isSwipeEnabled');
             if (savedSwipe !== null) {
@@ -223,7 +227,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await AsyncStorage.setItem('isCarouselEnabled', enabled.toString());
     };
 
-    const setNavigationStyle = async (style: 'full' | 'pill') => {
+    const setNavigationStyle = async (style: 'full' | 'rectangular') => {
         setNavigationStyleState(style);
         await AsyncStorage.setItem('navigationStyle', style);
     };

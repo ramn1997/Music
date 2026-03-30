@@ -11,4 +11,11 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
+# Expo Music Scanner
+-keep class expo.modules.musicscanner.** { *; }
+-keep interface expo.modules.musicscanner.** { *; }
+
+# General Expo Module keep rules
+-keep class expo.modules.** { *; }
+
 # Add any project specific keep options here:

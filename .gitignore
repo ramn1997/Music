@@ -38,7 +38,8 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+# /android is now tracked as it contains custom native code for EAS Build
+android/*.txt
 
 # Native Module Build Files
 modules/**/android/build/

@@ -18,6 +18,8 @@ export type Song = {
     scanStatus?: string;
     folder?: string;
     lyrics?: string;
+    aiGenreTag?: string;
+    similarityVector?: number[];
 };
 
 export type Playlist = {

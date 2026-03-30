@@ -262,7 +262,7 @@ export const SettingsScreen = () => {
 
                         {navExpanded && (
                             <View style={[styles.dropdownContainer, { backgroundColor: 'transparent', borderTopWidth: 1, borderColor: theme.cardBorder }]}>
-                                {(['full', 'pill'] as const).map((n) => (
+                                {(['full', 'rectangular'] as const).map((n) => (
                                     <TouchableOpacity
                                         key={n}
                                         style={[

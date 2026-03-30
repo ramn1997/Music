@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -11,8 +11,9 @@ import { SongsScreen } from './SongsScreen';
 import { AlbumsScreen } from './AlbumsScreen';
 import { ArtistsScreen } from './ArtistsScreen';
 import { GenresScreen } from './GenresScreen';
+import { YearsScreen } from './YearsScreen';
 
-const TABS = ['Songs', 'Albums', 'Artists', 'Genres'];
+const TABS = ['Songs', 'Albums', 'Artists', 'Genres', 'Years'];
 
 const TopTabItem = ({ tab, isActive, onPress, appTheme }: any) => {
     const progress = useSharedValue(isActive ? 1 : 0);
@@ -62,16 +63,22 @@ export const LibraryScreen = () => {
                 <Text style={[styles.headerTitle, { color: appTheme.text }]}>Library</Text>
             </View>
 
-            <View style={styles.tabsContainer}>
-                {TABS.map((tab) => (
-                    <TopTabItem
-                        key={tab}
-                        tab={tab}
-                        isActive={activeTab === tab}
-                        onPress={() => setActiveTab(tab)}
-                        appTheme={appTheme}
-                    />
-                ))}
+            <View style={styles.tabsWrapper}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.tabsContainer}
+                >
+                    {TABS.map((tab) => (
+                        <TopTabItem
+                            key={tab}
+                            tab={tab}
+                            isActive={activeTab === tab}
+                            onPress={() => setActiveTab(tab)}
+                            appTheme={appTheme}
+                        />
+                    ))}
+                </ScrollView>
             </View>
 
             <View style={{ flex: 1 }}>
@@ -95,6 +102,11 @@ export const LibraryScreen = () => {
                         <GenresScreen isEmbedded={true} />
                     </View>
                 )}
+                {mountedTabs.current.has('Years') && (
+                    <View style={[StyleSheet.absoluteFill, { display: activeTab === 'Years' ? 'flex' : 'none', backgroundColor: 'transparent', zIndex: activeTab === 'Years' ? 1 : 0 }]}>
+                        <YearsScreen isEmbedded={true} />
+                    </View>
+                )}
             </View>
         </ScreenContainer>
     );
@@ -111,11 +123,13 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         letterSpacing: -0.5,
     },
+    tabsWrapper: {
+        marginBottom: 20,
+        marginTop: 10,
+    },
     tabsContainer: {
         flexDirection: 'row',
         paddingHorizontal: 20,
-        marginBottom: 20,
-        marginTop: 10,
         gap: 24,
     },
     tabItem: {

@@ -40,6 +40,7 @@ export interface Song {
     // Status tracking
     scanStatus?: 'pending' | 'enhanced' | 'cached';
     folder?: string;
+    lyrics?: string;
 }
 
 export type ImportProgress = {
@@ -206,7 +207,8 @@ class ImportService {
             dateAdded: (asset.dateAdded ? asset.dateAdded * 1000 : (asset.creationTime || Date.now())),
             playCount: 0,
             lastPlayed: 0,
-            playHistory: []
+            playHistory: [],
+            lyrics: (asset as any).lyrics || undefined
         };
     }
 
@@ -551,12 +553,12 @@ class ImportService {
                 return;
             }
 
-            const filteredAssets = folderNames && folderNames.length > 0
+            const filteredAssets = (folderNames && folderNames.length > 0)
                 ? allAssets.filter(asset => {
                     const folder = this.getRootFolder(asset.uri);
                     return folder && folderNames.includes(folder);
                 })
-                : [];
+                : allAssets; // Default to all if no folders selected (e.g. fresh install)
 
             const total = filteredAssets.length;
 
@@ -606,7 +608,8 @@ class ImportService {
                         lastPlayed: existing.lastPlayed,
                         playHistory: existing.playHistory,
                         albumId: existing.albumId, // Keep enhanced albumId if any
-                        dateAdded: existing.dateAdded || fresh.dateAdded // Preserve original date added
+                        dateAdded: existing.dateAdded || fresh.dateAdded, // Preserve original date added
+                        lyrics: existing.lyrics || fresh.lyrics
                     };
                 }
                 return fresh;

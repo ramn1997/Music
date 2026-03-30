@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 
 const FlashListAny = FlashList as any;
@@ -15,13 +15,30 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PlaylistCollage } from '../components/PlaylistCollage';
+import { SortOptionsModal, SortOption } from '../components/SortOptionsModal';
+import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
+import Animated, { useAnimatedScrollHandler } from 'react-native-reanimated';
 
-export const YearsScreen = () => {
+interface YearsScreenProps {
+    isEmbedded?: boolean;
+}
+
+export const YearsScreen = ({ isEmbedded }: YearsScreenProps) => {
     const { theme } = useTheme();
     const songs = useLibraryStore(state => state.songs);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('list');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [sortOption, setSortOption] = useState<SortOption>('newest');
+    const [sortModalVisible, setSortModalVisible] = useState(false);
     const [isNavigated, setIsNavigated] = useState(false);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 150);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
     useEffect(() => {
         const interaction = require('react-native').InteractionManager.runAfterInteractions(() => {
@@ -31,7 +48,7 @@ export const YearsScreen = () => {
     }, []);
 
     // Group songs by year
-    const years = useMemo(() => {
+    const allYears = useMemo(() => {
         if (!isNavigated) return [];
         const map = new Map();
         songs.forEach(song => {
@@ -55,114 +72,190 @@ export const YearsScreen = () => {
             map.get(yearName).songs.push(song);
         });
 
-        return Array.from(map.values()).sort((a, b) => {
-            if (a.name === 'Unknown Year') return 1;
-            if (b.name === 'Unknown Year') return -1;
-            return a.name > b.name ? -1 : a.name < b.name ? 1 : 0; // Newest years first
-        });
+        return Array.from(map.values());
     }, [songs, isNavigated]);
 
-    const toggleLayout = () => {
-        if (layoutMode === 'grid3') setLayoutMode('grid2');
-        else if (layoutMode === 'grid2') setLayoutMode('list');
-        else setLayoutMode('grid3');
-    };
+    const years = useMemo(() => {
+        if (!isNavigated) return [];
+        const query = debouncedQuery.trim().toLowerCase();
+        const filtered = query
+            ? allYears.filter(y => y.name.toLowerCase().includes(query))
+            : allYears;
 
-    const renderItem = React.useCallback(({ item }: { item: any }) => {
-        // Find a cover image from the first song in the year
-        const representativeSong = item.songs.find((s: any) => s.coverImage) || item.songs[0];
-        const coverImage = representativeSong?.coverImage;
+        const sorted = [...filtered].sort((a, b) => {
+            if (a.name === 'Unknown Year') return 1;
+            if (b.name === 'Unknown Year') return -1;
 
-        if (layoutMode === 'list') {
-            return (
-                <TouchableOpacity
-                    style={styles.listItem}
-                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'year' })}
-                >
-                    <View style={styles.row}>
-                        <PlaylistCollage
-                            songs={item.songs}
-                            size={40}
-                            iconSize={20}
-                            iconName="calendar-outline"
-                            borderRadius={8}
-                            showBubbles={false}
-                        />
-                        <View style={styles.info}>
-                            <Text style={[styles.title, { color: theme.text, textAlign: 'left' }]} numberOfLines={1}>{item.name}</Text>
-                            <Text style={[styles.subtitle, { color: theme.textSecondary, textAlign: 'left' }]}>{item.count} Songs</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-                    </View>
-                </TouchableOpacity>
-            );
-        }
+            switch (sortOption) {
+                case 'newest': return b.name.localeCompare(a.name);
+                case 'oldest': return a.name.localeCompare(b.name);
+                case 'most_songs':
+                    if (b.count !== a.count) return b.count - a.count;
+                    return b.name.localeCompare(a.name);
+                case 'least_songs':
+                    if (a.count !== b.count) return a.count - b.count;
+                    return b.name.localeCompare(a.name);
+                default: return b.name.localeCompare(a.name);
+            }
+        });
 
-        const isGrid3 = layoutMode === 'grid3';
+        return sorted;
+    }, [allYears, debouncedQuery, isNavigated, sortOption]);
+
+    const renderItem = React.useCallback(({ item, index }: { item: any, index: number }) => {
+        const isFirst = index === 0;
+        const isLast = index === years.length - 1;
+
         return (
-            <TouchableOpacity
-                style={isGrid3 ? styles.gridItem3 : styles.gridItem2}
-                onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'year' })}
-            >
-                <GlassCard
-                    style={[
-                        styles.card,
-                        { backgroundColor: theme.card, borderColor: theme.cardBorder },
-                        { height: isGrid3 ? 140 : 180 }
-                    ]}
-                    disableBlur={true}
-                >
-                    <PlaylistCollage
-                        songs={item.songs}
-                        size={isGrid3 ? 100 : 160} // Approximate based on aspect ratio
-                        iconSize={isGrid3 ? 30 : 40}
-                        iconName="calendar-outline"
-                        borderRadius={12}
-                        showBubbles={!isGrid3}
-                    />
-                    <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-                    <Text style={[styles.subtitle, { color: theme.textSecondary }]} numberOfLines={1}>{item.count} Songs</Text>
-                </GlassCard>
-            </TouchableOpacity>
-        );
-    }, [theme, navigation, layoutMode]);
-
-    return (
-        <ScreenContainer variant="default">
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Years</Text>
+            <View style={[styles.timelineContainer, { borderBottomColor: theme.cardBorder }]}>
+                <View style={styles.timelineLeft}>
+                    <View style={[
+                        styles.timelineLine,
+                        {
+                            backgroundColor: theme.primary,
+                            top: isFirst ? 30 : 0,
+                            bottom: isLast ? '70%' : 0,
+                            opacity: 0.2
+                        }
+                    ]} />
+                    <View style={[styles.timelineDotContainer, { backgroundColor: theme.background }]}>
+                        <LinearGradient
+                            colors={[theme.primary, theme.secondary || theme.primary]}
+                            style={styles.timelineDot}
+                        />
+                    </View>
                 </View>
 
-                <TouchableOpacity onPress={toggleLayout} style={styles.layoutButton}>
-                    <Ionicons
-                        name={layoutMode === 'grid3' ? "grid" : (layoutMode === 'grid2' ? "apps" : "list")}
-                        size={24}
-                        color={theme.primary}
-                    />
+                <TouchableOpacity
+                    style={styles.timelineContent}
+                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.name, type: 'year' })}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.timelineInfoRow}>
+                        <View style={styles.timelineTextContainer}>
+                            <Text style={[styles.yearTitle, { color: theme.text }]}>{item.name}</Text>
+                            <Text style={[styles.yearSubtitle, { color: theme.textSecondary }]}>{item.count} Songs</Text>
+                        </View>
+                        <PlaylistCollage
+                            songs={item.songs}
+                            size={56}
+                            iconSize={18}
+                            iconName="calendar-outline"
+                            borderRadius={12}
+                            showBubbles={false}
+                        />
+                        <Ionicons name="chevron-forward" size={18} color={theme.textSecondary + '40'} />
+                    </View>
+                    
+                    <View style={styles.songPreviewRow}>
+                         {item.songs.slice(0, 3).map((song: any, i: number) => (
+                             <View key={song.id || i} style={[styles.previewBubble, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                                 <Text style={[styles.previewBubbleText, { color: theme.textSecondary }]} numberOfLines={1}>
+                                     {song.title}
+                                 </Text>
+                             </View>
+                         ))}
+                         {item.count > 3 && (
+                             <View style={[styles.previewBubble, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}>
+                                 <Text style={[styles.previewBubbleText, { color: theme.primary, fontWeight: '700' }]}>
+                                     +{item.count - 3}
+                                 </Text>
+                             </View>
+                         )}
+                    </View>
                 </TouchableOpacity>
+            </View>
+        );
+    }, [theme, navigation, years]);
+
+    const scrollHandler = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            // Bypass JS thread
+        },
+    });
+
+    const content = (
+        <View style={{ flex: 1 }}>
+            <SortOptionsModal
+                visible={sortModalVisible}
+                onClose={() => setSortModalVisible(false)}
+                currentSort={sortOption}
+                onSelect={(val: any) => setSortOption(val)}
+                options={[
+                    { label: 'Newest First', value: 'newest', icon: 'calendar-outline' },
+                    { label: 'Oldest First', value: 'oldest', icon: 'time-outline' },
+                    { label: 'Most Songs', value: 'most_songs', icon: 'stats-chart-outline' },
+                    { label: 'Least Songs', value: 'least_songs', icon: 'trending-down-outline' },
+                ]}
+            />
+
+            <View style={[styles.header, { marginVertical: 0, paddingVertical: 10, paddingTop: isEmbedded ? 0 : 20 }]}>
+                {!isEmbedded && (
+                    <View style={styles.headerLeft}>
+                        <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.backButton}>
+                            <Ionicons name="arrow-back" size={24} color={theme.text} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>Years</Text>
+                    </View>
+                )}
             </View>
 
             <View style={{ flex: 1 }}>
-                <FlashListAny
-                    key={layoutMode}
+                <SafeAnimatedFlashList
+                    onScroll={scrollHandler}
+                    scrollEventThrottle={16}
                     data={years}
                     keyExtractor={(item: any) => item.id}
                     renderItem={renderItem}
-                    numColumns={layoutMode === 'grid3' ? 3 : (layoutMode === 'grid2' ? 2 : 1)}
-                    estimatedItemSize={layoutMode === 'list' ? 70 : 150}
+                    numColumns={1}
+                    estimatedItemSize={120}
                     drawDistance={250}
                     contentContainerStyle={styles.listContent}
+                    ListHeaderComponent={
+                        <View style={{ flex: 1, paddingHorizontal: 5 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: isEmbedded ? 10 : 0, gap: 12 }}>
+                                <View style={[styles.searchContainer, { backgroundColor: theme.card, flex: 1, borderWidth: 1, borderColor: theme.cardBorder }]}>
+                                    <Ionicons name="search" size={20} color={theme.textSecondary} style={{ marginRight: 12 }} />
+                                    <TextInput
+                                        style={[styles.searchInput, { color: theme.text, fontFamily: 'PlusJakartaSans_500Medium' }]}
+                                        placeholder="Search years..."
+                                        placeholderTextColor={theme.textSecondary + '80'}
+                                        value={searchQuery}
+                                        onChangeText={setSearchQuery}
+                                        selectionColor={theme.primary}
+                                    />
+                                    {searchQuery.length > 0 && (
+                                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                            <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+
+                                <TouchableOpacity
+                                    onPress={() => setSortModalVisible(true)}
+                                    style={[styles.layoutButton, { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.cardBorder }]}
+                                >
+                                    <Ionicons name="filter" size={20} color={theme.primary} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    }
                     ListEmptyComponent={
                         <View style={styles.center}>
                             <Text style={{ color: theme.textSecondary }}>No years found.</Text>
                         </View>
                     }
+                    showsVerticalScrollIndicator={false}
                 />
             </View>
+        </View>
+    );
+
+    if (isEmbedded) return content;
+
+    return (
+        <ScreenContainer variant="default">
+            {content}
         </ScreenContainer>
     );
 };
@@ -171,9 +264,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: 20,
-        marginVertical: 20,
     },
     headerLeft: {
         flexDirection: 'row',
@@ -188,73 +279,95 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     layoutButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'transparent',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         justifyContent: 'center',
         alignItems: 'center'
     },
-    listContent: {
-        paddingHorizontal: 15,
-        paddingBottom: 40,
-    },
-    columnWrapper: {
-        justifyContent: 'flex-start',
-        gap: 12,
-        marginBottom: 15,
-    },
-    gridItem3: {
-        flex: 1,
-        maxWidth: '31%',
-    },
-    gridItem2: {
-        flex: 1,
-        maxWidth: '48%',
-    },
-    listItem: {
-        width: '100%',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-    },
-    row: {
+    searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 16,
+        height: 48,
+        borderRadius: 24,
     },
-    listIconPlaceholder: {
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        height: '100%',
+        paddingVertical: 0,
+    },
+    listContent: {
+        paddingHorizontal: 15,
+        paddingBottom: 220,
+    },
+    timelineContainer: {
+        flexDirection: 'row',
+        minHeight: 100,
+        marginBottom: 8,
+    },
+    timelineLeft: {
         width: 40,
-        height: 40,
-        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 4,
+    },
+    timelineLine: {
+        position: 'absolute',
+        width: 2,
+    },
+    timelineDotContainer: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 15,
+        zIndex: 1,
     },
-    info: {
+    timelineDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    timelineContent: {
+        flex: 1,
+        paddingVertical: 10,
+    },
+    timelineInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    timelineTextContainer: {
         flex: 1,
     },
-    card: {
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 20,
+    yearTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        letterSpacing: -0.5,
     },
-    iconPlaceholder: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-        width: '100%',
+    yearSubtitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        marginTop: -2,
     },
-    title: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginBottom: 4,
-        textAlign: 'center'
+    songPreviewRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginTop: 10,
     },
-    subtitle: {
-        fontSize: 12,
-        marginBottom: 2,
-        textAlign: 'center'
+    previewBubble: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        maxWidth: 120,
+    },
+    previewBubbleText: {
+        fontSize: 11,
+        fontWeight: '500',
     },
     center: {
         flex: 1,

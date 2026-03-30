@@ -165,6 +165,8 @@ const DailyStatsCard = React.memo(({ theme, songs }: { theme: any, songs: Song[]
         let maxPlays = 0;
         if (day.playsPerSong) {
             Object.entries(day.playsPerSong).forEach(([id, plays]) => {
+                // Recording play history immediately for "Recently Played" is fine,
+                // but we handle the count increment in the progress listener for accuracy.
                 if (plays > maxPlays) {
                     maxPlays = plays;
                     maxId = id;
@@ -825,6 +827,7 @@ export const HomeScreen = () => {
     const currentSong = usePlayerStore(state => state.currentTrack);
     const isPlaying = usePlayerStore(state => state.isPlaying);
     const { sectionVisibility } = useHomeSettings();
+    const dailyStats = useLibraryStore(state => state.dailyStats);
 
     const scrollY = useSharedValue(0);
     const scrollHandler = useAnimatedScrollHandler({
@@ -958,13 +961,28 @@ export const HomeScreen = () => {
     const searchInputRef = useRef<TextInput>(null);
 
     const sortedMostPlayed = useMemo(() => {
-        const played: Song[] = [];
-        for (const s of (songs || [])) {
-            if ((s.playCount || 0) > 0) played.push(s);
-        }
-        played.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
-        return played.slice(0, 50);
-    }, [songs]);
+        const peakCounts = new Map<string, number>();
+        Object.values(dailyStats).forEach(day => {
+            if (!day.playsPerSong) return;
+            Object.entries(day.playsPerSong).forEach(([id, count]) => {
+                const currentPeak = peakCounts.get(id) || 0;
+                if (count > currentPeak) peakCounts.set(id, count);
+            });
+        });
+
+        return songs
+            .filter(s => (peakCounts.get(s.id) || 0) >= 5)
+            .sort((a, b) => {
+                const pA = peakCounts.get(a.id) || 0;
+                const pB = peakCounts.get(b.id) || 0;
+                if (pB !== pA) return pB - pA;
+                const cA = a.playCount || 0;
+                const cB = b.playCount || 0;
+                if (cB !== cA) return cB - cA;
+                return (a.title || '').localeCompare(b.title || '');
+            })
+            .slice(0, 50);
+    }, [songs, dailyStats]);
 
     const sortedTopSongs = useMemo(() => {
         const played: Song[] = [];
@@ -973,7 +991,12 @@ export const HomeScreen = () => {
             if ((s.playCount || 0) > 0) played.push(s);
             else if (unplayed.length < 10) unplayed.push(s);
         }
-        played.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+        played.sort((a, b) => {
+            const countA = a.playCount || 0;
+            const countB = b.playCount || 0;
+            if (countB !== countA) return countB - countA;
+            return (a.title || '').localeCompare(b.title || '');
+        });
         return [...played, ...unplayed].slice(0, 10);
     }, [songs]);
 
@@ -1323,7 +1346,7 @@ export const HomeScreen = () => {
     };
 
     const renderOverviewContent = () => {
-        if (!loading && savedFolders.length === 0) {
+        if (!loading && (songs?.length ?? 0) === 0) {
             return (
                 <View style={styles.emptyStateContainer}>
                     <View style={styles.emptyStateIconWrap}>

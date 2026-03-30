@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/ThemeContext';
 
-export type SortOption = 'az' | 'za' | 'duration' | 'dateAdded';
+export type SortOption = 'az' | 'za' | 'duration' | 'dateAdded' | 'newest' | 'oldest' | 'most_songs' | 'least_songs';
 
 interface SortOptionsModalProps {
     visible: boolean;
