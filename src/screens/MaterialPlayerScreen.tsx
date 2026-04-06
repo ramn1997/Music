@@ -475,7 +475,7 @@ export const MaterialPlayerScreen = () => {
                         <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home')} style={styles.headerIconBtn}>
                             <Ionicons name="chevron-down" size={32} color={theme.primary} />
                         </TouchableOpacity>
-                        <Text style={[styles.headerTitleDesign, { color: theme.text, fontSize: 13, textTransform: 'uppercase' }]}>Now Playing</Text>
+                        <Text style={[styles.headerTitleDesign, { color: theme.text, fontSize: 13, fontWeight: '500' }]}>Now Playing</Text>
                         <TouchableOpacity onPress={() => setOptionsModalVisible(true)} style={styles.headerIconBtn}>
                             <Ionicons name="ellipsis-vertical" size={26} color={theme.primary} />
                         </TouchableOpacity>
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
     safeArea: { flex: 1 },
     headerMaterialDesign: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 60, paddingHorizontal: 20 },
     headerIconBtn: { padding: 8, borderRadius: 100 },
-    headerTitleDesign: { fontSize: 12, fontFamily: 'PlusJakartaSans_700Bold', letterSpacing: 1, textTransform: 'uppercase', opacity: 0.7 },
+    headerTitleDesign: { fontSize: 13, fontFamily: 'PlusJakartaSans_700Bold', opacity: 0.7 },
 
     artSection: { height: Dimensions.get('window').width * 0.9, justifyContent: 'center', alignItems: 'center', width: '100%', marginTop: 0, marginBottom: 0, overflow: 'visible' },
     carouselContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', position: 'relative', overflow: 'visible' },

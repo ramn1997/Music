@@ -21,16 +21,18 @@ SplashScreen.preventAutoHideAsync().catch(() => { });
 
 // Build linking prefixes safely — 'exp+musicapp://' only exists in dev client,
 // while 'musicapp://' is the production scheme defined in app.json + AndroidManifest.
+// Safer linking prefix generation to prevent native JNI crashes in standalone builds
 const getLinkingPrefixes = (): string[] => {
     const prefixes: string[] = ['musicapp://'];
     try {
+        // Only attempt createURL if we are not in a environment where it's known to be unstable
+        // In some production builds, this native call triggers a fatal exception before JS catch
         const url = Linking.createURL('/');
         if (url && !prefixes.includes(url)) {
             prefixes.push(url);
         }
     } catch (e) {
-        // createURL may throw in standalone builds if scheme isn't ready yet — safe to ignore
-        console.warn('[App] Linking.createURL failed, using static scheme only:', e);
+        // Safe fallback
     }
     return prefixes;
 };

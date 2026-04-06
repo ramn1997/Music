@@ -156,6 +156,7 @@ export const FavoritesScreen = () => {
     const favoriteGenres = useLibraryStore(state => state.favoriteGenres);
     const favoriteSpecialPlaylists = useLibraryStore(state => state.favoriteSpecialPlaylists);
     const likedSongs = useLibraryStore(state => state.likedSongs);
+    const dailyStats = useLibraryStore(state => state.dailyStats);
 
     const data = useMemo(() => {
         const favAlbumsSet = new Set(favoriteAlbums || []);
@@ -181,7 +182,34 @@ export const FavoritesScreen = () => {
 
         const favPlaylists = [
             ...(favoriteSpecialPlaylists.includes('liked') ? [{ id: 'liked', name: 'Liked Songs', type: 'playlist', songs: likedSongs }] : []),
-            ...(favoriteSpecialPlaylists.includes('most_played') ? [{ id: 'most_played', name: 'Most Played', type: 'playlist', songs: [...allSongs].sort((a, b) => (b.playCount || 0) - (a.playCount || 0)).slice(0, 50) }] : []),
+            ...(favoriteSpecialPlaylists.includes('most_played') ? [{
+                id: 'most_played',
+                name: 'Most Played',
+                type: 'playlist',
+                songs: (() => {
+                    const peakCounts = new Map<string, number>();
+                    Object.values(dailyStats || {}).forEach(day => {
+                        if (!day.playsPerSong) return;
+                        Object.entries(day.playsPerSong).forEach(([id, count]) => {
+                            const currentPeak = peakCounts.get(id) || 0;
+                            if (count > currentPeak) peakCounts.set(id, count);
+                        });
+                    });
+
+                    return [...allSongs]
+                        .filter(s => (s.playCount || 0) >= 5)
+                        .sort((a, b) => {
+                            const pA = peakCounts.get(a.id) || 0;
+                            const pB = peakCounts.get(b.id) || 0;
+                            if (pB !== pA) return pB - pA;
+                            const cA = a.playCount || 0;
+                            const cB = b.playCount || 0;
+                            if (cB !== cA) return cB - cA;
+                            return (a.title || '').localeCompare(b.title || '');
+                        })
+                        .slice(0, 50);
+                })()
+            }] : []),
             ...(playlists || []).filter(p => p.isFavorite).map(p => ({ ...p, type: 'playlist' }))
         ];
 

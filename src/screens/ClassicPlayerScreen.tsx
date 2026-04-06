@@ -408,7 +408,7 @@ export const ClassicPlayerScreen = () => {
                                 <Ionicons name="chevron-down" size={30} color={theme.text} />
                             </TouchableOpacity>
                             <View style={{ marginLeft: 10, flex: 1 }}>
-                                <Text style={[styles.headerSubTitle, { color: theme.textSecondary, fontSize: 11, textTransform: 'uppercase' }]}>Now Playing</Text>
+                                <Text style={[styles.headerSubTitle, { color: theme.textSecondary, fontSize: 13, fontWeight: '500' }]}>Now Playing</Text>
                             </View>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>

@@ -971,7 +971,7 @@ export const HomeScreen = () => {
         });
 
         return songs
-            .filter(s => (peakCounts.get(s.id) || 0) >= 5)
+            .filter(s => (s.playCount || 0) >= 5)
             .sort((a, b) => {
                 const pA = peakCounts.get(a.id) || 0;
                 const pB = peakCounts.get(b.id) || 0;

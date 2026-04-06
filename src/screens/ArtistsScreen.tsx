@@ -38,7 +38,7 @@ export const ArtistsScreen = ({ isEmbedded }: { isEmbedded?: boolean }) => {
     const songs = useLibraryStore(state => state.songs);
     const loading = useLibraryStore(state => state.loading);
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid2');
+    const [layoutMode, setLayoutMode] = useState<'grid2' | 'grid3' | 'list'>('grid3');
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [sortOption, setSortOption] = useState<SortOption>('az');

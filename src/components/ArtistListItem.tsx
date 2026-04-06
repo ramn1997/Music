@@ -5,7 +5,6 @@ import { useTheme } from '../hooks/ThemeContext';
 import { MusicImage } from './MusicImage';
 import { MarqueeText } from './MarqueeText';
 import { useMusicLibrary } from '../hooks/MusicLibraryContext';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useArtistImage } from '../hooks/useArtistImage';
 
 const getGradientColors = (id: string): [string, string] => {

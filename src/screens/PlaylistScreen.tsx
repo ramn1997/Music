@@ -216,6 +216,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
     const recentlyPlayed = useLibraryStore(state => state.recentlyPlayed);
     const recentlyAdded = useLibraryStore(state => state.recentlyAdded);
     const neverPlayed = useLibraryStore(state => state.neverPlayed);
+    const dailyStats = useLibraryStore(state => state.dailyStats);
 
     // Actions from Library Store
     const addToPlaylist = useLibraryStore(state => state.addToPlaylist);
@@ -518,8 +519,26 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
         } else if (type === 'year') {
             filtered = filtered.filter(s => compareName(s.year, name, 'Unknown Year'));
         } else if (type === 'most_played') {
-            filtered = filtered.filter(s => (s.playCount || 0) > 0)
-                .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+            const peakCounts = new Map<string, number>();
+            Object.values(dailyStats || {}).forEach(day => {
+                if (!day.playsPerSong) return;
+                Object.entries(day.playsPerSong).forEach(([songId, count]) => {
+                    const currentPeak = peakCounts.get(songId) || 0;
+                    if (count > currentPeak) peakCounts.set(songId, count);
+                });
+            });
+
+            filtered = filtered
+                .filter(s => (s.playCount || 0) >= 5)
+                .sort((a, b) => {
+                    const pA = peakCounts.get(a.id) || 0;
+                    const pB = peakCounts.get(b.id) || 0;
+                    if (pB !== pA) return pB - pA;
+                    const cA = a.playCount || 0;
+                    const cB = b.playCount || 0;
+                    if (cB !== cA) return cB - cA;
+                    return (a.title || '').localeCompare(b.title || '');
+                })
                 .slice(0, 50);
         } else if (type === 'recently_played') {
             filtered = [...recentlyPlayed];
@@ -586,7 +605,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
 
         displaySongsRef.current = filtered;
         return filtered;
-    }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery, recentlyPlayed, recentlyAdded, neverPlayed, isNavigated]);
+    }, [songs, type, name, id, likedSongs, playlists, sortOrder, debouncedQuery, recentlyPlayed, recentlyAdded, neverPlayed, isNavigated, dailyStats]);
 
     const totalDuration = useMemo(() => {
         return displaySongs.reduce((acc, song) => acc + (song.duration || 0), 0);
