@@ -6,6 +6,7 @@ A premium, comprehensive, and feature-rich music player application built with R
 
 -   **Smart Mixes**: Instantly generate smart "Made For You" curations based on your Top Artists, favorite Genres, and listening history directly on the Home Screen.
 -   **Contextual Recommendations**: The new "Start Mix" engine analyzes your currently playing music to instantly find and queue tracks with the same album, artist, or genre in your local library.
+-   **App Minification & Obfuscation**: Enabled R8/ProGuard for Android release building, significantly shrinking app size and embedding deobfuscation maps for seamless Google Play Console crash tracking.
 -   **Next-Gen Performance Engine**: Completely overhauled the React render cycle and background listeners. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(1)` algorithmic maps and indexing, eliminating background CPU lockups and maintaining 60fps scrolling on massive libraries.
 
 ## ✨ Highlights from v1.5.0
