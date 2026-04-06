@@ -20,6 +20,8 @@ export type Song = {
     lyrics?: string;
     aiGenreTag?: string;
     similarityVector?: number[];
+    albumArtist?: string;
+    studios?: string;
 };
 
 export type Playlist = {

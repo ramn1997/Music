@@ -4,6 +4,7 @@ A premium, comprehensive, and feature-rich music player application built with R
 
 ## ✨ New Features & Optimizations
 
+-   **Deep Metadata Extraction**: Extensively upgraded the native Android scanner and API matching engine to fully support extraction, display, and parsing of "Album Artist" and "Studio/Publisher" metadata directly from ID3 tags and the iTunes API.
 -   **Smart Mixes**: Instantly generate smart "Made For You" curations based on your Top Artists, favorite Genres, and listening history directly on the Home Screen.
 -   **Contextual Recommendations**: The new "Start Mix" engine analyzes your currently playing music to instantly find and queue tracks with the same album, artist, or genre in your local library.
 -   **App Minification & Obfuscation**: Enabled R8/ProGuard for Android release building, significantly shrinking app size and embedding deobfuscation maps for seamless Google Play Console crash tracking.

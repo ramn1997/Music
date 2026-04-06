@@ -18,6 +18,8 @@ interface Song {
     scanStatus?: 'pending' | 'enhanced' | 'cached';
     folder?: string;
     lyrics?: string;
+    albumArtist?: string;
+    studios?: string;
 }
 
 interface DBStats {
@@ -68,7 +70,9 @@ class DatabaseService {
                         lastPlayed INTEGER DEFAULT 0,
                         scanStatus TEXT DEFAULT 'pending',
                         folder TEXT,
-                        lyrics TEXT
+                        lyrics TEXT,
+                        albumArtist TEXT,
+                        studios TEXT
                     );
                 `);
 
@@ -79,6 +83,14 @@ class DatabaseService {
 
                 try {
                     await this.db.execAsync(`ALTER TABLE songs ADD COLUMN lyrics TEXT;`);
+                } catch (e) { }
+
+                try {
+                    await this.db.execAsync(`ALTER TABLE songs ADD COLUMN albumArtist TEXT;`);
+                } catch (e) { }
+
+                try {
+                    await this.db.execAsync(`ALTER TABLE songs ADD COLUMN studios TEXT;`);
                 } catch (e) { }
 
                 console.log('[DatabaseService] Creating indices...');
@@ -120,8 +132,8 @@ class DatabaseService {
         const BATCH_SIZE = 500;
         const query = `
             INSERT OR REPLACE INTO songs 
-            (id, filename, uri, duration, title, artist, album, genre, year, albumId, coverImage, dateAdded, playCount, lastPlayed, scanStatus, folder, lyrics)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            (id, filename, uri, duration, title, artist, album, genre, year, albumId, coverImage, dateAdded, playCount, lastPlayed, scanStatus, folder, lyrics, albumArtist, studios)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         `;
 
         for (let i = 0; i < songs.length; i += BATCH_SIZE) {
@@ -154,7 +166,9 @@ class DatabaseService {
                                         this.sanitize(s.lastPlayed),
                                         this.sanitize(s.scanStatus),
                                         this.sanitize(s.folder),
-                                        this.sanitize(s.lyrics)
+                                        this.sanitize(s.lyrics),
+                                        this.sanitize(s.albumArtist),
+                                        this.sanitize(s.studios)
                                     ]);
                                 }
                             } finally {

@@ -32,6 +32,8 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     const [title, setTitle] = useState('');
     const [artist, setArtist] = useState('');
     const [album, setAlbum] = useState('');
+    const [albumArtist, setAlbumArtist] = useState('');
+    const [studios, setStudios] = useState('');
     const [year, setYear] = useState('');
     const [genre, setGenre] = useState('');
     const [lyrics, setLyrics] = useState('');
@@ -40,17 +42,37 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     const [isLyricsLoading, setIsLyricsLoading] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const [fileSize, setFileSize] = useState<number | null>(null);
 
     useEffect(() => {
         if (song) {
             setTitle(song.title || '');
             setArtist(song.artist || '');
             setAlbum(song.album || '');
+            setAlbumArtist(song.albumArtist || '');
+            setStudios(song.studios || '');
             setYear(song.year || '');
             setGenre(song.genre || '');
             setLyrics(song.lyrics || '');
             setCoverImage(song.coverImage || null);
             setIsArtModified(false);
+            setFileSize(null);
+
+            if (song.uri && typeof FileSystem.getInfoAsync === 'function') {
+                console.log('[EditSongModal] Fetching info for:', song.uri);
+                let fetchUri = song.uri;
+                if (!fetchUri.startsWith('file://') && !fetchUri.startsWith('content://')) {
+                    fetchUri = 'file://' + fetchUri;
+                }
+                FileSystem.getInfoAsync(fetchUri).then((info: any) => {
+                    console.log('[EditSongModal] File info result:', info);
+                    if (info.exists && !info.isDirectory && info.size !== undefined) {
+                        setFileSize(info.size);
+                    }
+                }).catch((e) => {
+                    console.log('[EditSongModal] Error fetching file info:', e);
+                });
+            }
         }
     }, [song]);
 
@@ -104,6 +126,8 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
         const updates: Partial<Song> = {
             title: title.trim() || song.title,
             artist: artist.trim() || song.artist,
+            albumArtist: albumArtist.trim() || undefined,
+            studios: studios.trim() || undefined,
             album: album.trim() || song.album,
             year: year.trim() || song.year,
             genre: genre.trim() || undefined,
@@ -136,6 +160,7 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
             if (localMeta.title) setTitle(localMeta.title);
             if (localMeta.artist) setArtist(localMeta.artist);
             if (localMeta.album) setAlbum(localMeta.album);
+            if (localMeta.collectionArtistName || localMeta.albumArtist) setAlbumArtist(localMeta.collectionArtistName || localMeta.albumArtist);
             if (localMeta.genre) setGenre(localMeta.genre);
             if (localArt) {
                 setCoverImage(localArt);
@@ -155,6 +180,8 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                     // Update metadata if found
                     if (result.trackName) setTitle(result.trackName);
                     if (result.artistName) setArtist(result.artistName);
+                    if (result.collectionArtistName) setAlbumArtist(result.collectionArtistName);
+                    if (result.copyright) setStudios(result.copyright);
                     if (result.collectionName) setAlbum(result.collectionName);
                     if (result.primaryGenreName) setGenre(result.primaryGenreName);
                     if (result.releaseDate) setYear(new Date(result.releaseDate).getFullYear().toString());
@@ -247,7 +274,9 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
     const inputFields = [
         { label: 'Title', value: title, setValue: setTitle, placeholder: 'Song title' },
         { label: 'Artist', value: artist, setValue: setArtist, placeholder: 'Artist name' },
+        { label: 'Album Artist', value: albumArtist, setValue: setAlbumArtist, placeholder: 'Album Artist' },
         { label: 'Album', value: album, setValue: setAlbum, placeholder: 'Album name' },
+        { label: 'Studio/Publisher', value: studios, setValue: setStudios, placeholder: 'Studio / Publisher' },
         { label: 'Genre', value: genre, setValue: setGenre, placeholder: 'Genre' },
         { label: 'Year', value: year, setValue: setYear, placeholder: 'Year', keyboardType: 'numeric' as const },
     ];
@@ -384,6 +413,66 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
                                 multiline={true}
                                 numberOfLines={10}
                             />
+                        </View>
+
+                        {/* File Information Section (Read-Only) */}
+                        <View style={[styles.cardGroup, { backgroundColor: theme.card, borderColor: theme.cardBorder, borderWidth: 1, marginTop: 10 }]}>
+                            <View style={styles.lyricsFieldHeader}>
+                                <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 0 }]}>File Information</Text>
+                            </View>
+                            <View style={{ padding: 20 }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <Text style={{ color: theme.textSecondary, fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>File Path</Text>
+                                    <Text style={{ color: theme.text, fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', maxWidth: '70%', textAlign: 'right' }} numberOfLines={3}>
+                                        {song.uri ? decodeURI(song.uri.replace('file://', '')) : 'Unknown'}
+                                    </Text>
+                                </View>
+                                {fileSize !== null ? (
+                                    <>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                                            <Text style={{ color: theme.textSecondary, fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>File Size</Text>
+                                            <Text style={{ color: theme.text, fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                                                {(fileSize / 1048576).toFixed(2)} MB
+                                            </Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                                            <Text style={{ color: theme.textSecondary, fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>Format</Text>
+                                            <Text style={{ color: theme.text, fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', textTransform: 'uppercase' }}>
+                                                {song.uri?.split('.').pop() || 'Unknown'}
+                                            </Text>
+                                        </View>
+                                        {(song.duration && song.duration > 0) ? (
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                                <Text style={{ color: theme.textSecondary, fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>Est. Bitrate</Text>
+                                                <Text style={{ color: theme.text, fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                                                    {(() => {
+                                                        let durationInSec = song.duration || 1;
+                                                        if (durationInSec > 10000) durationInSec = durationInSec / 1000; // Likely in ms
+                                                        const rawKbps = Math.round((fileSize * 8) / durationInSec / 1000);
+                                                        const standards = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320];
+                                                        const closest = (rawKbps > 360 || rawKbps < 32) ? rawKbps : standards.reduce((prev, curr) => Math.abs(curr - rawKbps) < Math.abs(prev - rawKbps) ? curr : prev);
+                                                        return `${closest} kbps`;
+                                                    })()}
+                                                </Text>
+                                            </View>
+                                        ) : null}
+                                    </>
+                                ) : (
+                                    <>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+                                            <Text style={{ color: theme.textSecondary, fontSize: 13, fontFamily: 'PlusJakartaSans_500Medium' }}>Format</Text>
+                                            <Text style={{ color: theme.text, fontSize: 13, fontFamily: 'PlusJakartaSans_600SemiBold', textTransform: 'uppercase' }}>
+                                                {song.uri?.split('.').pop() || 'Unknown'}
+                                            </Text>
+                                        </View>
+                                        <View style={{ gap: 4 }}>
+                                            <Text style={{ color: theme.primary, fontSize: 11, fontFamily: 'PlusJakartaSans_500Medium', fontStyle: 'italic' }}>
+                                                Fetching file size... {song.duration ? `(Duration: ${song.duration}s)` : '(Duration: Unknown)'}
+                                            </Text>
+                                        </View>
+                                    </>
+                                )}
+                            </View>
                         </View>
                         <View style={styles.bottomSpacing} />
                     </ScrollView>

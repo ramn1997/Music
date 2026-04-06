@@ -21,7 +21,7 @@ class MusicScannerModule : Module() {
         val audioList = mutableListOf<Map<String, Any>>()
         
         val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(
+        val projection = mutableListOf(
           MediaStore.Audio.Media._ID,
           MediaStore.Audio.Media.DATA,
           MediaStore.Audio.Media.DISPLAY_NAME,
@@ -31,13 +31,18 @@ class MusicScannerModule : Module() {
           MediaStore.Audio.Media.DURATION,
           MediaStore.Audio.Media.DATE_ADDED,
           MediaStore.Audio.Media.ALBUM_ID,
-          MediaStore.Audio.Media.YEAR
+          MediaStore.Audio.Media.YEAR,
+          MediaStore.Audio.Media.COMPOSER
         )
+
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+          projection.add("album_artist")
+        }
 
         // Only get music files
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
         
-        context.contentResolver.query(uri, projection, selection, null, null)?.use { cursor ->
+        context.contentResolver.query(uri, projection.toTypedArray(), selection, null, null)?.use { cursor ->
           val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
           val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
           val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
@@ -48,6 +53,8 @@ class MusicScannerModule : Module() {
           val dateAddedCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
           val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
           val yearCol = cursor.getColumnIndex(MediaStore.Audio.Media.YEAR)
+          val composerCol = cursor.getColumnIndex(MediaStore.Audio.Media.COMPOSER)
+          val albumArtistCol = cursor.getColumnIndex("album_artist")
 
           while (cursor.moveToNext()) {
             val id = cursor.getLong(idCol)
@@ -60,6 +67,8 @@ class MusicScannerModule : Module() {
             val dateAdded = cursor.getLong(dateAddedCol) * 1000 // Convert to ms
             val albumId = cursor.getLong(albumIdCol)
             val year = if (yearCol != -1) cursor.getInt(yearCol) else 0
+            val composer = if (composerCol != -1) cursor.getString(composerCol) else null
+            val albumArtist = if (albumArtistCol != -1) cursor.getString(albumArtistCol) else null
 
             // Query genre
             var genre: String? = null
@@ -83,7 +92,9 @@ class MusicScannerModule : Module() {
               "year" to if (year > 0) year.toString() else "",
               "duration" to duration,
               "dateAdded" to dateAdded,
-              "albumId" to albumId.toString()
+              "albumId" to albumId.toString(),
+              "studios" to (composer ?: ""),
+              "albumArtist" to (albumArtist ?: "")
             )
             audioList.add(map)
           }

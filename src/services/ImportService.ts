@@ -41,6 +41,8 @@ export interface Song {
     scanStatus?: 'pending' | 'enhanced' | 'cached';
     folder?: string;
     lyrics?: string;
+    albumArtist?: string;
+    studios?: string;
 }
 
 export type ImportProgress = {
@@ -208,7 +210,9 @@ class ImportService {
             playCount: 0,
             lastPlayed: 0,
             playHistory: [],
-            lyrics: (asset as any).lyrics || undefined
+            lyrics: (asset as any).lyrics || undefined,
+            albumArtist: (asset as any).albumArtist || undefined,
+            studios: (asset as any).studios || undefined
         };
     }
 
