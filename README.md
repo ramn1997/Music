@@ -10,6 +10,12 @@ A premium, comprehensive, and feature-rich music player application built with R
 -   **App Minification & Obfuscation**: Enabled R8/ProGuard for Android release building, significantly shrinking app size and embedding deobfuscation maps for seamless Google Play Console crash tracking.
 -   **Next-Gen Performance Engine**: Completely overhauled the React render cycle and background listeners. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(1)` algorithmic maps and indexing, eliminating background CPU lockups and maintaining 60fps scrolling on massive libraries.
 
+## ✨ Highlights from v1.6.0
+
+-   **Customizable Home Screen Layout**: Fully personalize your Home Screen experience. Reorder sections and toggle their visibility via a dedicated visual layout customizer panel in the Settings screen.
+-   **Interactive Synced Lyrics (Tap-to-Seek)**: Upgraded lyrics engine supporting full timestamp synchronization (LRC format parsing). Tapping any line of synced lyrics now instantly seeks the audio player to that exact timestamp.
+-   **Interactive Stats & Diagnostics Dashboard**: Transforming the About screen with real-time statistics (total tracks, playlists, liked tracks, folders), daily listening analytics, an interactive rotating disc animation, and a hidden developer diagnostics console (activated by tapping the version pill 7 times).
+
 ## ✨ Highlights from v1.5.0
 
 -   **Adaptive Landscape Experience**: Full side-navigation sidebar support for tablets and landscape orientations, ensuring every screen is perfectly responsive.
