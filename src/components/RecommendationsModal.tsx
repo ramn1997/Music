@@ -12,6 +12,20 @@ interface RecommendationsModalProps {
     song: Song | null;
 }
 
+const splitArtists = (artistStr: string | undefined | null): string[] => {
+    if (!artistStr || artistStr.trim() === '' || artistStr === 'Unknown Artist') return [];
+    
+    // Split by common separators (feat, ft, featuring, vs, and, &, comma, semicolon, slash)
+    const normalized = artistStr
+        .replace(/\s+(feat\.?|ft\.?|featuring|vs\.?|and|\&)\s+/gi, '|')
+        .replace(/[,;\/]/g, '|');
+        
+    return normalized
+        .split('|')
+        .map(a => a.trim())
+        .filter(a => a.length > 0 && a.toLowerCase() !== 'unknown artist');
+};
+
 export const RecommendationsModal = ({ visible, onClose, song }: RecommendationsModalProps) => {
     const { theme } = useTheme();
     const { songs } = useMusicLibrary();
@@ -21,16 +35,46 @@ export const RecommendationsModal = ({ visible, onClose, song }: Recommendations
     const recommended = useMemo(() => {
         if (!song || !songs) return { sameAlbum: [], sameArtist: [], sameGenre: [], sameYear: [] };
 
+        const seedArtists = splitArtists(song.artist);
+
         const sameAlbum = songs.filter(s => s.album === song.album && s.album !== 'Unknown Album' && s.id !== song.id);
-        const sameArtist = songs.filter(s => s.artist === song.artist && s.artist !== 'Unknown Artist' && s.album !== song.album && s.id !== song.id);
-        const sameGenre = songs.filter(s => s.genre === song.genre && s.genre !== 'Unknown Genre' && s.artist !== song.artist && s.id !== song.id);
+        
+        const sameArtist = songs.filter(s => {
+            if (s.id === song.id || s.album === song.album) return false;
+            const candidateArtists = splitArtists(s.artist);
+            return seedArtists.some(sa => 
+                candidateArtists.some(ca => ca.toLowerCase() === sa.toLowerCase())
+            );
+        }).sort((a, b) => {
+            const getMatchCount = (songItem: Song) => {
+                const candidateArtists = splitArtists(songItem.artist);
+                return seedArtists.filter(sa =>
+                    candidateArtists.some(ca => ca.toLowerCase() === sa.toLowerCase())
+                ).length;
+            };
+            return getMatchCount(b) - getMatchCount(a);
+        });
+
+        const sameGenre = songs.filter(s => {
+            if (s.id === song.id || s.genre !== song.genre || s.genre === 'Unknown Genre') return false;
+            const candidateArtists = splitArtists(s.artist);
+            const sharesArtist = seedArtists.some(sa => 
+                candidateArtists.some(ca => ca.toLowerCase() === sa.toLowerCase())
+            );
+            return !sharesArtist;
+        });
         
         const sameYear = songs.filter(s => {
             if (!s.year || !song.year || s.id === song.id) return false;
             const y1 = s.year.toString().trim().slice(0, 4);
             const y2 = song.year.toString().trim().slice(0, 4);
-            // Show songs from same year but different artists if possible for variety
-            return y1 === y2 && y1.length === 4 && s.artist !== song.artist;
+            if (y1 !== y2 || y1.length !== 4) return false;
+            
+            const candidateArtists = splitArtists(s.artist);
+            const sharesArtist = seedArtists.some(sa => 
+                candidateArtists.some(ca => ca.toLowerCase() === sa.toLowerCase())
+            );
+            return !sharesArtist;
         });
 
         return {

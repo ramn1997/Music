@@ -141,13 +141,16 @@ export const PlaylistsScreen = () => {
                         overflow: 'hidden',
                         marginBottom: 14,
                         backgroundColor: 'rgba(0,0,0,0.1)',
+                        justifyContent: 'center',
+                        alignItems: 'center'
                     }}>
                         <PlaylistCollage
                             songs={item.songs}
-                            size={itemWidth - 20}
-                            width={itemWidth - 20}
-                            iconSize={32}
-                            showIcon={false}
+                            size="100%"
+                            width="100%"
+                            iconSize={40}
+                            showIcon={true}
+                            hideIconIfHasContent={true}
                             iconName={item.id === 'liked' ? "heart" : "musical-notes"}
                             gradientColors={getGradientColors(item.id)}
                             showBubbles={false}

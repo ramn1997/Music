@@ -37,33 +37,42 @@ import { SafeAnimatedFlashList } from '../components/SafeAnimatedFlashList';
 
 const COLLECTIONS = [
     { id: 'liked', name: 'Liked Songs', icon: 'heart', params: { id: 'liked', name: 'Liked Songs', type: 'playlist' } },
-    { id: 'most_played', name: 'Most Played', icon: 'refresh', params: { id: 'most_played', name: 'Most Played', type: 'most_played' } },
+    { id: 'most_played', name: 'Most Played', icon: 'trending-up', params: { id: 'most_played', name: 'Most Played', type: 'most_played' } },
 ];
 
 const FAVORITES_LIST = [
     { id: 'liked', name: 'Liked Songs', icon: 'heart', params: { id: 'liked', name: 'Liked Songs', type: 'playlist' } },
-    { id: 'most_played', name: 'Most Played', icon: 'refresh', params: { id: 'most_played', name: 'Most Played', type: 'most_played' } },
+    { id: 'most_played', name: 'Most Played', icon: 'trending-up', params: { id: 'most_played', name: 'Most Played', type: 'most_played' } },
 ];
 
 const PLAYLISTS_LIST = [
     { id: 'playlists', name: 'Playlists', icon: 'library', params: { id: 'Playlists', name: 'Playlists', type: 'playlist' } },
 ];
 
-const getGradientColors = (id: string): [string, string] => {
+const getGradientColors = (id: string, themeType: string): [string, string] => {
+    const isLight = themeType === 'light';
     switch (id) {
-        case 'Songs': return ['#0f172a', '#1e3a8a'];
-        case 'Albums': return ['#4a044e', '#701a75'];
-        case 'Artists': return ['#7c2d12', '#9a3412'];
-        case 'Genres': return ['#064e3b', '#065f46'];
-        case 'Years': return ['#1e293b', '#64748b'];
-        case 'most_played': return ['#1a0333', '#2e0854'];
-        case 'liked': return ['#2a0311', '#4c0519'];
-        case 'recently_played': return ['rgba(66, 32, 6, 0.5)', 'rgba(133, 77, 14, 0.35)'];
-        case 'recently_added': return ['rgba(23, 37, 84, 0.5)', 'rgba(29, 78, 216, 0.35)'];
-        case 'never_played': return ['#020617', '#334155'];
+        case 'Songs': return isLight ? ['#e0f2fe', '#bae6fd'] : ['#0f172a', '#1e3a8a'];
+        case 'Albums': return isLight ? ['#fdf4ff', '#f5d0fe'] : ['#4a044e', '#701a75'];
+        case 'Artists': return isLight ? ['#fff7ed', '#ffedd5'] : ['#7c2d12', '#9a3412'];
+        case 'Genres': return isLight ? ['#ecfdf5', '#d1fae5'] : ['#064e3b', '#065f46'];
+        case 'Years': return isLight ? ['#f8fafc', '#e2e8f0'] : ['#1e293b', '#64748b'];
+        case 'most_played': return isLight ? ['#faf5ff', '#f3e8ff'] : ['#1a0333', '#2e0854'];
+        case 'liked': return isLight ? ['#fff1f2', '#ffe4e6'] : ['#2a0311', '#4c0519'];
+        case 'recently_played': return isLight ? ['#fffaf0', '#ffedd5'] : ['rgba(66, 32, 6, 0.5)', 'rgba(133, 77, 14, 0.35)'];
+        case 'recently_added': return isLight ? ['#eff6ff', '#dbeafe'] : ['rgba(23, 37, 84, 0.5)', 'rgba(29, 78, 216, 0.35)'];
+        case 'never_played': return isLight ? ['#f8fafc', '#f1f5f9'] : ['#020617', '#334155'];
         default: {
             const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const userColors: [string, string][] = [
+            const userColorsLight: [string, string][] = [
+                ['#eff6ff', '#dbeafe'],
+                ['#f5f3ff', '#ede9fe'],
+                ['#faf5ff', '#f3e8ff'],
+                ['#fdf2f8', '#fbcfe8'],
+                ['#fff1f2', '#ffe4e6'],
+                ['#ecfdf5', '#d1fae5']
+            ];
+            const userColorsDark: [string, string][] = [
                 ['#0f172a', '#1e40af'],
                 ['#312e81', '#4338ca'],
                 ['#581c87', '#7e22ce'],
@@ -71,7 +80,7 @@ const getGradientColors = (id: string): [string, string] => {
                 ['#831843', '#be185d'],
                 ['#064e3b', '#065f46'],
             ];
-            return userColors[hash % userColors.length];
+            return isLight ? userColorsLight[hash % userColorsLight.length] : userColorsDark[hash % userColorsDark.length];
         }
     }
 };
@@ -80,14 +89,16 @@ const HistoryCardDesign = () => null;
 
 
 const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { item: any, theme: any, navigation: any }) => {
+    const { themeType } = useTheme();
     const scale = useSharedValue(1);
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }]
     }));
 
-    const gradientColors = getGradientColors(item.id);
+    const gradientColors = getGradientColors(item.id, themeType);
     const displaySongs = item.songs || [];
     const songCount = displaySongs.length;
+    const isLight = themeType === 'light';
 
     return (
         <TouchableOpacity
@@ -104,7 +115,16 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
                 });
             }}
         >
-            <Animated.View style={[animatedStyle, styles.heroCardInner]}>
+            <Animated.View style={[
+                animatedStyle, 
+                styles.heroCardInner,
+                isLight && {
+                    elevation: 0,
+                    shadowOpacity: 0,
+                    borderWidth: 1,
+                    borderColor: '#e2e8f0',
+                }
+            ]}>
                 <LinearGradient
                     colors={gradientColors}
                     style={StyleSheet.absoluteFill}
@@ -115,10 +135,10 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
                 <View style={styles.heroCardContent}>
                     {/* Text on the left */}
                     <View style={styles.heroTextSection}>
-                        <Text style={styles.heroTitle} numberOfLines={1}>
+                        <Text style={[styles.heroTitle, { color: themeType === 'light' ? '#000' : '#fff' }]} numberOfLines={1}>
                             {item.name}
                         </Text>
-                        <Text style={styles.heroSubtitle} numberOfLines={1}>
+                        <Text style={[styles.heroSubtitle, { color: themeType === 'light' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.65)' }]} numberOfLines={1}>
                             {songCount > 0 ? `${songCount} tracks` : 'No songs yet'}
                         </Text>
                     </View>
@@ -130,7 +150,10 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
                             size={48}
                             borderRadius={10}
                             showBubbles={false}
-                            showIcon={false}
+                            showIcon={true}
+                            hideIconIfHasContent={true}
+                            iconName={item.icon || "musical-notes"}
+                            iconSize={20}
                             opacity={1}
                             overlayColor="rgba(0,0,0,0.05)"
                         />
@@ -141,114 +164,57 @@ const CollectionCollageHeroCard = React.memo(({ item, theme, navigation }: { ite
     );
 });
 
-const DailyStatsCard = React.memo(({ theme, songs }: { theme: any, songs: Song[] }) => {
-    const dailyStats = useLibraryStore(state => state.dailyStats) || {};
-    const today = new Date().toISOString().split('T')[0];
-    const day = dailyStats[today] || { songsPlayed: 0, listeningTimeMs: 0, playsPerSong: {} };
 
-    // We removed the null return to keep the section visible for the user as requested
-    // if (!day || !day.songsPlayed) return null;
-
-    const formatTime = (ms: number) => {
-        if (!ms) return "0m";
-        const totalMinutes = Math.floor(ms / 60000);
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        if (hours > 0) return `${hours}h ${minutes}m`;
-        return `${minutes}m`;
-    };
-
-
-
-    const topSongId = useMemo(() => {
-        let maxId = null;
-        let maxPlays = 0;
-        if (day.playsPerSong) {
-            Object.entries(day.playsPerSong).forEach(([id, plays]) => {
-                // Recording play history immediately for "Recently Played" is fine,
-                // but we handle the count increment in the progress listener for accuracy.
-                if (plays > maxPlays) {
-                    maxPlays = plays;
-                    maxId = id;
-                }
-            });
-        }
-        return maxId;
-    }, [day.playsPerSong]);
-
-    const topSong = useMemo(() => {
-        return (topSongId && Array.isArray(songs)) ? songs.find(s => s && s.id === topSongId) : null;
-    }, [topSongId, songs]);
-
-    return (
-        <View style={styles.statsCardWrapper}>
-            <LinearGradient
-                colors={theme.type === 'dark' ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)'] : ['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.01)']}
-                style={[styles.statsCard, { borderColor: theme.border, borderWidth: 1 }]}
-            >
-                <View style={styles.statsHeader}>
-                    <View style={[styles.statsIconBox, { backgroundColor: theme.primary + '20' }]}>
-                        <Ionicons name="analytics" size={14} color={theme.primary} />
-                    </View>
-                    <Text style={[styles.statsTitle, { color: theme.textSecondary }]}>Daily Insights</Text>
-                </View>
-
-                <View style={styles.statsGrid}>
-                    <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: theme.text }]}>{day.songsPlayed}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Plays</Text>
-                    </View>
-                    <View style={styles.statDivider} />
-                    <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: theme.text }]}>{formatTime(day.listeningTimeMs)}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Minutes</Text>
-                    </View>
-                    {topSong && (
-                        <>
-                            <View style={styles.statDivider} />
-                            <View style={[styles.statItem, { flex: 1.8 }]}>
-                                <Text numberOfLines={1} style={[styles.statValue, { color: theme.text, fontSize: 13, textAlign: 'center' }]}>{topSong.title}</Text>
-                                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Top Song</Text>
-                            </View>
-                        </>
-                    )}
-                </View>
-            </LinearGradient>
-        </View>
-    );
-});
 
 const DailyMixCard = React.memo(({ theme, songs, navigation, onPlayMix }: { theme: any, songs: Song[], navigation: any, onPlayMix: (songs: Song[]) => void }) => {
     if (songs.length === 0) return null;
     const [isExpanded, setIsExpanded] = useState(false);
+    const { themeType } = useTheme();
+    const isLight = themeType === 'light';
 
     const displaySongs = isExpanded ? songs : songs.slice(0, 4);
 
     return (
         <View style={styles.dailyMixContainer}>
             <TouchableOpacity 
-                style={[styles.dailyMixCard, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}
+                style={[
+                    styles.dailyMixCard, 
+                    { 
+                        backgroundColor: isLight ? '#ffffff' : theme.card, 
+                        borderColor: isLight ? '#e2e8f0' : theme.border, 
+                        borderWidth: 1,
+                        elevation: 0,
+                        shadowOpacity: 0
+                    }
+                ]}
                 activeOpacity={0.9}
                 onPress={() => onPlayMix(songs)}
             >
                 <LinearGradient
-                    colors={[theme.primary + (theme.background === '#000000' ? '15' : '30'), 'transparent']}
+                    colors={isLight ? ['rgba(241,245,249,0.8)', 'transparent'] : [theme.primary + (theme.background === '#000000' ? '15' : '30'), 'transparent']}
                     style={StyleSheet.absoluteFill}
                 />
                 
                 <View style={styles.dailyMixHeader}>
                     <View style={{ flex: 1 }}>
-                        <View style={[styles.dailyMixBadgeContainer, { backgroundColor: theme.primary + '20', borderColor: theme.primary + '40' }]}>
-                            <Text style={[styles.dailyMixBadgeText, { color: theme.primary }]}>DAILY PICK</Text>
+                        <View style={[styles.dailyMixBadgeContainer, { backgroundColor: isLight ? '#f1f5f9' : theme.primary + '20', borderColor: isLight ? '#e2e8f0' : theme.primary + '40' }]}>
+                            <Text style={[styles.dailyMixBadgeText, { color: isLight ? '#0f172a' : theme.primary }]}>DAILY PICK</Text>
                         </View>
-                        <Text style={[styles.dailyMixTitle, { color: theme.text }]}>Fresh Mix</Text>
-                        <Text style={[styles.dailyMixSubtitle, { color: theme.textSecondary }]}>Handpicked for today</Text>
+                        <Text style={[styles.dailyMixTitle, { color: isLight ? '#0f172a' : theme.text }]}>Fresh Mix</Text>
+                        <Text style={[styles.dailyMixSubtitle, { color: isLight ? '#64748b' : theme.textSecondary }]}>Handpicked for today</Text>
                     </View>
                     <TouchableOpacity 
-                        style={[styles.dailyMixPlayBtn, { backgroundColor: theme.primary }]}
+                        style={[
+                            styles.dailyMixPlayBtn, 
+                            { 
+                                backgroundColor: isLight ? '#0f172a' : theme.primary,
+                                elevation: isLight ? 0 : 4,
+                                shadowOpacity: isLight ? 0 : 0.3,
+                            }
+                        ]}
                         onPress={() => onPlayMix(songs)}
                     >
-                        <Ionicons name="play" size={24} color={theme.textOnPrimary} style={{ marginLeft: 2 }} />
+                        <Ionicons name="play" size={24} color={isLight ? '#ffffff' : theme.textOnPrimary} style={{ marginLeft: 2 }} />
                     </TouchableOpacity>
                 </View>
 
@@ -294,43 +260,68 @@ const decadeGradients: Record<string, [string, string]> = {
     'classic': ['#00AA77', '#006699']
 };
 
-const getYearGradient = (year: string): [string, string] => {
+const decadeGradientsLight: Record<string, [string, string]> = {
+    '2020s': ['#ffe4e6', '#fecdd3'],
+    '2010s': ['#e0f2fe', '#bae6fd'],
+    '2000s': ['#f3e8ff', '#e9d5ff'],
+    '90s': ['#fef9c3', '#fef08a'],
+    '80s': ['#dcfce7', '#bbf7d0'],
+    'classic': ['#ccfbf1', '#99f6e4']
+};
+
+const getYearGradient = (year: string, themeType: string): [string, string] => {
+    const isLight = themeType === 'light';
+    const grads = isLight ? decadeGradientsLight : decadeGradients;
     const y = parseInt(year);
-    if (y >= 2020) return decadeGradients['2020s'];
-    if (y >= 2010) return decadeGradients['2010s'];
-    if (y >= 2000) return decadeGradients['2000s'];
-    if (y >= 1990) return decadeGradients['90s'];
-    if (y >= 1980) return decadeGradients['80s'];
-    return decadeGradients['classic'];
+    if (y >= 2020) return grads['2020s'];
+    if (y >= 2010) return grads['2010s'];
+    if (y >= 2000) return grads['2000s'];
+    if (y >= 1990) return grads['90s'];
+    if (y >= 1980) return grads['80s'];
+    return grads['classic'];
 };
 
 const YearMixCard = React.memo(({ item, theme, onPlayMix }: { item: any, theme: any, onPlayMix: (songs: Song[]) => void }) => {
+    const { themeType } = useTheme();
     const [isExpanded, setIsExpanded] = React.useState(false);
     const displaySongs = isExpanded ? item.songs.slice(0, 8) : item.songs.slice(0, 3);
+    const isLight = themeType === 'light';
 
     return (
         <TouchableOpacity
-            style={[styles.yearMixCard, isExpanded && { minHeight: 140, height: 'auto' }]}
+            style={[
+                styles.yearMixCard, 
+                isExpanded && { minHeight: 140, height: 'auto' },
+                isLight && {
+                    elevation: 0,
+                    shadowOpacity: 0,
+                    borderWidth: 1,
+                    borderColor: '#e2e8f0',
+                }
+            ]}
             onPress={() => onPlayMix(item.songs)}
             activeOpacity={0.9}
         >
             <LinearGradient
-                colors={getYearGradient(item.year)}
+                colors={getYearGradient(item.year, themeType)}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             />
-            <View style={styles.yearMixInnerContent}>
+            <View style={[styles.yearMixInnerContent, isLight && { backgroundColor: 'rgba(255,255,255,0.6)' }]}>
                 <View style={styles.yearMixHeaderSmall}>
                     <View style={{ flex: 1 }}>
-                        <Text style={styles.yearMixBadgeSmall}>COLLECTION</Text>
-                        <Text style={styles.yearMixTitleSmall}>{item.title}</Text>
+                        <Text style={[styles.yearMixBadgeSmall, isLight && { color: 'rgba(15,23,42,0.6)' }]}>COLLECTION</Text>
+                        <Text style={[styles.yearMixTitleSmall, isLight && { color: '#0f172a' }]}>{item.title}</Text>
                     </View>
                     <TouchableOpacity 
-                        style={styles.yearMixPlayBtnSmall}
+                        style={[
+                            styles.yearMixPlayBtnSmall, 
+                            isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderWidth: 1, elevation: 0 }
+                        ]}
                         onPress={(e) => { e.stopPropagation(); onPlayMix(item.songs); }}
                     >
-                        <Ionicons name="play" size={20} color="#fff" />
+                        <Ionicons name="play" size={20} color={isLight ? '#0f172a' : '#fff'} />
                     </TouchableOpacity>
                 </View>
 
@@ -338,23 +329,23 @@ const YearMixCard = React.memo(({ item, theme, onPlayMix }: { item: any, theme: 
                 <View style={{ marginTop: 15, gap: 10 }}>
                     {displaySongs.map((s: Song) => (
                         <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <MusicImage uri={s.coverImage} id={s.id} style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.1)' }} iconSize={12} />
+                            <MusicImage uri={s.coverImage} id={s.id} style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)' }} iconSize={12} />
                             <View style={{ flex: 1 }}>
-                                <Text numberOfLines={1} style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: -0.2 }}>{s.title}</Text>
-                                <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' }}>{s.artist}</Text>
+                                <Text numberOfLines={1} style={{ color: isLight ? '#0f172a' : '#fff', fontSize: 13, fontWeight: '800', letterSpacing: -0.2 }}>{s.title}</Text>
+                                <Text numberOfLines={1} style={{ color: isLight ? 'rgba(15,23,42,0.6)' : 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' }}>{s.artist}</Text>
                             </View>
                         </View>
                     ))}
                 </View>
 
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 }}>
-                    <Text style={styles.yearMixCountSmall}>{item.songs.length} tracks from {item.year}</Text>
+                    <Text style={[styles.yearMixCountSmall, isLight && { color: '#0f172a', opacity: 0.8 }]}>{item.songs.length} tracks from {item.year}</Text>
                     {item.songs.length > 3 && (
                         <TouchableOpacity 
                             onPress={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-                            style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}
+                            style={{ backgroundColor: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}
                         >
-                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>{isExpanded ? 'SEE LESS' : `+ ${item.songs.length - 3} MORE`}</Text>
+                            <Text style={{ color: isLight ? '#0f172a' : '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>{isExpanded ? 'SEE LESS' : `+ ${item.songs.length - 3} MORE`}</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -363,7 +354,9 @@ const YearMixCard = React.memo(({ item, theme, onPlayMix }: { item: any, theme: 
     );
 });
 
-const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress, showIcon = false, hideIconIfHasContent = false }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void, showIcon?: boolean, hideIconIfHasContent?: boolean }) => {
+const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, isListView, onPlayPress, showIcon = true, hideIconIfHasContent = true }: { item: any, theme: any, navigation: any, isHorizontal?: boolean, isListView?: boolean, onPlayPress?: (item: any) => void, showIcon?: boolean, hideIconIfHasContent?: boolean }) => {
+    const { themeType } = useTheme();
+    const isLight = themeType === 'light';
     const isArtist = item.type === 'Artist' || (item.params as any)?.type === 'artist';
     const artistImage = useArtistImage(isArtist ? item.name : '');
     const displayImage = isArtist ? artistImage : item.image;
@@ -393,8 +386,9 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                     <View style={styles.favVerticalCard}>
                         <View style={[
                             styles.favVerticalImageContainer,
-                            { backgroundColor: 'rgba(255,255,255,0.05)' },
-                            isArtist && { borderRadius: 55, transform: [{ scale: 0.95 }] }
+                            { backgroundColor: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)' },
+                            isArtist && { borderRadius: 55, transform: [{ scale: 0.95 }] },
+                            isLight && { borderWidth: 1, borderColor: '#e2e8f0' }
                         ]}>
                             {isArtist ? (
                                 <MusicImage
@@ -410,10 +404,10 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                     songs={item.songs || []}
                                     size={110}
                                     iconSize={28}
-                                    iconName={item.id === 'liked' ? "heart" : (item.type === 'Album' ? "disc" : "musical-notes")}
+                                    iconName={item.id === 'liked' ? "heart" : (item.id === 'most_played' ? "refresh" : (item.type === 'Album' ? "disc" : "musical-notes"))}
                                     borderRadius={12}
                                     showBubbles={false}
-                                    gradientColors={getGradientColors(item.id)}
+                                    gradientColors={getGradientColors(item.id, themeType)}
                                     forceSingleImage={item.type === 'Album'}
                                     showIcon={showIcon}
                                     hideIconIfHasContent={hideIconIfHasContent}
@@ -487,7 +481,7 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                             }
                             borderRadius={12}
                             showBubbles={false}
-                            gradientColors={getGradientColors(item.id)}
+                            gradientColors={getGradientColors(item.id, themeType)}
                             forceSingleImage={item.type === 'Album' || (item.params as any)?.type === 'album'}
                             showIcon={showIcon}
                             hideIconIfHasContent={hideIconIfHasContent}
@@ -546,11 +540,13 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                             borderRadius: isArtist ? 1000 : 24,
                             overflow: 'hidden',
                             backgroundColor: theme.card,
-                            elevation: 8,
+                            elevation: 0,
                             shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.3,
-                            shadowRadius: 5,
+                            shadowOffset: { width: 0, height: 0 },
+                            shadowOpacity: 0,
+                            shadowRadius: 0,
+                            borderWidth: isLight ? 1 : 0,
+                            borderColor: isLight ? '#e2e8f0' : 'transparent',
                             marginBottom: 8
                         }
                     ]}>
@@ -559,10 +555,10 @@ const FavoriteItemCard = React.memo(({ item, theme, navigation, isHorizontal, is
                                 songs={item.songs || []}
                                 size={95}
                                 iconSize={26}
-                                iconName={item.id === 'liked' ? "heart" : (item.type === 'Album' ? "disc" : "musical-notes")}
+                                iconName={item.id === 'liked' ? "heart" : (item.id === 'most_played' ? "refresh" : (item.type === 'Album' ? "disc" : "musical-notes"))}
                                 borderRadius={0}
                                 showBubbles={false}
-                                gradientColors={getGradientColors(item.id)}
+                                gradientColors={getGradientColors(item.id, themeType)}
                                 showIcon={showIcon}
                                 hideIconIfHasContent={hideIconIfHasContent}
                             />
@@ -599,8 +595,23 @@ const HistoryPlaylistCard = React.memo(({
     onPlayPress?: () => void,
     onShufflePress?: () => void
 }) => {
+    const { themeType } = useTheme();
+    const isLight = themeType === 'light';
+
     return (
-        <TouchableOpacity style={styles.historyCard} onPress={onPress} activeOpacity={0.9}>
+        <TouchableOpacity 
+            style={[
+                styles.historyCard,
+                isLight && {
+                    borderWidth: 1,
+                    borderColor: '#e2e8f0',
+                    elevation: 0,
+                    shadowOpacity: 0
+                }
+            ]} 
+            onPress={onPress} 
+            activeOpacity={0.9}
+        >
             <View style={[styles.historyImageContainer, { backgroundColor: item.color, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }]}>
                 <View style={StyleSheet.absoluteFill}>
                     <PlaylistCollage
@@ -610,28 +621,38 @@ const HistoryPlaylistCard = React.memo(({
                         iconName={item.icon || "musical-notes"}
                         iconSize={44}
                         borderRadius={0}
-                        opacity={0.35}
+                        opacity={isLight ? 0.25 : 0.35}
                         showBubbles={true}
                         overlayColor="transparent"
+                        showIcon={true}
+                        hideIconIfHasContent={true}
                     />
                 </View>
             </View>
-            <View style={[styles.historyInfoContainer, { backgroundColor: item.cardColor || '#1a1a1a' }]}>
-                <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
+            <View style={[styles.historyInfoContainer, { backgroundColor: item.cardColor || (isLight ? '#ffffff' : '#1a1a1a') }]}>
+                <Text style={[styles.historyTitle, { color: isLight ? '#0f172a' : '#fff' }]} numberOfLines={1}>{item.title}</Text>
 
                 <View style={styles.historyStatsRow}>
                     <View style={styles.historyActionGroup}>
                         <TouchableOpacity
-                            style={styles.historyActionBtn}
+                            style={[
+                                styles.historyActionBtn, 
+                                { backgroundColor: isLight ? '#f1f5f9' : '#fff' },
+                                isLight && { borderWidth: 1, borderColor: '#e2e8f0', elevation: 0, shadowOpacity: 0 }
+                            ]}
                             onPress={(e) => { e.stopPropagation(); onPlayPress?.(); }}
                         >
-                            <Ionicons name="play" size={16} color="#000" />
+                            <Ionicons name="play" size={16} color={isLight ? '#0f172a' : '#000'} />
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.historyActionBtn, { marginLeft: 8 }]}
+                            style={[
+                                styles.historyActionBtn, 
+                                { marginLeft: 8, backgroundColor: isLight ? '#f1f5f9' : '#fff' },
+                                isLight && { borderWidth: 1, borderColor: '#e2e8f0', elevation: 0, shadowOpacity: 0 }
+                            ]}
                             onPress={(e) => { e.stopPropagation(); onShufflePress?.(); }}
                         >
-                            <Ionicons name="shuffle" size={16} color="#000" />
+                            <Ionicons name="shuffle" size={16} color={isLight ? '#0f172a' : '#000'} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -676,6 +697,8 @@ const SmartPlaylistCard = React.memo(({
     onShufflePress?: (item: any) => void,
     isSmall?: boolean
 }) => {
+    const { themeType, theme } = useTheme();
+    const isLight = themeType === 'light';
     const cardSize = isSmall ? 140 : 160;
 
     return (
@@ -686,8 +709,12 @@ const SmartPlaylistCard = React.memo(({
                 borderRadius: 24,
                 overflow: 'hidden',
                 marginRight: 15,
-                backgroundColor: 'rgba(255,255,255,0.05)',
-                justifyContent: 'flex-end'
+                backgroundColor: isLight ? '#ffffff' : 'rgba(255,255,255,0.05)',
+                justifyContent: 'flex-end',
+                borderColor: isLight ? '#e2e8f0' : theme.cardBorder,
+                borderWidth: isLight ? 1 : 0,
+                elevation: 0,
+                shadowOpacity: 0
             }}
             onPress={() => onPress(item)}
             activeOpacity={0.9}
@@ -701,21 +728,37 @@ const SmartPlaylistCard = React.memo(({
                     iconSize={isSmall ? 28 : 38}
                     iconName={item.icon || "musical-notes"}
                     borderRadius={0}
-                    opacity={0.8}
+                    opacity={isLight ? 0.45 : 0.8}
                     showBubbles={false}
+                    showIcon={true}
+                    hideIconIfHasContent={true}
                 />
             </View>
 
-            <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,1)']}
-                style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: cardSize * 0.6,
-                }}
-            />
+            {isLight ? (
+                <View
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: cardSize,
+                        backgroundColor: 'rgba(255,255,255,0.65)',
+                        justifyContent: 'flex-end',
+                    }}
+                />
+            ) : (
+                <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,1)']}
+                    style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: cardSize * 0.6,
+                    }}
+                />
+            )}
 
             <View style={{
                 position: 'absolute',
@@ -728,22 +771,29 @@ const SmartPlaylistCard = React.memo(({
                         width: 32,
                         height: 32,
                         borderRadius: 16,
-                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        backgroundColor: isLight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        marginRight: 6
+                        marginRight: 6,
+                        borderWidth: isLight ? 1 : 0,
+                        borderColor: '#e2e8f0',
+                        elevation: isLight ? 1 : 0,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isLight ? 0.05 : 0,
+                        shadowRadius: 1,
                     }}
                     onPress={(e) => { e.stopPropagation(); onPlayPress?.(item); }}
                 >
-                    <Ionicons name="play" size={14} color="#fff" style={{ marginLeft: 2 }} />
+                    <Ionicons name="play" size={14} color={isLight ? '#0f172a' : '#fff'} style={{ marginLeft: 2 }} />
                 </TouchableOpacity>
             </View>
 
             <View style={{ padding: 12 }}>
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold', marginBottom: 2 }} numberOfLines={1}>
+                <Text style={{ color: isLight ? '#0f172a' : '#fff', fontSize: 13, fontWeight: 'bold', marginBottom: 2 }} numberOfLines={1}>
                     {item.title}
                 </Text>
-                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }} numberOfLines={1}>
+                <Text style={{ color: isLight ? '#64748b' : 'rgba(255,255,255,0.7)', fontSize: 11 }} numberOfLines={1}>
                     {item.count || (item.songs?.length ?? 0)} songs
                 </Text>
             </View>
@@ -752,8 +802,29 @@ const SmartPlaylistCard = React.memo(({
 });
 
 const TopSongItem = React.memo(({ song, index, isPlaying, onPress, appTheme }: { song: Song, index: number, isPlaying: boolean, onPress: (index: number) => void, appTheme: any }) => {
+    const { themeType } = useTheme();
+    const isLight = themeType === 'light';
+    const formattedIndex = String(index + 1).padStart(2, '0');
+
     return (
-        <TouchableOpacity style={styles.topSongItem} onPress={() => onPress(index)}>
+        <TouchableOpacity 
+            style={[
+                styles.topSongItem,
+                isLight && {
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#f1f5f9',
+                    paddingBottom: 10,
+                    marginBottom: 10,
+                }
+            ]} 
+            onPress={() => onPress(index)}
+        >
+            <Text style={[
+                styles.topSongIndex,
+                { color: isLight ? '#94a3b8' : appTheme.textSecondary }
+            ]}>
+                {formattedIndex}
+            </Text>
             <View style={styles.topSongImageContainer}>
                 <MusicImage
                     uri={song.coverImage}
@@ -826,7 +897,7 @@ export const HomeScreen = () => {
     const playSongInPlaylist = usePlayerStore(state => state.playSongInPlaylist);
     const currentSong = usePlayerStore(state => state.currentTrack);
     const isPlaying = usePlayerStore(state => state.isPlaying);
-    const { sectionVisibility } = useHomeSettings();
+    const { sectionVisibility, sectionOrder } = useHomeSettings();
     const dailyStats = useLibraryStore(state => state.dailyStats);
 
     const scrollY = useSharedValue(0);
@@ -1110,6 +1181,7 @@ export const HomeScreen = () => {
     }, []);
 
     const listeningHistoryPlaylists = useMemo(() => {
+        const isLight = themeType === 'light';
         return [
             {
                 id: 'recently_played',
@@ -1119,8 +1191,8 @@ export const HomeScreen = () => {
                 coverSong: recentlyPlayed[0],
                 songs: recentlyPlayed,
                 count: recentlyPlayed.length,
-                color: '#1a140a',
-                cardColor: '#2b2112',
+                color: isLight ? '#ffedd5' : '#1a140a',
+                cardColor: isLight ? '#fef3c7' : '#2b2112',
                 icon: 'time'
             },
             {
@@ -1131,8 +1203,8 @@ export const HomeScreen = () => {
                 coverSong: recentlyAdded[0],
                 songs: recentlyAdded,
                 count: recentlyAdded.length,
-                color: '#0a0f1f',
-                cardColor: '#161d33',
+                color: isLight ? '#dbeafe' : '#0a0f1f',
+                cardColor: isLight ? '#eff6ff' : '#161d33',
                 icon: 'add-circle'
             },
             {
@@ -1143,12 +1215,12 @@ export const HomeScreen = () => {
                 coverSong: neverPlayed[0],
                 songs: neverPlayed,
                 count: songs.filter(s => (s.playCount || 0) === 0).length,
-                color: '#0a0a0a',
-                cardColor: '#1a1a1a',
+                color: isLight ? '#f1f5f9' : '#0a0a0a',
+                cardColor: isLight ? '#f8fafc' : '#1a1a1a',
                 icon: 'close-circle'
             }
         ];
-    }, [recentlyPlayed, recentlyAdded, neverPlayed]);
+    }, [recentlyPlayed, recentlyAdded, neverPlayed, themeType]);
 
     const topSongs = useMemo(() => {
         return sortedTopSongs;
@@ -1226,7 +1298,7 @@ export const HomeScreen = () => {
         return Array.from(yearMap.entries())
             .filter(([_, yearSongs]) => yearSongs.length >= 3)
             .sort((a, b) => b[0].localeCompare(a[0])) // Most recent years first
-            .slice(0, 8)
+            .slice(0, 5)
             .map(([year, yearSongs]) => ({
                 id: `year_${year}`,
                 title: `Best of ${year}`,
@@ -1291,6 +1363,7 @@ export const HomeScreen = () => {
 
 
     const renderHeader = () => {
+        const isLight = themeType === 'light';
         return (
             <View style={[styles.header, { marginBottom: 15, paddingTop: 15, paddingHorizontal: 15 }]}>
 
@@ -1303,9 +1376,11 @@ export const HomeScreen = () => {
                     height: 48, 
                     borderRadius: 24, 
                     paddingHorizontal: 16,
-                    backgroundColor: appTheme.card, 
-                    borderColor: appTheme.cardBorder, 
-                    borderWidth: 1 
+                    backgroundColor: isLight ? '#f3f4f6' : appTheme.card, 
+                    borderColor: isLight ? '#e5e7eb' : appTheme.cardBorder, 
+                    borderWidth: 1,
+                    elevation: 0,
+                    shadowOpacity: 0
                 }]}>
                     <Ionicons name="search" size={20} color={appTheme.textSecondary} />
                     <TextInput
@@ -1430,6 +1505,216 @@ export const HomeScreen = () => {
 
 
         // Default overview
+        const renderSection = (section: string) => {
+            switch (section) {
+                case 'collections':
+                    if (!sectionVisibility.collections || collectionsWithSongs.length === 0) return null;
+                    return (
+                        <View key="collections" style={[styles.heroGrid, { marginTop: 10 }, isLandscape && { justifyContent: 'center', gap: 20 }]}>
+                            {collectionsWithSongs.map((item) => (
+                                <View key={item.id} style={isLandscape ? { width: 280 } : { width: '48%' }}>
+                                    <CollectionCollageHeroCard item={item} theme={appTheme} navigation={navigation} />
+                                </View>
+                            ))}
+                        </View>
+                    );
+                case 'yearMix':
+                    if (!sectionVisibility.yearMix || yearRecommendations.length === 0) return null;
+                    return (
+                        <React.Fragment key="yearMix">
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Memory Lane</Text>
+                            </View>
+                            <FlatList
+                                data={yearRecommendations}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => (
+                                    <YearMixCard
+                                        item={item}
+                                        theme={appTheme}
+                                        onPlayMix={(s) => playSongInPlaylist(s, 0, item.title)}
+                                    />
+                                )}
+                            />
+                        </React.Fragment>
+                    );
+                case 'dailyMix':
+                    if (!sectionVisibility.dailyMix) return null;
+                    return (
+                        <DailyMixCard 
+                            key="dailyMix"
+                            theme={appTheme} 
+                            songs={dailyMixSongs} 
+                            navigation={navigation} 
+                            onPlayMix={handlePlayDailyMix}
+                        />
+                    );
+                case 'favorites':
+                    if (!sectionVisibility.favorites || allFavorites.length === 0) return null;
+                    return (
+                        <React.Fragment key="favorites">
+                            <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 10 }]}>
+                                <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Favorites</Text>
+                            </View>
+                            <FlatList
+                                data={allFavorites.slice(0, 5)}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 15 }}
+                                decelerationRate="fast"
+                                keyExtractor={(item) => item.id.toString()}
+                                renderItem={({ item }) => (
+                                    <View style={{ width: 115, marginRight: 15 }}>
+                                        <FavoriteItemCard
+                                            item={item}
+                                            theme={appTheme}
+                                            navigation={navigation}
+                                        />
+                                    </View>
+                                )}
+                            />
+                        </React.Fragment>
+                    );
+                case 'playlists':
+                    if (!sectionVisibility.playlists || displayUserPlaylists.length === 0) return null;
+                    return (
+                        <React.Fragment key="playlists">
+                            <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 10 }]}>
+                                <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Playlists</Text>
+                            </View>
+                            <FlatList
+                                data={displayUserPlaylists}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 15 }}
+                                decelerationRate="fast"
+                                keyExtractor={(item) => item.id.toString()}
+                                renderItem={({ item }) => (
+                                    <SmartPlaylistCard
+                                        item={item}
+                                        isSmall
+                                        onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.title, type: 'playlist' })}
+                                        onPlayPress={handleSmartPlaylistPlay}
+                                        onShufflePress={handleSmartPlaylistShuffle}
+                                    />
+                                )}
+                            />
+                        </React.Fragment>
+                    );
+                case 'history':
+                    if (!sectionVisibility.history || listeningHistoryPlaylists.length === 0) return null;
+                    return (
+                        <React.Fragment key="history">
+                            <View style={[styles.sectionHeader, { marginBottom: 16, marginTop: 10 }]}>
+                                <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Listening History</Text>
+                            </View>
+                            <FlatList
+                                data={listeningHistoryPlaylists}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
+                                decelerationRate="fast"
+                                keyExtractor={(item) => item.id}
+                                renderItem={({ item }) => (
+                                    <HistoryPlaylistCard
+                                        item={item}
+                                        onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.title, type: item.type } as any)}
+                                        onPlayPress={() => {
+                                            if (item.songs && item.songs.length > 0) {
+                                                playSongInPlaylist(item.songs, 0, item.title);
+                                                navigation.navigate('Player', { trackIndex: 0 });
+                                            }
+                                        }}
+                                        onShufflePress={() => {
+                                            if (item.songs && item.songs.length > 0) {
+                                                const shuffled = [...item.songs].sort(() => Math.random() - 0.5);
+                                                playSongInPlaylist(shuffled, 0, item.title);
+                                                navigation.navigate('Player', { trackIndex: 0 });
+                                            }
+                                        }}
+                                    />
+                                )}
+                            />
+                        </React.Fragment>
+                    );
+                case 'topSongs':
+                    if (!sectionVisibility.topSongs) return null;
+                    return (
+                        <React.Fragment key="topSongs">
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Songs</Text>
+                            </View>
+                            <View style={styles.topSongsContainer}>
+                                {topSongs.map((song, index) => (
+                                    <TopSongItem
+                                        key={song.id}
+                                        song={song}
+                                        index={index}
+                                        isPlaying={currentSong?.id === song.id && isPlaying}
+                                        appTheme={appTheme}
+                                        onPress={handleTopSongPress}
+                                    />
+                                ))}
+                            </View>
+                        </React.Fragment>
+                    );
+                case 'topAlbums':
+                    if (!sectionVisibility.topAlbums || displayTopAlbums.length === 0) return null;
+                    return (
+                        <React.Fragment key="topAlbums">
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Albums</Text>
+                            </View>
+                            <FlatList
+                                data={displayTopAlbums}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
+                                decelerationRate="fast"
+                                keyExtractor={(album) => `${album.name}-${album.artist}`}
+                                renderItem={({ item: album }) => (
+                                    <TopAlbumCard
+                                        album={album}
+                                        appTheme={appTheme}
+                                        onPress={(alb: any) => navigation.navigate('Playlist', { id: alb.name, name: alb.name, type: 'album' })}
+                                    />
+                                )}
+                            />
+                        </React.Fragment>
+                    );
+                case 'topArtists':
+                    if (!sectionVisibility.topArtists || displayTopArtists.length === 0) return null;
+                    return (
+                        <React.Fragment key="topArtists">
+                            <View style={styles.sectionHeader}>
+                                <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Artists</Text>
+                            </View>
+                            <FlatList
+                                data={displayTopArtists}
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
+                                decelerationRate="fast"
+                                keyExtractor={(artist) => artist.name}
+                                renderItem={({ item: artist }) => (
+                                    <TopArtistCard
+                                        artist={artist}
+                                        appTheme={appTheme}
+                                        customImage={artistMetadata[artist.name]?.coverImage}
+                                        onPress={handleTopArtistPress}
+                                    />
+                                )}
+                            />
+                        </React.Fragment>
+                    );
+                default:
+                    return null;
+            }
+        };
+
         return (
             <Animated.ScrollView
                 onScroll={scrollHandler}
@@ -1437,213 +1722,8 @@ export const HomeScreen = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: isLandscape ? 120 : 220 }}
             >
+                {sectionOrder.map(section => renderSection(section))}
 
-                {collectionsWithSongs.length > 0 && (
-                    <View style={[styles.heroGrid, { marginTop: 10 }, isLandscape && { justifyContent: 'center', gap: 20 }]}>
-                        {collectionsWithSongs.map((item) => (
-                            <View key={item.id} style={isLandscape ? { width: 280 } : { width: '48%' }}>
-                                <CollectionCollageHeroCard item={item} theme={appTheme} navigation={navigation} />
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                {sectionVisibility.yearMix && yearRecommendations.length > 0 && (
-                    <>
-                        <View style={styles.sectionHeader}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Memory Lane</Text>
-                        </View>
-                        <FlatList
-                            data={yearRecommendations}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <YearMixCard
-                                    item={item}
-                                    theme={appTheme}
-                                    onPlayMix={(s) => playSongInPlaylist(s, 0, item.title)}
-                                />
-                            )}
-                        />
-                    </>
-                )}
-
-                {sectionVisibility.dailyMix && (
-                    <DailyMixCard 
-                        theme={appTheme} 
-                        songs={dailyMixSongs} 
-                        navigation={navigation} 
-                        onPlayMix={handlePlayDailyMix}
-                    />
-                )}
-
-                {sectionVisibility.favorites && allFavorites.length > 0 && (
-                    <>
-                        <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 10 }]}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Favorites</Text>
-                        </View>
-                        <FlatList
-                            data={allFavorites.slice(0, 5)}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 15 }}
-                            decelerationRate="fast"
-                            keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item }) => (
-                                <View style={{ width: 115, marginRight: 15 }}>
-                                    <FavoriteItemCard
-                                        item={item}
-                                        theme={appTheme}
-                                        navigation={navigation}
-                                    />
-                                </View>
-                            )}
-                        />
-                    </>
-                )}
-
-                {sectionVisibility.playlists && displayUserPlaylists.length > 0 && (
-                    <>
-                        <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 10 }]}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Playlists</Text>
-                        </View>
-
-                        <FlatList
-                            data={displayUserPlaylists}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 15 }}
-                            decelerationRate="fast"
-                            keyExtractor={(item) => item.id.toString()}
-                            renderItem={({ item }) => (
-                                <SmartPlaylistCard
-                                    item={item}
-                                    isSmall
-                                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.title, type: 'playlist' })}
-                                    onPlayPress={handleSmartPlaylistPlay}
-                                    onShufflePress={handleSmartPlaylistShuffle}
-                                />
-                            )}
-                        />
-                    </>
-                )}
-
-                {sectionVisibility.history && listeningHistoryPlaylists.length > 0 && (
-                    <>
-                        <View style={[styles.sectionHeader, { marginBottom: 16, marginTop: 10 }]}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Listening History</Text>
-                        </View>
-                        <FlatList
-                            data={listeningHistoryPlaylists}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
-                            decelerationRate="fast"
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <HistoryPlaylistCard
-                                    item={item}
-                                    onPress={() => navigation.navigate('Playlist', { id: item.id, name: item.title, type: item.type } as any)}
-                                    onPlayPress={() => {
-                                        if (item.songs && item.songs.length > 0) {
-                                            playSongInPlaylist(item.songs, 0, item.title);
-                                            navigation.navigate('Player', { trackIndex: 0 });
-                                        }
-                                    }}
-                                    onShufflePress={() => {
-                                        if (item.songs && item.songs.length > 0) {
-                                            const shuffled = [...item.songs].sort(() => Math.random() - 0.5);
-                                            playSongInPlaylist(shuffled, 0, item.title);
-                                            navigation.navigate('Player', { trackIndex: 0 });
-                                        }
-                                    }}
-                                />
-                            )}
-                        />
-                    </>
-                )}
-
-                {/* Mix features removed as requested */}
-
-
-                {sectionVisibility.topSongs && (
-                    <>
-                        <View style={styles.sectionHeader}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Songs</Text>
-                        </View>
-
-                        <View style={styles.topSongsContainer}>
-                            {topSongs.map((song, index) => (
-                                <TopSongItem
-                                    key={song.id}
-                                    song={song}
-                                    index={index}
-                                    isPlaying={currentSong?.id === song.id && isPlaying}
-                                    appTheme={appTheme}
-                                    onPress={handleTopSongPress}
-                                />
-                            ))}
-                        </View>
-                    </>
-                )}
-
-                {sectionVisibility.topAlbums && displayTopAlbums.length > 0 && (
-                    <>
-                        <View style={styles.sectionHeader}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Albums</Text>
-                        </View>
-                        <FlatList
-                            data={displayTopAlbums}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
-                            decelerationRate="fast"
-                            keyExtractor={(album) => `${album.name}-${album.artist}`}
-                            renderItem={({ item: album }) => (
-                                <TopAlbumCard
-                                    album={album}
-                                    appTheme={appTheme}
-                                    onPress={(alb: any) => navigation.navigate('Playlist', { id: alb.name, name: alb.name, type: 'album' })}
-                                />
-                            )}
-                        />
-                    </>
-                )}
-
-                {sectionVisibility.topArtists && displayTopArtists.length > 0 && (
-                    <>
-                        <View style={styles.sectionHeader}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Top Artists</Text>
-                        </View>
-                        <FlatList
-                            data={displayTopArtists}
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 25 }}
-                            decelerationRate="fast"
-                            keyExtractor={(artist) => artist.name}
-                            renderItem={({ item: artist }) => (
-                                <TopArtistCard
-                                    artist={artist}
-                                    appTheme={appTheme}
-                                    customImage={artistMetadata[artist.name]?.coverImage}
-                                    onPress={handleTopArtistPress}
-                                />
-                            )}
-                        />
-                    </>
-                )}
-
-                {sectionVisibility.dailyTracking && (
-                    <>
-                        <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 15 }]}>
-                            <Text style={[styles.sectionTitle, { color: appTheme.text }]}>Daily Tracking</Text>
-                        </View>
-                        <DailyStatsCard theme={appTheme} songs={songs} />
-                    </>
-                )}
 
             </Animated.ScrollView>
         );
@@ -1681,6 +1761,7 @@ export const HomeScreen = () => {
                 onClose={() => setPlaylistModalVisible(false)}
                 songs={selectedSong ? [selectedSong] : []}
             />
+
         </ScreenContainer>
     );
 };
@@ -1831,11 +1912,11 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 24,
         overflow: 'hidden',
-        elevation: 6,
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
         borderWidth: 0,
         borderColor: 'transparent',
     },
@@ -1937,6 +2018,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 12,
+    },
+    topSongIndex: {
+        fontSize: 14,
+        fontFamily: 'PlusJakartaSans_700Bold',
+        marginRight: 12,
+        width: 20,
+        textAlign: 'right',
     },
     topSongImageContainer: {
         width: 45,
@@ -2233,11 +2321,11 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         marginRight: 16,
         overflow: 'hidden',
-        elevation: 6,
+        elevation: 2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
     },
     yearMixInnerContent: {
         flex: 1,
@@ -2280,5 +2368,22 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
         opacity: 0.8,
+    },
+    bottomCustomizeBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: 20,
+        marginTop: 20,
+        marginBottom: 30,
+        paddingVertical: 14,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+    },
+    bottomCustomizeText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
 });

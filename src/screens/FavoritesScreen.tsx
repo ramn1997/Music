@@ -92,10 +92,13 @@ const AlbumGridItem = React.memo(({ item, theme, onPress }: { item: any, theme: 
             <View style={styles.gridImageContainer}>
                 <PlaylistCollage
                     songs={item.songs || []}
-                    size={CARD_SIZE}
+                    size="100%"
+                    width="100%"
                     borderRadius={0}
                     showBubbles={false}
-                    showIcon={false}
+                    showIcon={true}
+                    hideIconIfHasContent={true}
+                    iconName="disc"
                     gradientColors={getGradientColors(item.id)}
                     forceSingleImage={true}
                 />
@@ -126,10 +129,13 @@ const PlaylistGridItem = React.memo(({ item, theme, onPress }: { item: any, them
             <View style={styles.gridImageContainer}>
                 <PlaylistCollage
                     songs={item.songs || []}
-                    size={CARD_SIZE}
+                    size="100%"
+                    width="100%"
                     borderRadius={0}
                     showBubbles={false}
-                    showIcon={false}
+                    showIcon={true}
+                    hideIconIfHasContent={true}
+                    iconName={item.id === 'liked' ? 'heart' : (item.id === 'most_played' ? 'refresh' : 'musical-notes')}
                     gradientColors={getGradientColors(item.id)}
                 />
             </View>
@@ -367,6 +373,8 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     gridItemTitle: {
         fontSize: 11.5,

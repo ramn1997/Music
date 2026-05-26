@@ -826,7 +826,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                 {type === 'genre' ? (
                                                     <PlaylistCollage
                                                         songs={collageSongsForHeader}
-                                                        size="100%"
+                                                        size="100%" showIcon={true} hideIconIfHasContent={true}
                                                         iconSize={150}
                                                         iconName="musical-notes"
                                                         gradientColors={gradientColors as [string, string]}
@@ -906,7 +906,7 @@ export const PlaylistScreen = ({ route, navigation }: Props) => {
                                                 >
                                                     <PlaylistCollage
                                                         songs={collageSongsForHeader}
-                                                        size={isLandscape ? 180 : 220}
+                                                        size={isLandscape ? 180 : 220} showIcon={true} hideIconIfHasContent={true}
                                                         iconSize={isLandscape ? 80 : 100}
                                                         iconName={
                                                             id === 'liked' ? 'heart' :

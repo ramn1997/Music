@@ -76,6 +76,13 @@ export const PlaylistCollage = ({
     const hasCollage = !forceSingleImage && collageItems.length === 4;
     const fallbackDisplays = (collageSongs && collageSongs.length > 0) ? collageSongs : (songs && songs.length > 0 ? songs : []);
 
+    const hasValidCover = React.useMemo(() => {
+        if (hasCollage) {
+            return collageItems.some(s => s.coverImage && s.coverImage.trim() !== '' && s.coverImage !== 'null' && s.coverImage !== 'undefined');
+        }
+        return fallbackDisplays.length > 0 && !!(fallbackDisplays[0].coverImage && fallbackDisplays[0].coverImage.trim() !== '' && fallbackDisplays[0].coverImage !== 'null' && fallbackDisplays[0].coverImage !== 'undefined');
+    }, [hasCollage, collageItems, fallbackDisplays]);
+
     return (
         <View style={{
             width: containerWidth,
@@ -95,7 +102,7 @@ export const PlaylistCollage = ({
                 />
             )}
 
-            {hasCollage ? (
+            {hasCollage && hasValidCover ? (
                 <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', flexWrap: 'wrap', opacity }]}>
                     {collageItems.map((s, idx) => (
                         <View key={`collage-${s.id}-${idx}`} style={{ width: '50%', height: '50%' }}>
@@ -108,7 +115,7 @@ export const PlaylistCollage = ({
                         </View>
                     ))}
                 </View>
-            ) : fallbackDisplays.length > 0 ? (
+            ) : (fallbackDisplays.length > 0 && hasValidCover) ? (
                 <View style={[StyleSheet.absoluteFill, { opacity }]}>
                     <MusicImage
                         uri={fallbackDisplays[0].coverImage}
@@ -120,7 +127,7 @@ export const PlaylistCollage = ({
             ) : null}
 
             {/* Only darken when there are songs behind the overlay */}
-            {(hasCollage || fallbackDisplays.length > 0) && (
+            {hasValidCover && (
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: overlayColor }]} />
             )}
 
@@ -147,7 +154,7 @@ export const PlaylistCollage = ({
                 </>
             )}
 
-            {showIcon && (!hideIconIfHasContent || (!hasCollage && fallbackDisplays.length === 0)) && (
+            {showIcon && (!hideIconIfHasContent || !hasValidCover) && (
                 <Ionicons
                     name={iconName as any}
                     size={iconSize}

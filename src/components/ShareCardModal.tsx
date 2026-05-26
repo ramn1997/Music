@@ -10,6 +10,7 @@ import * as Sharing from 'expo-sharing';
 import { GlassCard } from './GlassCard';
 
 const { width } = Dimensions.get('window');
+const CARD_WIDTH = Math.min(width * 0.85, 340);
 
 interface ShareCardModalProps {
     visible: boolean;
@@ -39,7 +40,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ visible, onClose
         setIsSharing(true);
         try {
             // 1. Capture card
-            const uri = await captureRef(cardRef, { format: 'png', quality: 1 });
+            const uri = await captureRef(cardRef, { format: 'png', quality: 1, result: 'tmpfile' });
 
             // 2. Share card
             await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share Card' });
@@ -71,53 +72,55 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ visible, onClose
                 onPress={onClose}
             >
                 <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
-                    <ViewShot ref={cardRef} options={{ format: 'png', quality: 1 }} style={[styles.cardWrapper, { backgroundColor: '#111' }]}>
-                        {/* Premium Share Card */}
-                        <LinearGradient
-                            colors={theme.gradient as any}
-                            style={styles.card}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={styles.artContainer}>
-                                <MusicImage
-                                    uri={song.coverImage}
-                                    id={song.id}
-                                    style={styles.artwork}
-                                    iconSize={100}
-                                />
-                                <LinearGradient
-                                    colors={['transparent', 'rgba(0,0,0,0.4)']}
-                                    style={StyleSheet.absoluteFill}
-                                />
-                            </View>
-
-                            <View style={styles.infoContainer}>
-                                <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
-                                    {song.title}
-                                </Text>
-                                <Text style={[styles.artist, { color: theme.textSecondary }]} numberOfLines={1}>
-                                    {song.artist}
-                                </Text>
-                                <Text style={[styles.album, { color: theme.textSecondary, opacity: 0.6 }]} numberOfLines={1}>
-                                    {song.album || 'Unknown Album'}
-                                </Text>
-                            </View>
-
-                            <View style={styles.footer}>
-                                <View style={styles.logoRow}>
-                                    <Image
-                                        source={require('../../assets/discicon.png')}
-                                        style={styles.appIcon}
+                    <View style={styles.cardShadowContainer}>
+                        <ViewShot ref={cardRef} options={{ format: 'png', quality: 1, result: 'tmpfile' }} style={styles.viewShotContainer}>
+                            {/* Premium Share Card */}
+                            <LinearGradient
+                                colors={theme.gradient as any}
+                                style={styles.card}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <View style={styles.artContainer}>
+                                    <MusicImage
+                                        uri={song.coverImage}
+                                        id={song.id}
+                                        style={styles.artwork}
+                                        iconSize={100}
                                     />
-                                    <Text style={[styles.logoText, { color: theme.text }]}>Music</Text>
+                                    <LinearGradient
+                                        colors={['transparent', 'rgba(0,0,0,0.4)']}
+                                        style={StyleSheet.absoluteFill}
+                                    />
                                 </View>
-                                <View style={[styles.badge, { backgroundColor: theme.primary + '20' }]}>
-                                    <Text style={[styles.badgeText, { color: theme.primary }]}>NOW PLAYING</Text>
+
+                                <View style={styles.infoContainer}>
+                                    <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
+                                        {song.title}
+                                    </Text>
+                                    <Text style={[styles.artist, { color: theme.textSecondary }]} numberOfLines={1}>
+                                        {song.artist}
+                                    </Text>
+                                    <Text style={[styles.album, { color: theme.textSecondary, opacity: 0.6 }]} numberOfLines={1}>
+                                        {song.album || 'Unknown Album'}
+                                    </Text>
                                 </View>
-                            </View>
-                        </LinearGradient>
-                    </ViewShot>
+
+                                <View style={styles.footer}>
+                                    <View style={styles.logoRow}>
+                                        <Image
+                                            source={require('../../assets/discicon.png')}
+                                            style={styles.appIcon}
+                                        />
+                                        <Text style={[styles.logoText, { color: theme.text }]}>Music</Text>
+                                    </View>
+                                    <View style={[styles.badge, { backgroundColor: theme.primary + '20' }]}>
+                                        <Text style={[styles.badgeText, { color: theme.primary }]}>NOW PLAYING</Text>
+                                    </View>
+                                </View>
+                            </LinearGradient>
+                        </ViewShot>
+                    </View>
 
                     {/* Actions */}
                     <View style={styles.actions}>
@@ -126,8 +129,8 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ visible, onClose
                             onPress={handleShareBoth}
                             disabled={isSharing}
                         >
-                            <Ionicons name="share-social-outline" size={20} color="#000" />
-                            <Text style={styles.actionText}>Both</Text>
+                            <Ionicons name="share-social-outline" size={20} color={theme.textOnPrimary || "#000"} />
+                            <Text style={[styles.actionText, { color: theme.textOnPrimary || "#000" }]}>Both</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -169,24 +172,30 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalContent: {
-        width: width * 0.85,
-        alignItems: 'center',
+        width: CARD_WIDTH,
+        alignItems: 'stretch',
     },
-    cardWrapper: {
+    cardShadowContainer: {
         width: '100%',
-        aspectRatio: 0.7,
-        borderRadius: 32,
-        overflow: 'hidden',
         elevation: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 15 },
         shadowOpacity: 0.6,
         shadowRadius: 20,
     },
+    viewShotContainer: {
+        width: '100%',
+        aspectRatio: 0.65,
+        borderRadius: 32,
+        overflow: 'hidden',
+        backgroundColor: 'transparent',
+    },
     card: {
         flex: 1,
         padding: 24,
         justifyContent: 'space-between',
+        borderRadius: 32,
+        overflow: 'hidden',
     },
     artContainer: {
         width: '100%',
@@ -198,9 +207,10 @@ const styles = StyleSheet.create({
     artwork: {
         width: '100%',
         height: '100%',
+        borderRadius: 20,
     },
     infoContainer: {
-        marginTop: 20,
+        // Automatically positioned via flex space-between
     },
     title: {
         fontSize: 24,
@@ -222,7 +232,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 20,
     },
     logoRow: {
         flexDirection: 'row',
@@ -253,30 +262,17 @@ const styles = StyleSheet.create({
         gap: 12,
         marginTop: 30,
         width: '100%',
+        alignItems: 'center',
     },
     actionButton: {
-        flex: 1,
+        height: 52,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        paddingVertical: 14,
         borderRadius: 16,
     },
     actionText: {
-        color: '#000',
-        fontSize: 15,
-        fontFamily: 'PlusJakartaSans_700Bold',
-    },
-    closeButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 14,
-        paddingHorizontal: 16,
-        borderRadius: 16,
-    },
-    closeText: {
         fontSize: 15,
         fontFamily: 'PlusJakartaSans_700Bold',
     },

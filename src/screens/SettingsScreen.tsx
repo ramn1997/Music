@@ -11,6 +11,7 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { CompactImportProgress } from '../components/CompactImportProgress';
 import { useHomeSettings } from '../hooks/HomeSettingsContext';
 import * as Network from 'expo-network';
+import { CustomizeHomeModal } from '../components/CustomizeHomeModal';
 
 export const SettingsScreen = () => {
     const {
@@ -38,6 +39,9 @@ export const SettingsScreen = () => {
 
 
     const { sectionVisibility, toggleSectionVisibility } = useHomeSettings();
+    const [customizeModalVisible, setCustomizeModalVisible] = useState(false);
+    const isGapless = usePlayerStore(state => state.isGapless);
+    const setGapless = usePlayerStore(state => state.setGapless);
 
     // Folder Picker State
     const [folderModalVisible, setFolderModalVisible] = useState(false);
@@ -336,162 +340,40 @@ export const SettingsScreen = () => {
                                 thumbColor={'#f4f3f4'}
                             />
                         </View>
+
+                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+                        <View style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
+                            <View style={styles.toggleRowInfo}>
+                                <Ionicons name="repeat-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Gapless Playback</Text>
+                            </View>
+                            <Switch
+                                value={isGapless}
+                                onValueChange={setGapless}
+                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
+                                thumbColor={'#f4f3f4'}
+                            />
+                        </View>
                     </View>
                 </View>
 
                 <View style={styles.section}>
                     <Text style={[styles.sectionHeader, { color: theme.textSecondary }]}>Home Customization</Text>
                     <View style={[styles.customSectionContainer, { backgroundColor: theme.card }]}>
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="heart-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Liked Songs</Text>
+                        <TouchableOpacity
+                            style={styles.settingsRow}
+                            onPress={() => setCustomizeModalVisible(true)}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.rowIcon}>
+                                <Ionicons name="grid-outline" size={20} color={theme.primary} />
                             </View>
-                            <Switch
-                                value={sectionVisibility.likedSongs}
-                                onValueChange={() => toggleSectionVisibility('likedSongs')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="analytics-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Mostly Played</Text>
+                            <View style={styles.rowContent}>
+                                <Text style={[styles.rowTitle, { color: theme.text }]}>Customize Home Layout</Text>
+                                <Text style={[styles.rowSubtitle, { color: theme.textSecondary }]}>Reorder and toggle Home screen sections</Text>
                             </View>
-                            <Switch
-                                value={sectionVisibility.mostlyPlayed}
-                                onValueChange={() => toggleSectionVisibility('mostlyPlayed')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="heart-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Favorites</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.favorites}
-                                onValueChange={() => toggleSectionVisibility('favorites')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="library-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Playlists</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.playlists}
-                                onValueChange={() => toggleSectionVisibility('playlists')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="time-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Listening History</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.history}
-                                onValueChange={() => toggleSectionVisibility('history')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="stats-chart-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Top Songs</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.topSongs}
-                                onValueChange={() => toggleSectionVisibility('topSongs')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="disc-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Top Albums</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.topAlbums}
-                                onValueChange={() => toggleSectionVisibility('topAlbums')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="people-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Top Artists</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.topArtists}
-                                onValueChange={() => toggleSectionVisibility('topArtists')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
-
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="analytics-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Daily Tracking</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.dailyTracking}
-                                onValueChange={() => toggleSectionVisibility('dailyTracking')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="calendar-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Memory Lane</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.yearMix}
-                                onValueChange={() => toggleSectionVisibility('yearMix')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
-                        <View style={[styles.divider, { backgroundColor: theme.textSecondary + '10' }]} />
-                        <View style={styles.toggleRow}>
-                            <View style={styles.toggleRowInfo}>
-                                <Ionicons name="sparkles-outline" size={20} color={theme.text} style={{ marginRight: 15 }} />
-                                <Text style={[styles.rowTitle, { color: theme.text }]}>Show Daily Mix</Text>
-                            </View>
-                            <Switch
-                                value={sectionVisibility.dailyMix}
-                                onValueChange={() => toggleSectionVisibility('dailyMix')}
-                                trackColor={{ false: '#3e3e3e', true: theme.primary }}
-                                thumbColor={'#f4f3f4'}
-                            />
-                        </View>
+                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -664,6 +546,10 @@ export const SettingsScreen = () => {
                     </View>
                 </View>
             </Modal>
+            <CustomizeHomeModal
+                visible={customizeModalVisible}
+                onClose={() => setCustomizeModalVisible(false)}
+            />
         </ScreenContainer>
     );
 };

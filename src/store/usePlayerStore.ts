@@ -506,8 +506,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         }
 
         // Phase 1 Gapless Engine: Strict Memory + Native-Level Queuing Look-ahead
-        const START_INDEX = finalIndex;
-        const safeWindowEnd = Math.min(finalSongs.length, finalIndex + 2);
+        const START_INDEX = Math.max(0, finalIndex - 2);
+        const safeWindowEnd = Math.min(finalSongs.length, finalIndex + QUEUE_WINDOW_SIZE);
         const window = finalSongs.slice(START_INDEX, safeWindowEnd);
 
         await TrackPlayer.reset();
@@ -522,7 +522,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         });
 
         if (finalSongs.length > finalIndex) {
-            await TrackPlayer.skip(0);
+            await TrackPlayer.skip(finalIndex - START_INDEX);
             await TrackPlayer.play();
 
             const mode = state.repeatMode === 'one' ? RepeatMode.Track
@@ -560,8 +560,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         }
 
         // Phase 1 Gapless Fix: Slice AROUND the current index so ExoPlayer can natively skip back without JS reload.
-        const START_INDEX = finalIndex;
-        const safeWindowEnd = Math.min(finalSongs.length, finalIndex + 2);
+        const START_INDEX = Math.max(0, finalIndex - 2);
+        const safeWindowEnd = Math.min(finalSongs.length, finalIndex + QUEUE_WINDOW_SIZE);
         const window = finalSongs.slice(START_INDEX, safeWindowEnd);
         const tracks = window.map(songToTrack);
 
@@ -570,7 +570,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
         try {
             // Skip to the correct relative position in the newly created native queue
-            await TrackPlayer.skip(0);
+            await TrackPlayer.skip(finalIndex - START_INDEX);
         } catch (e) { }
 
         set({
@@ -830,12 +830,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                 await TrackPlayer.skip(nativeIdx + 1);
                 await TrackPlayer.play();
             } else {
-                const START_INDEX = nextVirtualIdx;
-                const safeWindowEnd = Math.min(playlist.length, nextVirtualIdx + 2);
+                const START_INDEX = Math.max(0, nextVirtualIdx - 2);
+                const safeWindowEnd = Math.min(playlist.length, nextVirtualIdx + QUEUE_WINDOW_SIZE);
                 const window = playlist.slice(START_INDEX, safeWindowEnd);
                 await TrackPlayer.reset();
                 await TrackPlayer.add(window.map(songToTrack));
-                await TrackPlayer.skip(0);
+                await TrackPlayer.skip(nextVirtualIdx - START_INDEX);
                 await TrackPlayer.play();
             }
             
@@ -873,12 +873,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
                 await TrackPlayer.skip(nativeIdx - 1);
                 await TrackPlayer.play();
             } else {
-                const START_INDEX = prevVirtualIdx;
-                const safeWindowEnd = Math.min(playlist.length, prevVirtualIdx + 2);
+                const START_INDEX = Math.max(0, prevVirtualIdx - 2);
+                const safeWindowEnd = Math.min(playlist.length, prevVirtualIdx + QUEUE_WINDOW_SIZE);
                 const window = playlist.slice(START_INDEX, safeWindowEnd);
                 await TrackPlayer.reset();
                 await TrackPlayer.add(window.map(songToTrack));
-                await TrackPlayer.skip(0);
+                await TrackPlayer.skip(prevVirtualIdx - START_INDEX);
                 await TrackPlayer.play();
             }
 
@@ -920,6 +920,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 // Track last scrobbled IDs to avoid double-counting in some window
 let lastRecentPlayedId: string | null = null;
 let lastIncrementedId: string | null = null;
+let lastSkippedTrackId: string | null = null;
 
 // Setup TrackPlayer hooks outside store but interacting with it
 export const initializePlayerEvents = () => {
@@ -944,6 +945,7 @@ export const initializePlayerEvents = () => {
     TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
         const state = usePlayerStore.getState();
         const { track, index } = event;
+        lastSkippedTrackId = null;
 
         if (track) {
             // Find virtual index in our full playlist (MMKV/Zustand side)
@@ -971,6 +973,39 @@ export const initializePlayerEvents = () => {
                     lastRecentPlayedId = String(song.id);
                     useLibraryStore.getState().recordRecentPlay(String(song.id));
                 }
+            }
+
+            // True Gapless Engine: Sliding Window Replenishment
+            try {
+                if (state.isGapless) {
+                    const nativeIdx = await TrackPlayer.getActiveTrackIndex();
+                    const nativeQueue = await TrackPlayer.getQueue();
+                    
+                    // If we are nearing the end of the native buffer (e.g. less than 10 tracks left)
+                    if (nativeIdx !== undefined && nativeIdx !== null && (nativeQueue.length - nativeIdx) <= 10) {
+                        const lastNativeTrackId = nativeQueue[nativeQueue.length > 0 ? nativeQueue.length - 1 : 0]?.id;
+                        const lastNativeIdxInPlaylist = state.playlist.findIndex(s => String(s.id) === String(lastNativeTrackId));
+                        
+                        if (lastNativeIdxInPlaylist !== -1) {
+                            let tracksToAdd: Track[] = [];
+
+                            if (lastNativeIdxInPlaylist + 1 < state.playlist.length) {
+                                // Add next chunk of tracks to the native queue
+                                const chunkEnd = Math.min(state.playlist.length, lastNativeIdxInPlaylist + 1 + (QUEUE_WINDOW_SIZE / 2));
+                                tracksToAdd = state.playlist
+                                    .slice(lastNativeIdxInPlaylist + 1, chunkEnd)
+                                    .map(songToTrack);
+                            }
+                            
+                            if (tracksToAdd.length > 0) {
+                                console.log(`[Gapless Engine] Sliding window replenishment: adding ${tracksToAdd.length} tracks.`);
+                                await TrackPlayer.add(tracksToAdd);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[Gapless Engine] ActiveTrackChanged sliding window error:', e);
             }
         }
     });
@@ -1015,6 +1050,17 @@ export const initializePlayerEvents = () => {
 
             const state = usePlayerStore.getState();
 
+            // Early skip transition for gapless (3 seconds before end)
+            if (state.isGapless && event.duration > 3) {
+                if (pos >= event.duration - 3) {
+                    if (state.currentTrack && lastSkippedTrackId !== String(state.currentTrack.id)) {
+                        lastSkippedTrackId = String(state.currentTrack.id);
+                        console.log(`[Gapless Engine] Early transition: skipping to next track 3s before end of ${state.currentTrack.title}`);
+                        state.nextTrack();
+                    }
+                }
+            }
+
             // Most Played Algorithm: only increment if they've listened for a "significant" duration (15s+)
             if (state.currentTrack && String(state.currentTrack.id) !== lastIncrementedId) {
                 const threshold = Math.min(15, (event.duration || 30) * 0.5);
@@ -1043,44 +1089,8 @@ export const initializePlayerEvents = () => {
                 state.syncWidget();
             }
 
-            if (state.isGapless && event.duration > 0) {
-                // Phase 1: True Gapless - 90% Look-ahead Strategy
-                // Instead of artificially skipping on the JS bridge (which causes latency),
-                // we ensure ExoPlayer's native ConcatenatingMediaSource has the next track buffered.
-                const percentComplete = event.position / event.duration;
-                
-                // If we reach 90% completion and we are near the end of the native queue, top it up.
-                if (percentComplete >= 0.9) {
-                    try {
-                        const nativeIdx = await TrackPlayer.getActiveTrackIndex();
-                        const nativeQueue = await TrackPlayer.getQueue();
-                        
-                        // If we only have 1 or 0 tracks left natively, push the next batch to ensure seamless handoff
-                        if (nativeIdx !== undefined && nativeIdx !== null && (nativeQueue.length - nativeIdx) <= 2) {
-                            const lastNativeTrackId = nativeQueue[nativeQueue.length - nativeIdx > 0 ? nativeQueue.length - 1 : 0]?.id;
-                            const lastNativeIdxInPlaylist = state.playlist.findIndex(s => String(s.id) === String(lastNativeTrackId));
-                            
-                            if (lastNativeIdxInPlaylist !== -1) {
-                                let tracksToAdd: Track[] = [];
-
-                                if (lastNativeIdxInPlaylist + 1 < state.playlist.length) {
-                                    // Add next 3 tracks silently into native queue buffer to maintain strict memory limits
-                                    tracksToAdd = state.playlist
-                                        .slice(lastNativeIdxInPlaylist + 1, lastNativeIdxInPlaylist + 4)
-                                        .map(songToTrack);
-                                }
-                                
-                                if (tracksToAdd.length > 0) {
-                                    console.log('[Gapless Engine] 90% Look-ahead triggered. Pre-buffering next batch seamlessly.');
-                                    await TrackPlayer.add(tracksToAdd);
-                                }
-                            }
-                        }
-                    } catch (e) {
-                         console.warn('[Gapless Engine] Look-ahead buffer checking failed', e);
-                    }
-                }
-            }
+            // True Gapless logic is now handled robustly in PlaybackActiveTrackChanged
+            // No need to poll the progress and check buffer here.
         }
     });
 

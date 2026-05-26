@@ -29,6 +29,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
 }) => {
     const { theme } = useTheme();
     const isPlaying = usePlayerStore(state => state.isPlaying);
+    const seekTo = usePlayerStore(state => state.seekTo);
     const { position: positionSeconds } = useProgress(200);
     const position = positionSeconds * 1000;
     const [syncedLyrics, setSyncedLyrics] = useState<LyricLine[]>([]);
@@ -38,20 +39,47 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
     const [activeIndex, setActiveIndex] = useState(-1);
     const flatListRef = useRef<FlatList>(null);
 
+    const handleLyricPress = useCallback(async (timeMs: number) => {
+        try {
+            await seekTo(timeMs);
+        } catch (e) {
+            console.error('[LyricsModal] Failed to seek to lyric timestamp:', e);
+        }
+    }, [seekTo]);
+
     const parseLRC = (lrc: string): LyricLine[] => {
+        if (!lrc) return [];
         const lines = lrc.split('\n');
         const lyricLines: LyricLine[] = [];
-        const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+        // Support [mm:ss], [mm:ss.F], [mm:ss.FF], [mm:ss.FFF], and comma separator [mm:ss,FF]
+        const timeRegex = /\[(\d{2,3}):(\d{2})(?:[.,](\d{1,3}))?\]/g;
 
         lines.forEach(line => {
-            const match = timeRegex.exec(line);
-            if (match) {
+            timeRegex.lastIndex = 0;
+            const timestamps: number[] = [];
+            let match;
+            let cleanText = line;
+
+            while ((match = timeRegex.exec(line)) !== null) {
                 const minutes = parseInt(match[1]);
                 const seconds = parseInt(match[2]);
-                const ms = parseInt(match[3].padEnd(3, '0'));
+                let ms = 0;
+                if (match[3]) {
+                    const rawMs = match[3];
+                    if (rawMs.length === 1) ms = parseInt(rawMs) * 100;
+                    else if (rawMs.length === 2) ms = parseInt(rawMs) * 10;
+                    else ms = parseInt(rawMs);
+                }
                 const time = minutes * 60000 + seconds * 1000 + ms;
-                const text = line.replace(timeRegex, '').trim();
-                if (text) lyricLines.push({ time, text });
+                timestamps.push(time);
+                cleanText = cleanText.replace(match[0], '');
+            }
+
+            cleanText = cleanText.trim();
+            if (timestamps.length > 0) {
+                timestamps.forEach(time => {
+                    lyricLines.push({ time, text: cleanText || '...' });
+                });
             }
         });
 
@@ -77,10 +105,15 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
         setPlainLyrics(null);
 
         try {
-            // 0. Use saved lyrics if available
+            // 0. Use saved lyrics if available (detect if it is synced LRC format first)
             if (song.lyrics) {
                 console.log('[LyricsModal] Using saved lyrics from song metadata');
-                setPlainLyrics(song.lyrics);
+                const parsed = parseLRC(song.lyrics);
+                if (parsed.length > 0) {
+                    setSyncedLyrics(parsed);
+                } else {
+                    setPlainLyrics(song.lyrics);
+                }
                 setLoading(false);
                 return;
             }
@@ -98,10 +131,13 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
                         return;
                     }
                     if (plain) {
-                        setPlainLyrics(plain);
+                        const parsed = parseLRC(plain);
+                        if (parsed.length > 0) {
+                            setSyncedLyrics(parsed);
+                        } else {
+                            setPlainLyrics(plain);
+                        }
                         setLoading(false);
-                        // Don't return, maybe we can find synced now in background? 
-                        // actually for now let's just use cache to be fast
                         return;
                     }
                 }
@@ -254,6 +290,7 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
         return (
             <TouchableOpacity
                 activeOpacity={0.7}
+                onPress={() => handleLyricPress(item.time)}
                 style={[styles.lyricLineContainer, isActive && styles.activeLineContainer]}
             >
                 <Text style={[
@@ -339,7 +376,17 @@ export const LyricsModal: React.FC<LyricsModalProps> = ({
                             renderItem={renderLyricLine}
                             contentContainerStyle={styles.lyricsScrollContent}
                             showsVerticalScrollIndicator={false}
-                            onScrollToIndexFailed={() => { }}
+                            onScrollToIndexFailed={(info) => {
+                                setTimeout(() => {
+                                    if (flatListRef.current) {
+                                        flatListRef.current.scrollToIndex({
+                                            index: info.index,
+                                            animated: true,
+                                            viewPosition: 0.3
+                                        });
+                                    }
+                                }, 100);
+                            }}
                         />
                     ) : plainLyrics ? (
                         <FlatList

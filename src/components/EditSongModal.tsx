@@ -229,22 +229,49 @@ export const EditSongModal: React.FC<EditSongModalProps> = ({
 
             console.log('[EditSongModal] Searching lyrics for:', cleanArtist, '-', cleanTitle);
 
-            // 1. Try LRCLIB
+            // 1. Try LRCLIB Exact Match API
             try {
                 const response = await fetchWithTimeout(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtist)}&track_name=${encodeURIComponent(cleanTitle)}`);
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.plainLyrics) {
+                    // Prioritize synced lyrics so they scroll automatically
+                    if (data.syncedLyrics) {
+                        setLyrics(data.syncedLyrics);
+                        setIsLyricsLoading(false);
+                        return;
+                    } else if (data.plainLyrics) {
                         setLyrics(data.plainLyrics);
                         setIsLyricsLoading(false);
                         return;
                     }
                 }
             } catch (e) {
-                console.log('[EditSongModal] LRCLIB search failed or timed out:', e instanceof Error ? e.message : String(e));
+                console.log('[EditSongModal] LRCLIB exact match failed/timed out:', e instanceof Error ? e.message : String(e));
             }
 
-            // 2. Fallback to OVH
+            // 2. Try LRCLIB Search API (Fuzzy Search Fallback)
+            try {
+                const searchResponse = await fetchWithTimeout(`https://lrclib.net/api/search?q=${encodeURIComponent(cleanArtist + ' ' + cleanTitle)}`, 4000);
+                if (searchResponse.ok) {
+                    const results = await searchResponse.json();
+                    if (Array.isArray(results) && results.length > 0) {
+                        const match = results[0];
+                        if (match.syncedLyrics) {
+                            setLyrics(match.syncedLyrics);
+                            setIsLyricsLoading(false);
+                            return;
+                        } else if (match.plainLyrics) {
+                            setLyrics(match.plainLyrics);
+                            setIsLyricsLoading(false);
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('[EditSongModal] LRCLIB search API failed/timed out:', e instanceof Error ? e.message : String(e));
+            }
+
+            // 3. Fallback to OVH (Plain text only)
             try {
                 const ovhResponse = await fetchWithTimeout(`https://api.lyrics.ovh/v1/${encodeURIComponent(cleanArtist)}/${encodeURIComponent(cleanTitle)}`);
                 if (ovhResponse.ok) {
