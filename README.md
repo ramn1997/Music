@@ -2,7 +2,7 @@
 
 A premium, comprehensive, and feature-rich music player application built with React Native and Expo. Designed for audiophiles who value aesthetics, performance, and complete control over their local library.
 
-## ✨ New Features & Optimizations
+##  New Features & Optimizations
 
 -   **Deep Metadata Extraction**: Extensively upgraded the native Android scanner and API matching engine to fully support extraction, display, and parsing of "Album Artist" and "Studio/Publisher" metadata directly from ID3 tags and the iTunes API.
 -   **Smart Mixes**: Instantly generate smart "Made For You" curations based on your Top Artists, favorite Genres, and listening history directly on the Home Screen.
@@ -10,20 +10,20 @@ A premium, comprehensive, and feature-rich music player application built with R
 -   **App Minification & Obfuscation**: Enabled R8/ProGuard for Android release building, significantly shrinking app size and embedding deobfuscation maps for seamless Google Play Console crash tracking.
 -   **Next-Gen Performance Engine**: Completely overhauled the React render cycle and background listeners. `SongsScreen`, `AlbumsScreen`, `ArtistsScreen`, `GenresScreen`, and `FavoritesScreen` now use linear `O(1)` algorithmic maps and indexing, eliminating background CPU lockups and maintaining 60fps scrolling on massive libraries.
 
-## ✨ Highlights from v1.6.0
+##  Highlights from v1.6.0
 
 -   **Customizable Home Screen Layout**: Fully personalize your Home Screen experience. Reorder sections and toggle their visibility via a dedicated visual layout customizer panel in the Settings screen.
 -   **Interactive Synced Lyrics (Tap-to-Seek)**: Upgraded lyrics engine supporting full timestamp synchronization (LRC format parsing). Tapping any line of synced lyrics now instantly seeks the audio player to that exact timestamp.
 -   **Interactive Stats & Diagnostics Dashboard**: Transforming the About screen with real-time statistics (total tracks, playlists, liked tracks, folders), daily listening analytics, an interactive rotating disc animation, and a hidden developer diagnostics console (activated by tapping the version pill 7 times).
 
-## ✨ Highlights from v1.5.0
+##  Highlights from v1.5.0
 
 -   **Adaptive Landscape Experience**: Full side-navigation sidebar support for tablets and landscape orientations, ensuring every screen is perfectly responsive.
 -   **Integrated MiniPlayer**: A compact, sidebar-integrated MiniPlayer featuring a minimalist "Art-Pill" design with overlay controls for seamless landscape playback.
 -   **Refined Artwork Carousel**: Perfectly balanced and non-overlapping swipable artwork in landscape mode for both Material and Classic player styles, featuring subtle transparency and scaled side-art.
 -   **Intelligent Voice Search**: Robust error handling and improved stability for voice-activated commands, including informative feedback in limited environments.
 
-## ✨ Highlights from v1.4.0
+##  Highlights from v1.4.0
 
 -   **Daily Listening Analytics**: Track your total play counts and active listening time for today, fully persistent across sessions.
 -   **Weekly Insights Graph**: A stunning, neon-accented 7-day bar chart that visualizes your listening trends and highlights your peak session of the week.
@@ -32,7 +32,7 @@ A premium, comprehensive, and feature-rich music player application built with R
 -   **Advanced Customization**: New settings toggles allow you to enable or disable Daily Tracking and Fresh Mix modules independently.
 -   **Material Player Refinement**: Upgraded playback interface with bold 900-weight typography and a perfectly balanced layout for song metadata.
 
-## ✨ Highlights from v1.3.0
+##  Highlights from v1.3.0
 
 -   **Material Design 3 Overhaul**: A stunning, consistent Material Design aesthetic applied across the Home, Playlists, Genres, and Favorites screens, featuring 24dp "squircle" corner radii, modern pill-shaped search bars, and flat borderless cards.
 -   **Playlists Grid Redesign**: A beautifully restored 2-column Material grid layout for playlists, focusing on spacious tap targets and clean typography.
@@ -42,14 +42,14 @@ A premium, comprehensive, and feature-rich music player application built with R
 -   **Favorites Screen Dashboard Overhaul**: Fully redesigned to elegantly display Favorited Playlists, Artists, Albums, and now seamlessly integrates Favorited Genres.
 -   **Immersive About Screen**: A modernized, premium About Screen featuring floating logo animations and interactive gradient styling.
 
-## ✨ Highlights from v1.2.0
+##  Highlights from v1.2.0
 
 -   **Equalizer Overhaul**: A modern, sleek, and minimalist redesign for precise acoustic control.
 -   **Zero-Flicker Artist Imagery**: Synchronous in-memory caches paired with background synchronization completely eliminates artist image loading flickers on the Home Screen.
 -   **Peak UI Scrolling Performance**: Replaced legacy default lists (`FlatList`) with Shopify's `FlashList` on Favorites, Years, and Most Played screens.
 -   **React Lifecycle Tuning**: Re-architected rendering procedures with `React.memo` and stable callbacks (`React.useCallback`) across the entire Home Screen and list modules, drastically cutting CPU overhead.
 
-## ✨ Highlights from v1.1.0
+##  Highlights from v1.1.0
 
 -   **Artist Image Customization**: Personalize your library by picking artist images from your gallery, searching the web (Deezer API), or resetting to defaults.
 -   **Deep Meta-Scan**: Enhanced metadata engine that fetches high-resolution (600x600px) artwork and detailed song info from the iTunes API.
